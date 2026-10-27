@@ -54,7 +54,9 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
     async def mapping_update(h,c,msg):
         try:
             result=await mappings.update(msg['endpoint'],msg['revision'],msg['patch'],h.states,lambda:admin(c))
-            data.cache.clear();runtime.reset(msg['endpoint']);admin(c);c.send_result(msg['id'],result)
+            data.cache.clear();runtime.reset(msg['endpoint'])
+            if 'radar' in msg['patch'] and state.get('radar'):state['radar'].reset(msg['endpoint'])
+            admin(c);c.send_result(msg['id'],result)
         except Conflict:deny(c,msg,'mapping_conflict','Source mappings changed. Reload mappings; your template draft is retained.')
         except ValueError as error:deny(c,msg,'mapping_invalid',str(error))
         except Exception:deny(c,msg,'mapping_save_failed','Could not persist source mappings. Previous live mappings retained; reload before retrying.')

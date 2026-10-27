@@ -4,6 +4,7 @@ import asyncio
 import copy
 import logging
 import secrets
+import time as monotonic_time
 from datetime import datetime, time, timedelta
 from pathlib import Path
 from functools import wraps
@@ -17,6 +18,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.auth.permissions.const import POLICY_READ
 from homeassistant.util import dt as dt_util
 from .grants import Grants
+from .radar import Radar, validate as validate_radar, sources as radar_sources
 from .layouts import Layouts, Conflict, save_verified
 from .semantics import assess, validate_policy, METRICS
 from .display import validate_config, default_config, selection
@@ -30,7 +32,7 @@ SOURCE=vol.Schema({vol.Required('entity'):cv.entity_id,vol.Required('label'):LAB
 DISPLAY=vol.Schema({vol.Optional('locale',default='en'):vol.In(['en','de','pl']),vol.Optional('config'):validate_config,vol.Optional('weather'):cv.entity_id,vol.Optional('status',default=[]):vol.All([vol.Schema({vol.Required('entity'):cv.entity_id,vol.Required('label'):LABEL})],vol.Length(max=64)),vol.Optional('mode_entity'):cv.entity_id,vol.Optional('page_entity'):cv.entity_id})
 ENDPOINT=vol.Schema({vol.Required('id'):vol.Match(r'^[a-z][a-z0-9_-]{0,39}$'),vol.Required('name'):LABEL,
     vol.Optional('semantic_version'):vol.In([1]),vol.Optional('metadata_source'):vol.Schema({'component':LABEL,'revision':vol.All(str,vol.Length(max=160))}),
-    vol.Optional('display'):DISPLAY,vol.Optional('studio'):validate_sources,
+    vol.Optional('radar'):validate_radar,vol.Optional('display'):DISPLAY,vol.Optional('studio'):validate_sources,
     vol.Required('dashboard'):vol.All(str,vol.Match(r'^/(?!/|auth/|api/)[A-Za-z0-9_/-]+$')),
     vol.Optional('temperature',default=[]):vol.All([SOURCE],vol.Length(max=64)),
     vol.Optional('air',default=[]):vol.All([SOURCE],vol.Length(max=64)),
@@ -51,6 +53,9 @@ async def async_setup_entry(hass,entry):
     settings=CONFIG_SCHEMA({DOMAIN:{'endpoints':[dict(entry.data['endpoint'])]}})[DOMAIN]
     try:return await _async_setup_bridge(hass,settings,'ui',entry.entry_id)
     except Exception:
+        failed=hass.data.get(DOMAIN,{})
+        if radar:=failed.get('radar'):radar.close()
+        if cancel:=failed.get('radar_cancel'):cancel()
         hass.data.pop(DOMAIN,None)
         frontend.async_remove_panel(hass,DOMAIN,warn_if_unknown=False)
         raise
@@ -65,6 +70,8 @@ async def async_unload_entry(hass,entry):
     state['grants'].challenges.clear()
     state['grants'].pending.clear()
     for unsubscribe in list(state.get('subscriptions',())):unsubscribe()
+    if radar:=state.get('radar'):radar.close()
+    if cancel:=state.get('radar_cancel'):cancel()
     hass.data.pop(DOMAIN)
     frontend.async_remove_panel(hass,DOMAIN)
     return True
@@ -107,6 +114,19 @@ async def _async_setup_bridge(hass,settings,source,entry_id=None):
         hass.data[DOMAIN]['studio_ready']=True
     except Exception:
         logging.getLogger(__name__).exception('Frame Studio unavailable; legacy display remains active')
+    state=hass.data[DOMAIN]
+    def later(delay,fn):
+        handle=hass.loop.call_later(delay,fn)
+        return handle.cancel
+    def emit(eid,payload):
+        if hass.data.get(DOMAIN) is state:hass.bus.async_fire(DOMAIN+'_event',{**payload,'endpoint':eid,'radar':True})
+    radar=state['radar']=Radar(endpoints,hass.states,emit,later,monotonic_time.monotonic)
+    @callback
+    def radar_changed(event):
+        for eid,endpoint in endpoints.items():
+            if event.data.get('entity_id') in radar_sources(endpoint.get('radar',{})):radar.refresh(eid)
+    state['radar_cancel']=hass.bus.async_listen('state_changed',radar_changed)
+    for eid in endpoints:radar.refresh(eid)
     for command in [layout_get,layout_save,profile,begin,finish,status,data,display,dashboard,subscribe,devices,approve,revoke,remove_device,screen]:register_command(hass,command)
     await register_static_paths(hass,[StaticPathConfig('/domosenso_frame/panel.js',str(Path(__file__).with_name('panel.js')),False),StaticPathConfig('/domosenso_frame/editor.js',str(Path(__file__).with_name('editor.js')),False),StaticPathConfig('/domosenso_frame/editor-model.js',str(Path(__file__).with_name('editor-model.js')),False),StaticPathConfig('/domosenso_frame/ui/0.1.0',str(Path(__file__).parent/'ui/0.1.0'),False)])
     frontend.async_register_built_in_panel(hass,'custom',sidebar_title='DomoSenso Frame',sidebar_icon='mdi:tablet-dashboard',frontend_url_path=DOMAIN,require_admin=True,
@@ -254,9 +274,20 @@ def subscribe(hass,connection,msg):
     def event(event):
         if event.data.get('deviceId')==proof['deviceId'] and event.data['kind']=='revoked':
             connection.send_event(msg['id'],{'kind':'revoked'});return
-        try:current,_=grant(hass,connection)
+        try:current,endpoint=grant(hass,connection)
         except ValueError:return
-        if event.data.get('endpoint')==current['endpoint']:connection.send_event(msg['id'],{'kind':'screen','action':event.data['action']})
+        if event.data.get('endpoint')!=current['endpoint']:return
+        if event.data.get('radar') and not can_read(endpoint):return
+        payload={'kind':'screen','action':event.data['action']}
+        if event.data.get('radar'):
+            if endpoint.get('radar'):
+                radar=hass.data[DOMAIN].get('radar')
+                payload=radar.snapshot(current['endpoint']) if radar else None
+                if payload is None:return
+            else:payload={'kind':'screen','action':'release','mode':'ambient'}
+        connection.send_event(msg['id'],payload)
+    def can_read(endpoint):
+        return all(connection.user.permissions.check_entity(eid,POLICY_READ) for eid in radar_sources(endpoint.get('radar',{})))
     subscriptions=hass.data[DOMAIN]['subscriptions']
     lifecycle=hass.data[DOMAIN]['lifecycle_listeners']
     cancel=hass.bus.async_listen(DOMAIN+'_event',event)
@@ -267,6 +298,11 @@ def subscribe(hass,connection,msg):
     subscriptions.add(unsubscribe)
     connection.subscriptions[msg['id']]=unsubscribe
     connection.send_result(msg['id'])
+    if radar:=hass.data[DOMAIN].get('radar'):
+        try:
+            current,endpoint=grant(hass,connection)
+            if can_read(endpoint) and (payload:=radar.snapshot(current['endpoint'])):connection.send_event(msg['id'],payload)
+        except ValueError:pass
 
 @command('devices')
 @websocket_api.require_admin

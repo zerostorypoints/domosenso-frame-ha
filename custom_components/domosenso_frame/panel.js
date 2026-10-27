@@ -12,7 +12,7 @@ class DomoSensoFramePanel extends HTMLElement {
   const tabs=document.createElement('nav');tabs.style.cssText='display:flex;flex-wrap:wrap;gap:8px;padding:12px 24px;background:#e6edf2';
   for(const [label,view] of [['Get started','welcome'],['Template Studio','studio'],['Devices and pairing','devices']])tabs.append(makeButton(label,()=>show(view)));
   const links=document.createElement('div');links.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
-  for(const [label,group] of [['Map temperature','rooms'],['Map air','air'],['Map weather','weather'],['Map calendars','calendars'],['Map media','media']])links.append(makeButton(label,async()=>{show('studio');if(!this.editor.mapping)await this.editor.loadMappings();if(this.editor.mapping)this.editor.openMapping(group);}));
+  for(const [label,group] of [['Map radar','radar'],['Map temperature','rooms'],['Map air','air'],['Map weather','weather'],['Map calendars','calendars'],['Map media','media']])links.append(makeButton(label,async()=>{show('studio');if(!this.editor.mapping)await this.editor.loadMappings();if(this.editor.mapping)this.editor.openMapping(group);}));
   this.welcome.append(links);this.replaceChildren(tabs,this.welcome,this.editor,this.grants);show('welcome');
  }
  connectedCallback(){this.timer=setInterval(()=>this.refresh(),5000);}

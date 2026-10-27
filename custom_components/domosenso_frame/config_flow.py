@@ -52,5 +52,9 @@ class FrameConfigFlow(config_entries.ConfigFlow,domain=DOMAIN):
             vol.Optional('weather'):entities('weather'),
             vol.Optional('calendars'):entities('calendar',True),
             vol.Optional('media'):entities('media_player'),
+            vol.Optional('radar_presence'):entities('binary_sensor'),
+            vol.Optional('radar_distance'):entities('sensor'),
+            vol.Optional('radar_near_m',default=1.5):selector.NumberSelector(selector.NumberSelectorConfig(min=0.1,max=20,step=0.1,mode=selector.NumberSelectorMode.BOX,unit_of_measurement='m')),
+            vol.Optional('radar_off_delay_s',default=300):selector.NumberSelector(selector.NumberSelectorConfig(min=1,max=3600,step=1,mode=selector.NumberSelectorMode.BOX,unit_of_measurement='s')),
         })
         return self.async_show_form(step_id='sources',data_schema=self.add_suggested_values_to_schema(schema,user_input),errors=errors,description_placeholders={'suggested_count':str(count)})

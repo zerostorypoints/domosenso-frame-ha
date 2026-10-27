@@ -185,3 +185,41 @@ See [Frame Studio source mapping documentation](frame-studio.md#installation-awa
 for patch semantics, candidate bounds, navigation fallback and negotiated media controls. Ordinary
 runtime requests continue to check device grants and per-user entity permissions, including after
 awaits and cache reads. Discovery is admin-only and cannot grant a display access to an entity.
+
+## Optional radar mapping (0.3.1)
+
+The setup wizard accepts an explicit presence `binary_sensor`, an optional distance `sensor`,
+a near threshold (default 1.5 m), and an absence delay (default 300 seconds). In the sidebar,
+**Get started → Map radar** edits the same mapping for both UI and YAML endpoints. Overrides are
+saved separately in `domosenso_frame_mappings`; household YAML, templates, grants, scripts and
+scheduler helpers are not rewritten. **Disable radar**, then **Save sources** removes the binding.
+Presence source selection is explicit; metadata never selects a source automatically. Distance
+supports m, cm, mm, in and ft, converted to metres. The editor also exposes hysteresis (default
+0.25 m): near begins at the threshold, far begins above threshold plus hysteresis.
+
+Admin WebSocket reads use `domosenso_frame/studio_mappings` with `version: 1` and `endpoint`.
+Update with `domosenso_frame/studio_mappings_update`, those fields, the returned `revision`, and:
+
+```json
+{"patch":{"radar":{"presence":"binary_sensor.radar_presence","distance":"sensor.radar_distance","near_m":1.5,"off_delay_s":300,"hysteresis_m":0.25}}}
+```
+
+Send `{"patch":{"radar":{}}}` to disable. Presence is required when enabled; distance is optional.
+Threshold range is 0.1–20 m, delay 1–3600 seconds and hysteresis 0.05–2 m. Configuration validates
+source existence/type/units; reload retains valid persisted selections while devices are offline.
+
+Granted subscribers receive only `{kind:"screen",action:"wake"|"dim"|"release",mode?:"controls"|"ambient"}`.
+Presence wakes the screen; near distance requests controls, far (or unavailable distance) requests
+ambient. Absence emits no screen action before its configured delay, then dims the screen.
+Unknown/unavailable presence cancels the delay and emits `release` without a mode. This clears
+a deferred dim intent and returns screen ownership to Android without forcing dim or choosing
+a display mode. Repeated unknown states do not repeat the event. Every delivery checks
+the current device grant, endpoint and the HA user's read permissions for **both** selected sources.
+A new subscription evaluates current states. Delayed events recheck current states at delivery;
+no raw source identifiers or measurements are sent to the tablet. Unload cancels listeners/timers.
+
+Existing HA Companion launcher automations remain owned by the installation and can reopen
+Companion over the DomoSenso app. Review these conflicts explicitly before a pilot; this mapping
+never disables automations. Screen control remains best effort while the app and connection are
+alive, with no long-Doze or reboot guarantee. Radar changes neither an HA display template nor
+scheduler mode/page helpers.

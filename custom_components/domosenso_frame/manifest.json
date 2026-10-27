@@ -1,7 +1,7 @@
 {
   "domain": "domosenso_frame",
   "name": "DomoSenso Frame",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "documentation": "https://github.com/zerostorypoints/domosenso-frame-ha",
   "dependencies": [
     "websocket_api",

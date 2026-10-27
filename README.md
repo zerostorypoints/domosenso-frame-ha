@@ -7,7 +7,7 @@ arrange screens in Frame Studio and approve Android tablets using a six-digit co
 Works with DomoSenso installations and vanilla Home Assistant. The Android/AI app
 is maintained separately; this repository contains no app binaries or AI models.
 
-**Version 0.3.0 is an alpha/pilot release. Requires Home Assistant 2026.9.2 or newer.**
+**Version 0.3.1 is an alpha/pilot release. Requires Home Assistant 2026.9.2 or newer.**
 
 ## Install through HACS
 
@@ -42,6 +42,30 @@ they do not narrow the existing permissions of the HA account used on the tablet
 DomoSenso component metadata provides mapping suggestions. Vanilla HA uses the
 same entity selectors. Suggestions never grant access automatically; the
 administrator chooses the sources. Raw air readings do not imply health thresholds.
+
+## Optional presence radar
+
+Choose a presence sensor and, optionally, a distance sensor when configuring the
+integration. You can edit the mapping later in **DomoSenso Frame → Template Studio
+→ Map sources → Radar**, including for an existing YAML endpoint.
+
+The default near threshold is 1.5 m, with a 0.25 m hysteresis to avoid repeated
+switching at the boundary. Absence dims the screen after 300 seconds. Unavailable
+or unknown readings do not count as absence; they cancel pending dimming and return
+screen control to Android, preserving active manual/voice controls. Presence alone can wake/dim; distance
+adds near/far controls behavior. All selections remain explicit and permission checked.
+
+Android 0.7.0 receives radar events while its process and HA connection are alive.
+The normal frame is full screen; a small **Kontrolki** button opens connection,
+voice and display controls. Near detection can open controls automatically; moving
+away closes only controls opened by the radar. Manual controls and voice remain
+under the user's control. Long sleep, process death and reboot recovery are not
+promised by this pilot.
+
+Existing Home Assistant automations keep their ownership. If an older frame setup
+launches HA Companion, its launcher must be reviewed before using the Android
+Frame app as the display client. Mapping a radar does not disable or rewrite those
+automations automatically.
 
 ## Layouts and existing installations
 
