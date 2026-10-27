@@ -1,0 +1,426 @@
+{
+  "classic": {
+    "version": 2,
+    "name": "Ramka Classic",
+    "locale": "en",
+    "theme": "classic",
+    "modes": [
+      {
+        "id": "controls",
+        "screens": [
+          {
+            "id": "controls",
+            "title": "Controls",
+            "duration": 0,
+            "requires": [],
+            "widgets": [
+              {
+                "id": "media-controls",
+                "type": "media-controls",
+                "layout": {
+                  "x": 0,
+                  "y": 0,
+                  "w": 6,
+                  "h": 7
+                }
+              },
+              {
+                "id": "covers",
+                "type": "covers",
+                "layout": {
+                  "x": 6,
+                  "y": 0,
+                  "w": 6,
+                  "h": 5
+                }
+              },
+              {
+                "id": "lights",
+                "type": "lights",
+                "layout": {
+                  "x": 6,
+                  "y": 5,
+                  "w": 6,
+                  "h": 7
+                }
+              },
+              {
+                "id": "navigation",
+                "type": "navigation",
+                "layout": {
+                  "x": 0,
+                  "y": 7,
+                  "w": 6,
+                  "h": 2
+                },
+                "options": {
+                  "target": "calendar"
+                }
+              },
+              {
+                "id": "clock",
+                "type": "clock",
+                "layout": {
+                  "x": 0,
+                  "y": 9,
+                  "w": 6,
+                  "h": 3
+                }
+              }
+            ]
+          },
+          {
+            "id": "calendar",
+            "title": "Calendar",
+            "duration": 0,
+            "requires": [],
+            "widgets": [
+              {
+                "id": "calendar",
+                "type": "calendar",
+                "layout": {
+                  "x": 0,
+                  "y": 0,
+                  "w": 12,
+                  "h": 10
+                }
+              },
+              {
+                "id": "navigation",
+                "type": "navigation",
+                "layout": {
+                  "x": 0,
+                  "y": 10,
+                  "w": 12,
+                  "h": 2
+                },
+                "options": {
+                  "target": "controls"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ambient",
+        "screens": [
+          {
+            "id": "climate",
+            "title": "Climate",
+            "duration": 30,
+            "requires": [],
+            "widgets": [
+              {
+                "id": "clock",
+                "type": "clock",
+                "layout": {
+                  "x": 0,
+                  "y": 0,
+                  "w": 4,
+                  "h": 3
+                }
+              },
+              {
+                "id": "weather",
+                "type": "weather",
+                "layout": {
+                  "x": 4,
+                  "y": 0,
+                  "w": 8,
+                  "h": 3
+                },
+                "options": {
+                  "days": 4
+                }
+              },
+              {
+                "id": "rooms",
+                "type": "rooms",
+                "layout": {
+                  "x": 0,
+                  "y": 3,
+                  "w": 12,
+                  "h": 5
+                }
+              },
+              {
+                "id": "temperature-history",
+                "type": "history",
+                "layout": {
+                  "x": 0,
+                  "y": 8,
+                  "w": 6,
+                  "h": 4
+                },
+                "options": {
+                  "metric": "temperature",
+                  "days": 7
+                }
+              },
+              {
+                "id": "humidity-history",
+                "type": "history",
+                "layout": {
+                  "x": 6,
+                  "y": 8,
+                  "w": 6,
+                  "h": 4
+                },
+                "options": {
+                  "metric": "humidity",
+                  "days": 7
+                }
+              }
+            ]
+          },
+          {
+            "id": "air",
+            "title": "Air quality",
+            "duration": 15,
+            "requires": [
+              "air"
+            ],
+            "widgets": [
+              {
+                "id": "air",
+                "type": "air",
+                "layout": {
+                  "x": 0,
+                  "y": 0,
+                  "w": 12,
+                  "h": 7
+                }
+              },
+              {
+                "id": "co2-history",
+                "type": "history",
+                "layout": {
+                  "x": 0,
+                  "y": 7,
+                  "w": 6,
+                  "h": 5
+                },
+                "options": {
+                  "metric": "co2",
+                  "days": 1
+                }
+              },
+              {
+                "id": "pm25-history",
+                "type": "history",
+                "layout": {
+                  "x": 6,
+                  "y": 7,
+                  "w": 6,
+                  "h": 5
+                },
+                "options": {
+                  "metric": "pm25",
+                  "days": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "plants",
+            "title": "Plants",
+            "duration": 20,
+            "requires": [
+              "plants"
+            ],
+            "widgets": [
+              {
+                "id": "plants",
+                "type": "plants",
+                "layout": {
+                  "x": 0,
+                  "y": 0,
+                  "w": 12,
+                  "h": 12
+                }
+              }
+            ]
+          },
+          {
+            "id": "photos",
+            "title": "Photos",
+            "duration": 50,
+            "requires": [
+              "photos"
+            ],
+            "widgets": [
+              {
+                "id": "photos",
+                "type": "photos",
+                "layout": {
+                  "x": 0,
+                  "y": 0,
+                  "w": 12,
+                  "h": 12
+                },
+                "options": {
+                  "interval": 10,
+                  "count": 5
+                }
+              }
+            ]
+          },
+          {
+            "id": "status",
+            "title": "Home status",
+            "duration": 15,
+            "requires": [
+              "status"
+            ],
+            "widgets": [
+              {
+                "id": "status",
+                "type": "status",
+                "layout": {
+                  "x": 0,
+                  "y": 0,
+                  "w": 12,
+                  "h": 12
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "media",
+        "screens": [
+          {
+            "id": "music",
+            "title": "Music",
+            "duration": 0,
+            "requires": [],
+            "widgets": [
+              {
+                "id": "media",
+                "type": "media",
+                "layout": {
+                  "x": 0,
+                  "y": 0,
+                  "w": 12,
+                  "h": 9
+                }
+              },
+              {
+                "id": "clock",
+                "type": "clock",
+                "layout": {
+                  "x": 0,
+                  "y": 9,
+                  "w": 3,
+                  "h": 3
+                }
+              },
+              {
+                "id": "weather",
+                "type": "weather",
+                "layout": {
+                  "x": 3,
+                  "y": 9,
+                  "w": 5,
+                  "h": 3
+                },
+                "options": {
+                  "days": 0
+                }
+              },
+              {
+                "id": "mains",
+                "type": "mains",
+                "layout": {
+                  "x": 8,
+                  "y": 9,
+                  "w": 4,
+                  "h": 3
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "blank": {
+    "version": 2,
+    "name": "Blank",
+    "locale": "en",
+    "theme": "modern",
+    "modes": [
+      {
+        "id": "controls",
+        "screens": [
+          {
+            "id": "home",
+            "title": "Home",
+            "duration": 0,
+            "requires": [],
+            "widgets": [
+              {
+                "id": "clock",
+                "type": "clock",
+                "layout": {
+                  "x": 0,
+                  "y": 0,
+                  "w": 12,
+                  "h": 12
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ambient",
+        "screens": [
+          {
+            "id": "home",
+            "title": "Home",
+            "duration": 0,
+            "requires": [],
+            "widgets": [
+              {
+                "id": "clock",
+                "type": "clock",
+                "layout": {
+                  "x": 0,
+                  "y": 0,
+                  "w": 12,
+                  "h": 12
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "media",
+        "screens": [
+          {
+            "id": "home",
+            "title": "Home",
+            "duration": 0,
+            "requires": [],
+            "widgets": [
+              {
+                "id": "clock",
+                "type": "clock",
+                "layout": {
+                  "x": 0,
+                  "y": 0,
+                  "w": 12,
+                  "h": 12
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1488 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 2
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "locale": {
+      "enum": [
+        "en",
+        "de",
+        "pl"
+      ]
+    },
+    "theme": {
+      "enum": [
+        "classic",
+        "modern"
+      ]
+    },
+    "modes": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "enum": [
+              "controls",
+              "ambient",
+              "media"
+            ]
+          },
+          "screens": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "duration": {
+                  "anyOf": [
+                    {
+                      "const": 0
+                    },
+                    {
+                      "type": "integer",
+                      "minimum": 10,
+                      "maximum": 600
+                    }
+                  ]
+                },
+                "requires": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "maxItems": 16,
+                  "items": {
+                    "enum": [
+                      "temperature",
+                      "air",
+                      "weather",
+                      "status",
+                      "rooms",
+                      "plants",
+                      "media",
+                      "mains",
+                      "history",
+                      "calendar",
+                      "photos",
+                      "lights",
+                      "covers"
+                    ]
+                  }
+                },
+                "widgets": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 12,
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "clock"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {},
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "weather"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "days": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 4
+                              }
+                            },
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "rooms"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {},
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "air"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {},
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "history"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "metric": {
+                                "enum": [
+                                  "temperature",
+                                  "humidity",
+                                  "co2",
+                                  "pm25",
+                                  "power"
+                                ]
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 7
+                              }
+                            },
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "status"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {},
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "plants"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {},
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "media"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {},
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "mains"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {},
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "media-controls"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {},
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "lights"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {},
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "covers"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {},
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "navigation"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "target": {
+                                "enum": [
+                                  "controls",
+                                  "ambient",
+                                  "media",
+                                  "calendar"
+                                ]
+                              }
+                            },
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "calendar"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {},
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                          },
+                          "type": {
+                            "const": "photos"
+                          },
+                          "layout": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "portrait": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "x": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "y": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 23
+                              },
+                              "w": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              },
+                              "h": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 24
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "w",
+                              "h"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "interval": {
+                                "type": "integer",
+                                "minimum": 5,
+                                "maximum": 120
+                              },
+                              "count": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 30
+                              }
+                            },
+                            "required": []
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "layout"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "duration",
+                "requires",
+                "widgets"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "screens"
+        ]
+      }
+    }
+  },
+  "required": [
+    "version",
+    "name",
+    "locale",
+    "theme",
+    "modes"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

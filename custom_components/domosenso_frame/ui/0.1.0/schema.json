@@ -1,0 +1,175 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "locale": {
+      "enum": [
+        "en",
+        "de",
+        "pl"
+      ]
+    },
+    "screens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "widgets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                },
+                "type": {
+                  "enum": [
+                    "clock",
+                    "weather",
+                    "measurements",
+                    "status"
+                  ]
+                },
+                "size": {
+                  "enum": [
+                    "small",
+                    "wide",
+                    "full"
+                  ]
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "topic": {
+                  "enum": [
+                    "temperature",
+                    "air"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "size"
+              ],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "type": {
+                        "const": "measurements"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "topic"
+                    ]
+                  },
+                  "else": {
+                    "not": {
+                      "required": [
+                        "topic"
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 24
+          },
+          "requires": {
+            "type": "array",
+            "maxItems": 4,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "weather",
+                "temperature",
+                "air",
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "widgets"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 16
+    },
+    "modes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "enum": [
+              "ambient",
+              "controls",
+              "media"
+            ]
+          },
+          "screens": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+            },
+            "minItems": 1,
+            "maxItems": 16,
+            "uniqueItems": true
+          },
+          "rotationSeconds": {
+            "anyOf": [
+              {
+                "const": 0
+              },
+              {
+                "type": "integer",
+                "minimum": 10,
+                "maximum": 600
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "screens",
+          "rotationSeconds"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 3
+    }
+  },
+  "required": [
+    "version",
+    "locale",
+    "screens",
+    "modes"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

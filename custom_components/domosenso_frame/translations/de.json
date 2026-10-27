@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "DomoSenso Frame einrichten",
+        "description": "Erstellen Sie einen Frame-Endpunkt für die Android-App. Ein eigenes Dashboard oder YAML ist nicht erforderlich. Quellen können Sie später in der Seitenleiste unter DomoSenso Frame ändern.",
+        "data": {
+          "name": "Name des Frames",
+          "locale": "Anzeigesprache"
+        }
+      },
+      "sources": {
+        "title": "Optionale Quellen auswählen",
+        "description": "Wählen Sie die Quellen für diesen Frame aus. Alle Felder sind optional; ohne Auswahl wird die Uhr angezeigt. {suggested_count} geeignete Quellen tragen Komponentenmarkierungen. Diese sind Hinweise, keine automatische Berechtigung. Luftsensoren zeigen Messwerte ohne erfundene Grenzwerte. Öffnen Sie anschliessend DomoSenso Frame in der Seitenleiste für Quellen, Vorlagen und Gerätekopplung. Vergleichen Sie den sechsstelligen Code auf dem Tablet vor der Freigabe.",
+        "data": {
+          "temperature": "Temperatursensoren",
+          "air": "Luftmesssensoren",
+          "weather": "Wetterentität",
+          "calendars": "Kalender",
+          "media": "Mediaplayer"
+        }
+      }
+    },
+    "error": {
+      "invalid_settings": "Geben Sie einen Namen mit 1–80 Zeichen ein und wählen Sie eine unterstützte Sprache.",
+      "invalid_sources": "Wählen Sie vorhandene Quellen des passenden Typs: höchstens 32 Temperatur- und 32 Luftsensoren sowie 16 Kalender, ohne doppelte Einträge."
+    },
+    "abort": {
+      "already_configured": "DomoSenso Frame ist bereits eingerichtet. Öffnen Sie DomoSenso Frame in der Seitenleiste, um Quellen zu ändern oder ein Tablet zu koppeln.",
+      "yaml_configured": "DomoSenso Frame ist über YAML eingerichtet. Vorhandene Endpunkte und Freigaben bleiben erhalten. Öffnen Sie DomoSenso Frame in der Seitenleiste und verwenden Sie Map sources oder Devices and pairing. Die Einrichtung ersetzt kein YAML."
+    }
+  }
+}
