@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfiguracja DomoSenso Frame",
+        "description": "Utwórz panel dla aplikacji Android. Nie potrzebujesz własnego dashboardu ani YAML. Źródła możesz później zmienić w DomoSenso Frame w menu bocznym.",
+        "data": {
+          "name": "Nazwa panelu",
+          "locale": "Język wyświetlania"
+        }
+      },
+      "sources": {
+        "title": "Wybierz opcjonalne źródła",
+        "description": "Wybierz źródła dla tego panelu. Wszystkie pola są opcjonalne; bez wyboru panel zaczyna od zegara. {suggested_count} pasujących źródeł ma znaczniki komponentów. To wskazówki, a nie automatyczne uprawnienia. Czujniki powietrza pokazują pomiary bez wymyślonych progów oceny. Po zapisaniu otwórz DomoSenso Frame w menu bocznym, aby zmienić źródła i szablony lub sparować urządzenie. Przed zatwierdzeniem porównaj sześciocyfrowy kod na tablecie.",
+        "data": {
+          "temperature": "Czujniki temperatury",
+          "air": "Czujniki jakości powietrza",
+          "weather": "Encja pogody",
+          "calendars": "Kalendarze",
+          "media": "Odtwarzacz multimediów"
+        }
+      }
+    },
+    "error": {
+      "invalid_settings": "Podaj nazwę panelu o długości 1–80 znaków i wybierz obsługiwany język.",
+      "invalid_sources": "Wybierz istniejące źródła właściwego typu: maksymalnie 32 czujniki temperatury, 32 czujniki powietrza i 16 kalendarzy, bez powtórzeń."
+    },
+    "abort": {
+      "already_configured": "DomoSenso Frame jest już skonfigurowany. Otwórz DomoSenso Frame w menu bocznym, aby zmienić źródła lub sparować tablet.",
+      "yaml_configured": "DomoSenso Frame jest skonfigurowany w YAML. Istniejące panele i uprawnienia pozostają zachowane. Otwórz DomoSenso Frame w menu bocznym i wybierz Map sources lub Devices and pairing. Kreator nie zastępuje konfiguracji YAML."
+    }
+  }
+}

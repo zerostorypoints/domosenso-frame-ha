@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up DomoSenso Frame",
+        "description": "Create one frame endpoint for the Android app. No custom dashboard or YAML is needed. You can edit source mappings later in the DomoSenso Frame sidebar.",
+        "data": {
+          "name": "Frame name",
+          "locale": "Display language"
+        }
+      },
+      "sources": {
+        "title": "Choose optional sources",
+        "description": "Select only the sources you want this frame to use. All fields are optional; an empty selection starts with the clock. {suggested_count} eligible sources carry component markers; markers are hints, never automatic permission. Air sensors show measurements without invented quality thresholds. After submitting, open DomoSenso Frame in the sidebar for source mappings, templates and device pairing. Compare the six-digit code on the tablet before approving it.",
+        "data": {
+          "temperature": "Temperature sensors",
+          "air": "Air measurement sensors",
+          "weather": "Weather entity",
+          "calendars": "Calendars",
+          "media": "Media player"
+        }
+      }
+    },
+    "error": {
+      "invalid_settings": "Enter a frame name of 1–80 characters and choose a supported language.",
+      "invalid_sources": "Select existing sources of the indicated type. Use at most 32 temperature sensors, 32 air sensors and 16 calendars, without duplicates."
+    },
+    "abort": {
+      "already_configured": "DomoSenso Frame is already configured. Open DomoSenso Frame in the sidebar to edit source mappings or pair a tablet.",
+      "yaml_configured": "DomoSenso Frame is configured in YAML. Existing endpoints and grants are preserved. Open DomoSenso Frame in the sidebar and use Map sources or Devices and pairing. UI setup does not replace YAML."
+    }
+  }
+}

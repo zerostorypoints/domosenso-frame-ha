@@ -1,0 +1,20 @@
+{
+  "domain": "domosenso_frame",
+  "name": "DomoSenso Frame",
+  "version": "0.3.0",
+  "documentation": "https://github.com/zerostorypoints/domosenso-frame-ha",
+  "dependencies": [
+    "websocket_api",
+    "frontend",
+    "http",
+    "script",
+    "automation"
+  ],
+  "requirements": [],
+  "codeowners": [
+    "@zerostorypoints"
+  ],
+  "iot_class": "local_push",
+  "config_flow": true,
+  "issue_tracker": "https://github.com/zerostorypoints/domosenso-frame-ha/issues"
+}

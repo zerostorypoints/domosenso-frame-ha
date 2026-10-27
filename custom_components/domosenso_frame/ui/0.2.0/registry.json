@@ -1,0 +1,182 @@
+{
+  "clock": {
+    "label": "Clock",
+    "category": "Time and weather",
+    "min": [
+      3,
+      2
+    ],
+    "options": {}
+  },
+  "weather": {
+    "label": "Weather and forecast",
+    "category": "Time and weather",
+    "min": [
+      4,
+      2
+    ],
+    "options": {
+      "days": {
+        "integer": [
+          0,
+          4
+        ]
+      }
+    }
+  },
+  "rooms": {
+    "label": "Room climate",
+    "category": "Climate and air",
+    "min": [
+      4,
+      3
+    ],
+    "options": {}
+  },
+  "air": {
+    "label": "Air assessment",
+    "category": "Climate and air",
+    "min": [
+      4,
+      3
+    ],
+    "options": {}
+  },
+  "history": {
+    "label": "History chart",
+    "category": "Climate and air",
+    "min": [
+      4,
+      2
+    ],
+    "options": {
+      "metric": {
+        "enum": [
+          "temperature",
+          "humidity",
+          "co2",
+          "pm25",
+          "power"
+        ]
+      },
+      "days": {
+        "integer": [
+          1,
+          7
+        ]
+      }
+    }
+  },
+  "status": {
+    "label": "Home status",
+    "category": "Home and plants",
+    "min": [
+      4,
+      3
+    ],
+    "options": {}
+  },
+  "plants": {
+    "label": "Plants",
+    "category": "Home and plants",
+    "min": [
+      4,
+      3
+    ],
+    "options": {}
+  },
+  "media": {
+    "label": "Now playing",
+    "category": "Media",
+    "min": [
+      4,
+      4
+    ],
+    "options": {}
+  },
+  "mains": {
+    "label": "Mains power",
+    "category": "Media",
+    "min": [
+      3,
+      2
+    ],
+    "options": {}
+  },
+  "media-controls": {
+    "label": "Media controls",
+    "category": "Controls",
+    "min": [
+      4,
+      4
+    ],
+    "options": {}
+  },
+  "lights": {
+    "label": "Lights",
+    "category": "Controls",
+    "min": [
+      4,
+      3
+    ],
+    "options": {}
+  },
+  "covers": {
+    "label": "Covers",
+    "category": "Controls",
+    "min": [
+      4,
+      3
+    ],
+    "options": {}
+  },
+  "navigation": {
+    "label": "Screen navigation",
+    "category": "Controls",
+    "min": [
+      3,
+      2
+    ],
+    "options": {
+      "target": {
+        "enum": [
+          "controls",
+          "ambient",
+          "media",
+          "calendar"
+        ]
+      }
+    }
+  },
+  "calendar": {
+    "label": "Agenda",
+    "category": "Calendar",
+    "min": [
+      6,
+      4
+    ],
+    "options": {}
+  },
+  "photos": {
+    "label": "Photo gallery",
+    "category": "Photos",
+    "min": [
+      4,
+      4
+    ],
+    "options": {
+      "interval": {
+        "integer": [
+          5,
+          120
+        ]
+      },
+      "count": {
+        "integer": [
+          1,
+          30
+        ]
+      }
+    }
+  }
+}
