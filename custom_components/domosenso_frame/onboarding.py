@@ -26,4 +26,6 @@ def build_endpoint(settings,states):
     patch={'rooms':rooms,'air':air,'calendars':selected('calendars',16)}
     if settings.get('weather'):patch['weather']=settings['weather']
     if settings.get('media'):patch['media']={'entity':settings['media']}
+    if settings.get('radar_presence') or settings.get('radar_distance'):
+        patch['radar']={key:settings['radar_'+key] for key in ('presence','distance','near_m','off_delay_s') if settings.get('radar_'+key) is not None}
     return merge_patch(endpoint,patch,states)

@@ -17,7 +17,11 @@
           "air": "Luftmesssensoren",
           "weather": "Wetterentität",
           "calendars": "Kalender",
-          "media": "Mediaplayer"
+          "media": "Mediaplayer",
+          "radar_presence": "Radar-Anwesenheit (optional)",
+          "radar_distance": "Radar-Distanz (optional, m/cm/mm/in/ft)",
+          "radar_near_m": "Nahbereich (m)",
+          "radar_off_delay_s": "Verzögerung bei Abwesenheit (Sekunden)"
         }
       }
     },

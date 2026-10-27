@@ -17,7 +17,11 @@
           "air": "Air measurement sensors",
           "weather": "Weather entity",
           "calendars": "Calendars",
-          "media": "Media player"
+          "media": "Media player",
+          "radar_presence": "Radar presence (optional)",
+          "radar_distance": "Radar distance (optional, m/cm/mm/in/ft)",
+          "radar_near_m": "Near distance (m)",
+          "radar_off_delay_s": "Absence delay (seconds)"
         }
       }
     },

@@ -17,7 +17,11 @@
           "air": "Czujniki jakości powietrza",
           "weather": "Encja pogody",
           "calendars": "Kalendarze",
-          "media": "Odtwarzacz multimediów"
+          "media": "Odtwarzacz multimediów",
+          "radar_presence": "Obecność z radaru (opcjonalnie)",
+          "radar_distance": "Odległość z radaru (opcjonalnie, m/cm/mm/in/ft)",
+          "radar_near_m": "Próg bliskości (m)",
+          "radar_off_delay_s": "Opóźnienie po odejściu (sekundy)"
         }
       }
     },
