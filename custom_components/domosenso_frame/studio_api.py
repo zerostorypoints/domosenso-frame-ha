@@ -12,6 +12,8 @@ from .studio_data import Data
 from .studio_mappings import Mappings,save_mappings_verified
 from .studio_actions import validate_action,perform,takeover
 from .layouts import save_verified
+from .assistant_api import inventory_diagnostics
+from .assistant_bindings import catalog as assistant_catalog
 
 async def setup(hass,grant,reading,display_snapshot,register_command,register_static_paths):
     state=hass.data['domosenso_frame'];mapping_store=Store(hass,1,'domosenso_frame_mappings')
@@ -29,7 +31,16 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
         script=scripts.get_entity(runtime.get('legacy_loop')) if scripts and runtime.get('legacy_loop') else None
         installed[eid]=runtime.get('durations') or installed_durations(script.raw_config,runtime.get('page')) if script else runtime.get('durations',{})
     # Capture normalized legacy automation IDs as the baseline before any editable overrides.
-    mappings=state['studio_mappings']=Mappings(state['endpoints'],mapping_saved,persist_mappings)
+    def assistant_context():
+        inventory=hass.states.get('sensor.domosenso_components')
+        records=getattr(inventory,'attributes',{}).get('components',[]) if inventory else []
+        verified,errors=inventory_diagnostics(state.get('assistant_artifacts',{}),records)
+        return verified,{**state.get('assistant_errors',{}),**errors},records
+    mappings=state['studio_mappings']=Mappings(state['endpoints'],mapping_saved,persist_mappings,lambda:assistant_context()[0])
+    def with_assistant_catalog(result):
+        verified,errors,records=assistant_context()
+        result['assistantCatalog']=assistant_catalog(verified,errors,records,state['endpoints'][result['endpoint']],hass.states)
+        return result
     await lib.initialize({id:state['layouts'].get(id) for id,e in state['endpoints'].items() if 'display' in e},installed)
     runtime=state['studio_runtime']=Runtime();data=state['studio_data']=Data(hass,reading,display_snapshot,runtime);state['studio_clients']={}
     def command(name,fields={}):return websocket_api.websocket_command({vol.Required('type'):'domosenso_frame/'+name,**fields})
@@ -46,7 +57,7 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
     @callback
     def mapping_get(h,c,msg):
         try:
-            admin(c);c.send_result(msg['id'],mappings.get(msg['endpoint'],h.states))
+            admin(c);c.send_result(msg['id'],with_assistant_catalog(mappings.get(msg['endpoint'],h.states)))
         except Exception:deny(c,msg)
     @command('studio_mappings_update',{**mapping_fields,vol.Required('revision'):vol.All(str,vol.Match(r'^[a-f0-9]{64}$')),vol.Required('patch'):dict})
     @websocket_api.require_admin
@@ -56,7 +67,7 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
             result=await mappings.update(msg['endpoint'],msg['revision'],msg['patch'],h.states,lambda:admin(c))
             data.cache.clear();runtime.reset(msg['endpoint'])
             if 'radar' in msg['patch'] and state.get('radar'):state['radar'].reset(msg['endpoint'])
-            admin(c);c.send_result(msg['id'],result)
+            admin(c);c.send_result(msg['id'],with_assistant_catalog(result))
         except Conflict:deny(c,msg,'mapping_conflict','Source mappings changed. Reload mappings; your template draft is retained.')
         except ValueError as error:deny(c,msg,'mapping_invalid',str(error))
         except Exception:deny(c,msg,'mapping_save_failed','Could not persist source mappings. Previous live mappings retained; reload before retrying.')

@@ -134,7 +134,7 @@ async def _async_setup_bridge(hass,settings,source,entry_id=None):
     state['radar_cancel']=hass.bus.async_listen('state_changed',radar_changed)
     for eid in endpoints:radar.refresh(eid)
     for command in [layout_get,layout_save,profile,begin,finish,status,data,display,dashboard,subscribe,devices,approve,revoke,remove_device,screen]:register_command(hass,command)
-    await register_static_paths(hass,[StaticPathConfig('/domosenso_frame/panel.js',str(Path(__file__).with_name('panel.js')),False),StaticPathConfig('/domosenso_frame/editor.js',str(Path(__file__).with_name('editor.js')),False),StaticPathConfig('/domosenso_frame/editor-model.js',str(Path(__file__).with_name('editor-model.js')),False),StaticPathConfig('/domosenso_frame/ui/0.1.0',str(Path(__file__).parent/'ui/0.1.0'),False)])
+    await register_static_paths(hass,[StaticPathConfig('/domosenso_frame/assistant-panel.js',str(Path(__file__).with_name('assistant-panel.js')),False),StaticPathConfig('/domosenso_frame/panel.js',str(Path(__file__).with_name('panel.js')),False),StaticPathConfig('/domosenso_frame/editor.js',str(Path(__file__).with_name('editor.js')),False),StaticPathConfig('/domosenso_frame/editor-model.js',str(Path(__file__).with_name('editor-model.js')),False),StaticPathConfig('/domosenso_frame/ui/0.1.0',str(Path(__file__).parent/'ui/0.1.0'),False)])
     frontend.async_register_built_in_panel(hass,'custom',sidebar_title='DomoSenso Frame',sidebar_icon='mdi:tablet-dashboard',frontend_url_path=DOMAIN,require_admin=True,
       config={'_panel_custom':{'name':'domosenso-frame-panel','module_url':'/domosenso_frame/panel.js','embed_iframe':False,'trust_external':False}})
     return True

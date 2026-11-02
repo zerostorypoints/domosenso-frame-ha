@@ -8,6 +8,7 @@ import os
 import tempfile
 import uuid
 from .layouts import Conflict,save_verified
+from .assistant_bindings import validate_selections, validate_new_selections
 from .radar import validate as validate_radar, eligible as radar_eligible
 
 GROUPS={'rooms','air','weather','calendars','media','lights','covers','status','mains','radar','assistant'}
@@ -88,7 +89,8 @@ def merge_patch(endpoint,patch,states=None):
         if states is not None and v not in previous and not eligible(states.get(v),kind):raise ValueError('Select an existing eligible entity')
     for key,value in patch.items():
         if key=='assistant':
-            shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive'])
+            shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive','component_sources'])
+            validate_selections(value.get('component_sources',[]))
             if not {'subjects','sensitive'}<=set(value) or type(value['sensitive']) is not bool or not isinstance(value['subjects'],list) or len(value['subjects'])>100:raise ValueError('Invalid assistant mapping')
             if any(k in value and type(value[k]) is not bool for k in ('calendar_sensitive','presence_sensitive')):raise ValueError('Invalid sensitive exposure')
             explanations=value.get('explanations',[])
@@ -178,7 +180,8 @@ def merge_patch(endpoint,patch,states=None):
     return out
 
 class Mappings:
-    def __init__(self,endpoints,saved,persist):
+    def __init__(self,endpoints,saved,persist,assistant_artifacts=None):
+        self.assistant_artifacts=assistant_artifacts
         self.endpoints=endpoints;self.defaults=copy.deepcopy(endpoints);self.saved=copy.deepcopy(saved);self.persist=persist;self.lock=asyncio.Lock()
         if not isinstance(saved,dict):raise ValueError('Invalid saved mappings')
         for eid,entry in saved.items():
@@ -194,6 +197,10 @@ class Mappings:
         async with self.lock:
             authorize()
             if revision!=self.get(eid,states)['revision']:raise Conflict('Source mappings changed. Reload mappings; your template draft is retained.')
+            def validate_component_change():
+                if self.assistant_artifacts is not None and 'assistant' in patch:
+                    validate_new_selections(self.endpoints[eid].get('assistant',{}).get('component_sources',[]), patch['assistant'].get('component_sources',[]), self.assistant_artifacts())
+            validate_component_change()
             effective=merge_patch(self.endpoints[eid],patch,states);updated=copy.deepcopy(self.saved)
             # Store only explicitly edited groups, separate from YAML and templates. Nested keys merge.
             combined=copy.deepcopy(updated.get(eid,{}).get('patch',{}))
@@ -207,6 +214,7 @@ class Mappings:
             try:
                 await self.persist(copy.deepcopy(updated));authorize()
                 merge_patch(self.endpoints[eid],patch,states)
+                validate_component_change()
             except Exception:
                 await self.persist(copy.deepcopy(self.saved));raise
             self.saved=updated;self.endpoints[eid]=effective

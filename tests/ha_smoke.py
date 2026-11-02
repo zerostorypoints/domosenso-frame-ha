@@ -27,13 +27,13 @@ async def main():
     loader.async_setup(hass)
     hass.config.time_zone='Europe/Zurich'
     try:
-        config={'http':{'server_host':'127.0.0.1','server_port':8123},'domosenso_frame':{'endpoints':[{'id':'frame','name':'Demo frame','dashboard':'/dashboard-ramka/ramka','temperature':[{'entity':'sensor.demo_temperature','label':'Office'}]}]}}
+        config={'http':{'server_host':'127.0.0.1','server_port':8123},'domosenso_frame':{'endpoints':[{'id':'frame','name':'Demo frame','dashboard':'/dashboard-ramka/ramka','display':{},'temperature':[{'entity':'sensor.demo_temperature','label':'Office'}]}]}}
         assert await bootstrap.async_from_config_dict(config,hass), 'component setup failed'
         state=hass.data['domosenso_frame']
         assert state.get('assistant_ready'), 'assistant setup failed'
         assert state.get('studio_ready'), 'studio regressed'
         if compiler_fixtures:
-            assert set(state['assistant_artifacts']) == {'climate-air','floorplan'}, 'compiler artifacts missing'
+            assert set(state['assistant_artifacts']) == {'climate-air','floorplan','plants'}, 'compiler artifacts missing'
             records=[dict(bundle['component'],installed=True,package='') for bundle in state['assistant_artifacts'].values()]
             hass.states.async_set('sensor.domosenso_components',len(records),{'components':records})
             state['endpoints']['frame']['assistant']={'explanations':['floorplan']}
@@ -83,11 +83,48 @@ async def main():
             assert explanation and explanation['facts'][0]['componentId']=='floorplan', 'floorplan explanation missing'
             assert explanation['facts'][0]['basis']=='installed_metadata', 'floorplan metadata basis missing'
             assert explanation['facts'][0]['liveStatus']=='not_assessed', 'floorplan live status was assessed'
+        if compiler_fixtures:
+            plant_bundle=state['assistant_artifacts']['plants']
+            plant=plant_bundle['bindings']['subjects'][0]
+            values={'moisture':('20','%'),'conductivity':('500','µS/cm'),'brightness':('800','lx'),'temperature':('22','°C'),
+                    'last_watered':('2026-10-28T10:00:00+00:00',''),'water_in_days':('2','d'),'drying_rate':('-0.2','%/h'),'brightness_peak':('1000','lx')}
+            for role,field in plant['fields'].items():
+                eid=field['entity']
+                if role=='plant':
+                    hass.states.async_set(eid,'problem',{'problem':'moisture low'})
+                else:
+                    registered=registry.async_get_or_create('sensor','xiaomi_ble','demo-'+role,suggested_object_id=eid.split('.',1)[1])
+                    assert registered.entity_id==eid, 'fixture source identity changed'
+                    value,unit=values[role];hass.states.async_set(eid,value,{'unit_of_measurement':unit})
+            offered=await request(20,'studio_mappings',version=1,endpoint='frame')
+            assert offered and offered['assistantCatalog'], 'admin metadata missing'
+            proposals=next(c for c in offered['assistantCatalog']['components'] if c['id']=='plants')['subjects']
+            selection=proposals[0]['selection']
+            assert proposals[0]['missing']==0, 'compiled source roles do not exist'
+            assistant={**offered['mappings']['assistant'],'subjects':[],'sensitive':False,'component_sources':[selection]}
+            saved=await request(21,'studio_mappings_update',version=1,endpoint='frame',revision=offered['revision'],patch={'assistant':assistant})
+            assert saved and saved['mappings']['assistant']['component_sources']==[selection], 'explicit component source save failed'
+            pairs=[{'queryType':'plant-query.v1','answerType':t} for t in ('plant-watering.v1','plant-status.v1')]
+            discovered=await request(22,'assistant_capabilities',endpoint='frame',version=1,supported=pairs)
+            assert len(discovered['capabilities'])==2, 'selected plants not advertised'
+            answers={}
+            for index,cap in enumerate(discovered['capabilities']):
+                answer=await request(23+index,'assistant_query',endpoint='frame',version=1,capability=cap['id'],revision=1,answerType=cap['answerType'],arguments={})
+                assert answer and answer['availability']=='ready', 'compiled plant query unavailable'
+                answers[cap['id']]=answer
+            assert answers['plants.watering_need']['summary']['status']=='needs_water', 'non-default component band ignored'
+            assert answers['plants.status']['summary']['status']=='problem', 'plant provider flags lost'
+            Path(hass.config.path('assistant-acceptance.json')).write_text(json.dumps({'capabilities':discovered,'answers':answers},ensure_ascii=False))
+            # Simulate missing/mismatched deployment without changing saved selections.
+            before=state['assistant_artifacts'];state['assistant_artifacts']={}
+            disabled=await request(26,'assistant_capabilities',endpoint='frame',version=1,supported=pairs)
+            assert not disabled['capabilities'], 'removed metadata silently became a manual adapter'
+            state['assistant_artifacts']=before
         state['grants'].revoke(pending['deviceId'])
         await request(6,'assistant_query',endpoint='frame',version=1,capability='climate-air.temperature',revision=1,answerType='temperature.v1',arguments={})
         assert 6 in connection.errors and 6 not in connection.results
         summary={'setup':'ok','studio':'ok','profile':'v1','pairing':'signed-and-approved','capabilities':'ok','query':'qualified unknown source','directTemperature':'ok','ruuviIndex':'ok','revocation':'denied'}
-        if compiler_fixtures:summary.update({'compilerArtifacts':'loaded','floorplan':'explanation-only'})
+        if compiler_fixtures:summary.update({'compilerArtifacts':'loaded','floorplan':'explanation-only','plants':'compiled-selected-and-queried','metadataRemoval':'disabled'})
         print(json.dumps(summary))
     finally:
         await hass.async_stop(force=True)

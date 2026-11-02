@@ -1,5 +1,6 @@
 """Pure bounded request helpers for the assistant bridge."""
 from datetime import date, datetime, time, timedelta
+from .assistant_bindings import selected_subjects, source_identity
 
 
 def calendar_window(arguments, today, tz):
@@ -33,6 +34,22 @@ def calendar_window(arguments, today, tz):
             datetime.combine(selected + timedelta(days=days), time.min, tzinfo=tz))
 
 
+def same_bound_subject(manual, component):
+    """A shared ambient sensor is not the identity of a plant."""
+    if manual.get('kind') != component['kind']:
+        return False
+    if manual['key'] == component['key']:
+        return True
+    left, right = manual.get('fields', {}), component['fields']
+    if component['kind'] == 'plant':
+        for role in ('plant', 'moisture'):
+            if role in left and role in right:
+                return source_identity(left[role]) == source_identity(right[role])
+        return False
+    return any(role in left and source_identity(left[role]) == source_identity(field)
+               for role, field in right.items())
+
+
 def merge_verified_bindings(endpoint, artifacts):
     """Intersect every artifact field with explicitly selected endpoint fields."""
     import copy
@@ -48,6 +65,24 @@ def merge_verified_bindings(endpoint, artifacts):
     if studio.get('media',{}).get('entity'):allowed.add(studio['media']['entity'])
     if endpoint.get('display',{}).get('weather'):allowed.add(endpoint['display']['weather'])
     result=copy.deepcopy(manual)
+    manual_rows=list(result)
+    for subject in selected_subjects(endpoint, artifacts):
+        matches=[r for r in manual_rows if same_bound_subject(r,subject)]
+        if len(matches)>1:continue
+        if matches:
+            row=matches[0]
+            for role,field in subject['fields'].items():row.setdefault('fields',{}).setdefault(role,field)
+            # A manual source replacement cannot inherit another source's assessment policy.
+            original=next(r for r in artifacts[subject['_component']]['bindings']['subjects'] if r['key']==subject['key'])
+            if all(source_identity(row['fields'].get(role,{}))==source_identity(field) for role,field in original['fields'].items()):
+                row['limits']={**copy.deepcopy(subject.get('limits',{})),**row.get('limits',{})}
+            for name in ('roomKey','roomLabel','indoor'):
+                if name in subject:row.setdefault(name,copy.deepcopy(subject[name]))
+        else:result.append(subject)
+    # Once explicit component selection is used, legacy entity-level grants cannot
+    # reintroduce reassigned or removed roles. Manual/direct adapters still work.
+    if 'component_sources' in endpoint.get('assistant',{}):
+        return result
     for cid,bundle in artifacts.items():
         for subject in bundle['bindings']['subjects']:
             fields={role:copy.deepcopy(field) for role,field in subject['fields'].items() if field['entity'] in allowed}

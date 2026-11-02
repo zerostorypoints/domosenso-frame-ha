@@ -1,15 +1,17 @@
 """Tests for bounded assistant date selection without HA."""
-import importlib.util
+import importlib
+import sys
+import types
 from datetime import date
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
 
-path = Path(__file__).parents[1] / 'custom_components/domosenso_frame/assistant_data.py'
-spec = importlib.util.spec_from_file_location('assistant_data', path)
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
+pkg = types.ModuleType('calendar_test_package')
+pkg.__path__ = [str(Path(__file__).parents[1] / 'custom_components/domosenso_frame')]
+sys.modules[pkg.__name__] = pkg
+module = importlib.import_module(pkg.__name__ + '.assistant_data')
 
 
 def test_local_calendar_window_crosses_dst_with_local_midnights():
