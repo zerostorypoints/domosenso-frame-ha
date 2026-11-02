@@ -1,0 +1,1354 @@
+{
+  "capabilities": {
+    "version": 1,
+    "asOf": "2026-10-31T12:00:00+00:00",
+    "capabilities": [
+      {
+        "id": "climate-air.temperature",
+        "revision": 1,
+        "queryType": "temperature-query.v1",
+        "answerType": "temperature.v1",
+        "title": {
+          "en": "Temperature",
+          "de": "Temperatur",
+          "pl": "Temperatura"
+        },
+        "description": {
+          "en": "Read mapped room temperatures.",
+          "de": "Zugeordnete Raumtemperaturen lesen.",
+          "pl": "Odczyt temperatury przypisanych pomieszczeń."
+        },
+        "examples": {
+          "en": [
+            "What is the temperature?"
+          ],
+          "de": [
+            "Wie ist die Temperatur?"
+          ],
+          "pl": [
+            "Jaka jest temperatura?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "12ae7bf2-a88e-5d2c-a1fd-f4608f30d20e",
+            "kind": "room",
+            "label": "Study",
+            "roomId": "12ae7bf2-a88e-5d2c-a1fd-f4608f30d20e"
+          }
+        ]
+      },
+      {
+        "id": "lights.explain",
+        "revision": 1,
+        "queryType": "component-query.v1",
+        "answerType": "component-description.v1",
+        "title": {
+          "en": "Lights",
+          "de": "Lights",
+          "pl": "Lights"
+        },
+        "description": {
+          "en": "Reported lights",
+          "de": "Reported lights",
+          "pl": "Reported lights"
+        },
+        "examples": {
+          "en": [
+            "Which lights are on?"
+          ],
+          "de": [
+            "Which lights are on?"
+          ],
+          "pl": [
+            "Which lights are on?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "8d9b0d39-8f53-5a81-a838-d859e19cf79b",
+            "kind": "component",
+            "label": {
+              "en": "Lights",
+              "de": "Lights",
+              "pl": "Lights"
+            }
+          }
+        ]
+      },
+      {
+        "id": "plants.watering_need",
+        "revision": 1,
+        "queryType": "plant-query.v1",
+        "answerType": "plant-watering.v1",
+        "title": {
+          "en": "Plant watering",
+          "de": "Pflanzen gießen",
+          "pl": "Podlewanie roślin"
+        },
+        "description": {
+          "en": "Compare plant moisture with its configured band.",
+          "de": "Pflanzenfeuchte mit ihrem eingestellten Bereich vergleichen.",
+          "pl": "Porównanie wilgotności z ustawionym zakresem."
+        },
+        "examples": {
+          "en": [
+            "Which plants need water?"
+          ],
+          "de": [
+            "Welche Pflanzen brauchen Wasser?"
+          ],
+          "pl": [
+            "Które rośliny wymagają podlewania?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "177e2e07-5a8b-57bc-8f62-46adac8e5ec5",
+            "kind": "plant",
+            "label": {
+              "en": "Fern",
+              "de": "Farn",
+              "pl": "Paproć"
+            },
+            "roomId": "6ba43fb1-b722-5ca1-b210-3dbf6ed03130",
+            "roomLabel": {
+              "en": "Study",
+              "de": "Arbeitszimmer",
+              "pl": "Gabinet"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ramka.status",
+        "revision": 1,
+        "queryType": "status-query.v1",
+        "answerType": "frame.v1",
+        "title": {
+          "en": "Frame",
+          "de": "Rahmen",
+          "pl": "Ramka"
+        },
+        "description": {
+          "en": "Read the reported frame configuration.",
+          "de": "Gemeldete Rahmenkonfiguration lesen.",
+          "pl": "Odczyt zgłaszanej konfiguracji ramki."
+        },
+        "examples": {
+          "en": [
+            "What is the frame showing?"
+          ],
+          "de": [
+            "Was zeigt der Rahmen?"
+          ],
+          "pl": [
+            "Co pokazuje ramka?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [
+          "reported_state_only"
+        ],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "6cc8c126-9e61-5da9-b5b7-087b5829c681",
+            "kind": "frame",
+            "label": "Frame"
+          }
+        ]
+      },
+      {
+        "id": "backup.status",
+        "revision": 1,
+        "queryType": "status-query.v1",
+        "answerType": "backup.v1",
+        "title": {
+          "en": "Backups",
+          "de": "Sicherungen",
+          "pl": "Kopie zapasowe"
+        },
+        "description": {
+          "en": "Read reported local backup information.",
+          "de": "Gemeldete lokale Sicherungen lesen.",
+          "pl": "Odczyt informacji o lokalnych kopiach."
+        },
+        "examples": {
+          "en": [
+            "When was the last backup?"
+          ],
+          "de": [
+            "Wann war die letzte Sicherung?"
+          ],
+          "pl": [
+            "Kiedy była ostatnia kopia?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "61c96c47-1a03-55e1-8bd9-0e94661b02af",
+            "kind": "backup",
+            "label": "Backup"
+          }
+        ]
+      },
+      {
+        "id": "audio-sensor.level",
+        "revision": 1,
+        "queryType": "audio-query.v1",
+        "answerType": "audio-level.v1",
+        "title": {
+          "en": "Sound level",
+          "de": "Schallpegel",
+          "pl": "Poziom dźwięku"
+        },
+        "description": {
+          "en": "Read the configured sound sensor.",
+          "de": "Den konfigurierten Schallsensor lesen.",
+          "pl": "Odczyt skonfigurowanego czujnika dźwięku."
+        },
+        "examples": {
+          "en": [
+            "What level does the sensor report?"
+          ],
+          "de": [
+            "Welchen Pegel meldet der Sensor?"
+          ],
+          "pl": [
+            "Jaki poziom zgłasza czujnik?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [
+          "uncalibrated"
+        ],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "4f73f0a7-63d9-5674-8216-25624794ded8",
+            "kind": "audio_source",
+            "label": "Sound"
+          }
+        ]
+      },
+      {
+        "id": "bermuda-presence.observations",
+        "revision": 1,
+        "queryType": "presence-query.v1",
+        "answerType": "presence.v1",
+        "title": {
+          "en": "Presence observations",
+          "de": "Anwesenheitsbeobachtungen",
+          "pl": "Obserwacje obecności"
+        },
+        "description": {
+          "en": "Read explicitly shared device observations.",
+          "de": "Freigegebene Gerätebeobachtungen lesen.",
+          "pl": "Odczyt udostępnionych obserwacji urządzeń."
+        },
+        "examples": {
+          "en": [
+            "Which shared devices are detected?"
+          ],
+          "de": [
+            "Welche freigegebenen Geräte werden erkannt?"
+          ],
+          "pl": [
+            "Które udostępnione urządzenia wykryto?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [
+          "reported_state_only"
+        ],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "32385f85-d235-5495-98f1-67d46de8553d",
+            "kind": "presence_source",
+            "label": "Phone"
+          }
+        ]
+      },
+      {
+        "id": "weather.current",
+        "revision": 1,
+        "queryType": "weather-query.v1",
+        "answerType": "weather.v1",
+        "title": {
+          "en": "Weather",
+          "de": "Wetter",
+          "pl": "Pogoda"
+        },
+        "description": {
+          "en": "Read reported current weather.",
+          "de": "Gemeldetes Wetter lesen.",
+          "pl": "Odczyt zgłaszanej pogody."
+        },
+        "examples": {
+          "en": [
+            "What is the weather?"
+          ],
+          "de": [
+            "Wie ist das Wetter?"
+          ],
+          "pl": [
+            "Jaka jest pogoda?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [
+          "provider_sync_unknown",
+          "reported_state_only"
+        ],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "8d3c2aaf-2522-5f7f-a04c-be10463c8132",
+            "kind": "weather",
+            "label": "Weather"
+          }
+        ]
+      },
+      {
+        "id": "awnings.status",
+        "revision": 1,
+        "queryType": "awning-query.v1",
+        "answerType": "awnings.v1",
+        "title": {
+          "en": "Awnings",
+          "de": "Markisen",
+          "pl": "Markizy"
+        },
+        "description": {
+          "en": "Read reported awning status.",
+          "de": "Gemeldeten Markisenstatus lesen.",
+          "pl": "Odczyt zgłaszanego stanu markiz."
+        },
+        "examples": {
+          "en": [
+            "Are the awnings extended?"
+          ],
+          "de": [
+            "Sind die Markisen ausgefahren?"
+          ],
+          "pl": [
+            "Czy markizy są rozwinięte?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [
+          "reported_state_only"
+        ],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "3de0ebd0-f60c-5a08-84f9-fcb104bcd8ad",
+            "kind": "awning",
+            "label": "Patio"
+          }
+        ]
+      },
+      {
+        "id": "climate-air.air_readings",
+        "revision": 1,
+        "queryType": "air-query.v1",
+        "answerType": "air.v1",
+        "title": {
+          "en": "Air",
+          "de": "Luft",
+          "pl": "Powietrze"
+        },
+        "description": {
+          "en": "Read mapped air measurements.",
+          "de": "Zugeordnete Luftmesswerte lesen.",
+          "pl": "Odczyt pomiarów powietrza."
+        },
+        "examples": {
+          "en": [
+            "What is the air quality?"
+          ],
+          "de": [
+            "Wie ist die Luftqualität?"
+          ],
+          "pl": [
+            "Jaka jest jakość powietrza?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "c7dd4c3f-2434-5db8-b2a9-7fd4373dcc65",
+            "kind": "room",
+            "label": "Study",
+            "roomId": "c7dd4c3f-2434-5db8-b2a9-7fd4373dcc65"
+          }
+        ]
+      },
+      {
+        "id": "climate-air.air_assessment",
+        "revision": 1,
+        "queryType": "air-query.v1",
+        "answerType": "air.v1",
+        "title": {
+          "en": "Air",
+          "de": "Luft",
+          "pl": "Powietrze"
+        },
+        "description": {
+          "en": "Read mapped air measurements.",
+          "de": "Zugeordnete Luftmesswerte lesen.",
+          "pl": "Odczyt pomiarów powietrza."
+        },
+        "examples": {
+          "en": [
+            "What is the air quality?"
+          ],
+          "de": [
+            "Wie ist die Luftqualität?"
+          ],
+          "pl": [
+            "Jaka jest jakość powietrza?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "c7dd4c3f-2434-5db8-b2a9-7fd4373dcc65",
+            "kind": "room",
+            "label": "Study",
+            "roomId": "c7dd4c3f-2434-5db8-b2a9-7fd4373dcc65"
+          }
+        ]
+      },
+      {
+        "id": "calendar.agenda",
+        "revision": 1,
+        "queryType": "calendar-query.v1",
+        "answerType": "calendar.v1",
+        "title": {
+          "en": "Calendar",
+          "de": "Kalender",
+          "pl": "Kalendarz"
+        },
+        "description": {
+          "en": "Read upcoming events in the next seven days.",
+          "de": "Termine der nächsten sieben Tage lesen.",
+          "pl": "Odczyt wydarzeń w ciągu siedmiu dni."
+        },
+        "examples": {
+          "en": [
+            "What is on my calendar tomorrow?"
+          ],
+          "de": [
+            "Was steht morgen im Kalender?"
+          ],
+          "pl": [
+            "Co mam jutro w kalendarzu?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "unavailable",
+        "limitations": [
+          "provider_sync_unknown"
+        ],
+        "availabilityBasis": "configuration_only",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "c730c5a0-e6f7-5a97-bd0f-2dcce76091de",
+            "kind": "calendar",
+            "label": "Calendar"
+          }
+        ]
+      },
+      {
+        "id": "media.now_playing",
+        "revision": 1,
+        "queryType": "media-query.v1",
+        "answerType": "media.v1",
+        "title": {
+          "en": "Media",
+          "de": "Medien",
+          "pl": "Media"
+        },
+        "description": {
+          "en": "Read reported player information.",
+          "de": "Gemeldete Wiedergabeinformationen lesen.",
+          "pl": "Odczyt stanu odtwarzacza."
+        },
+        "examples": {
+          "en": [
+            "What is playing?"
+          ],
+          "de": [
+            "Was läuft?"
+          ],
+          "pl": [
+            "Co jest odtwarzane?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [
+          "reported_state_only"
+        ],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "ba71b8e9-c6bb-5511-b383-495927e0f5c1",
+            "kind": "player",
+            "label": "Media"
+          }
+        ]
+      },
+      {
+        "id": "media.status",
+        "revision": 1,
+        "queryType": "media-query.v1",
+        "answerType": "media.v1",
+        "title": {
+          "en": "Media",
+          "de": "Medien",
+          "pl": "Media"
+        },
+        "description": {
+          "en": "Read reported player information.",
+          "de": "Gemeldete Wiedergabeinformationen lesen.",
+          "pl": "Odczyt stanu odtwarzacza."
+        },
+        "examples": {
+          "en": [
+            "What is playing?"
+          ],
+          "de": [
+            "Was läuft?"
+          ],
+          "pl": [
+            "Co jest odtwarzane?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [
+          "reported_state_only"
+        ],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "ba71b8e9-c6bb-5511-b383-495927e0f5c1",
+            "kind": "player",
+            "label": "Media"
+          }
+        ]
+      },
+      {
+        "id": "lights.status",
+        "revision": 1,
+        "queryType": "light-query.v1",
+        "answerType": "lights.v1",
+        "title": {
+          "en": "Lights",
+          "de": "Licht",
+          "pl": "Światła"
+        },
+        "description": {
+          "en": "Read reported light states.",
+          "de": "Gemeldete Lichtzustände lesen.",
+          "pl": "Odczyt zgłaszanego stanu świateł."
+        },
+        "examples": {
+          "en": [
+            "Which lights are on?"
+          ],
+          "de": [
+            "Welche Lichter sind an?"
+          ],
+          "pl": [
+            "Które światła są włączone?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [
+          "reported_state_only"
+        ],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "dca68da9-3a37-5e2a-833a-a66aa8051f9d",
+            "kind": "light",
+            "label": "Lamp"
+          }
+        ]
+      }
+    ]
+  },
+  "answers": {
+    "climate-air.temperature": {
+      "version": 1,
+      "capability": "climate-air.temperature",
+      "revision": 1,
+      "answerType": "temperature.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0
+      },
+      "summary": {
+        "status": "measured",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "d60bff1c-f4f8-5ef1-8642-e272145d7246",
+          "subjectId": "12ae7bf2-a88e-5d2c-a1fd-f4608f30d20e",
+          "roomId": "12ae7bf2-a88e-5d2c-a1fd-f4608f30d20e",
+          "label": "Study",
+          "indoor": true,
+          "metric": "temperature",
+          "value": 21.0,
+          "unit": "°C",
+          "status": "usable",
+          "evidenceRefs": [
+            "9da079be-a859-5f62-92d3-7ab0da9f1038"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "9da079be-a859-5f62-92d3-7ab0da9f1038",
+          "sourceRef": "aac9f569-3e2d-5161-bd93-01c4c0bc593d",
+          "observedAt": null,
+          "reportedAt": "2026-10-31T12:00:00+00:00",
+          "freshnessBasis": "source_report",
+          "maxAgeSeconds": 900,
+          "freshness": "current"
+        }
+      ],
+      "limitations": []
+    },
+    "lights.explain": {
+      "version": 1,
+      "capability": "lights.explain",
+      "revision": 1,
+      "answerType": "component-description.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0,
+        "unit": "subject"
+      },
+      "summary": {
+        "status": "explained",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "8d9b0d39-8f53-5a81-a838-d859e19cf79b",
+          "subjectId": "8d9b0d39-8f53-5a81-a838-d859e19cf79b",
+          "componentId": "lights",
+          "componentVersion": "1.0.0",
+          "purpose": {
+            "en": "Reported lights",
+            "de": "Reported lights",
+            "pl": "Reported lights"
+          },
+          "capabilities": [],
+          "basis": "installed_metadata",
+          "liveStatus": "not_assessed",
+          "evidenceRefs": [
+            "8d9b0d39-8f53-5a81-a838-d859e19cf79b"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "8d9b0d39-8f53-5a81-a838-d859e19cf79b",
+          "sourceRef": "8d9b0d39-8f53-5a81-a838-d859e19cf79b",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "installed_metadata",
+          "maxAgeSeconds": null,
+          "freshness": "not_applicable"
+        }
+      ],
+      "limitations": []
+    },
+    "plants.watering_need": {
+      "version": 1,
+      "capability": "plants.watering_need",
+      "revision": 1,
+      "answerType": "plant-watering.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0
+      },
+      "summary": {
+        "status": "needs_water",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "3d4c3042-46b2-567e-a685-6e92caf6a22c",
+          "subjectId": "177e2e07-5a8b-57bc-8f62-46adac8e5ec5",
+          "plantId": "177e2e07-5a8b-57bc-8f62-46adac8e5ec5",
+          "name": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "metric": "moisture",
+          "value": 15.0,
+          "unit": "%",
+          "status": "usable",
+          "problems": [
+            "moisture_low"
+          ],
+          "evidenceRefs": [
+            "dae0f6a8-c199-5b01-ab5b-30724abf1fc3"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "dae0f6a8-c199-5b01-ab5b-30724abf1fc3",
+          "sourceRef": "e0797d0e-9044-5fc0-b840-f8fea7a06e01",
+          "observedAt": null,
+          "reportedAt": "2026-10-31T12:00:00+00:00",
+          "freshnessBasis": "source_report",
+          "maxAgeSeconds": 21600,
+          "freshness": "current",
+          "policy": {
+            "id": "plant-moisture",
+            "revision": 1,
+            "bounds": {
+              "minimum": 20,
+              "maximum": 60
+            },
+            "direction": "within_band",
+            "source": "configured"
+          }
+        }
+      ],
+      "limitations": []
+    },
+    "ramka.status": {
+      "version": 1,
+      "capability": "ramka.status",
+      "revision": 1,
+      "answerType": "frame.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0,
+        "unit": "subject"
+      },
+      "summary": {
+        "status": "reported",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "122ec370-8847-5a66-ab79-f6cdb69213e1",
+          "subjectId": "6cc8c126-9e61-5da9-b5b7-087b5829c681",
+          "physicalDisplayState": "unknown",
+          "evidenceRefs": [
+            "1a4ca80a-f15f-5a8c-884d-b39da9d88598"
+          ],
+          "mode": "ambient"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "1a4ca80a-f15f-5a8c-884d-b39da9d88598",
+          "sourceRef": "cabf7969-06a5-5057-8e98-54c4e66b760b",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "reported_state",
+          "maxAgeSeconds": null,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "reported_state_only"
+      ]
+    },
+    "backup.status": {
+      "version": 1,
+      "capability": "backup.status",
+      "revision": 1,
+      "answerType": "backup.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0,
+        "unit": "subject"
+      },
+      "summary": {
+        "status": "missing",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "7ead4684-0f2b-5e1a-bfff-051a642e471c",
+          "subjectId": "61c96c47-1a03-55e1-8bd9-0e94661b02af",
+          "archiveCount": 0,
+          "newestAgeHours": null,
+          "reportedAt": null,
+          "verification": "existence_only",
+          "evidenceRefs": [
+            "0424a733-acde-5eef-a3b4-8778ca71839c"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "0424a733-acde-5eef-a3b4-8778ca71839c",
+          "sourceRef": "a4a0bb48-5c73-5bbb-be0e-c5cc7d6d4c1a",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "historical_event",
+          "maxAgeSeconds": null,
+          "freshness": "not_applicable"
+        }
+      ],
+      "limitations": []
+    },
+    "audio-sensor.level": {
+      "version": 1,
+      "capability": "audio-sensor.level",
+      "revision": 1,
+      "answerType": "audio-level.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0,
+        "unit": "subject"
+      },
+      "summary": {
+        "status": "estimated",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "b475a073-3bf6-586c-8478-ee819bdfcbd1",
+          "subjectId": "4f73f0a7-63d9-5674-8216-25624794ded8",
+          "label": "Sound",
+          "level": -20.0,
+          "unit": "dBFS",
+          "calibrated": false,
+          "basis": "estimate",
+          "integrationWindowSeconds": 1,
+          "weighting": "unweighted",
+          "online": true,
+          "evidenceRefs": [
+            "772f3f0b-adb8-50af-98cd-5602834b3c7f"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "772f3f0b-adb8-50af-98cd-5602834b3c7f",
+          "sourceRef": "255a8652-07a1-5cf7-9e29-f3daba8bb72f",
+          "observedAt": null,
+          "reportedAt": "2026-10-31T12:00:00+00:00",
+          "freshnessBasis": "source_report",
+          "maxAgeSeconds": 900,
+          "freshness": "current"
+        }
+      ],
+      "limitations": [
+        "uncalibrated"
+      ]
+    },
+    "bermuda-presence.observations": {
+      "version": 1,
+      "capability": "bermuda-presence.observations",
+      "revision": 1,
+      "answerType": "presence.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0,
+        "unit": "subject"
+      },
+      "summary": {
+        "status": "detected",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "5d952308-c274-568b-a3e0-c4faf68f4fa5",
+          "subjectId": "32385f85-d235-5495-98f1-67d46de8553d",
+          "label": "Phone",
+          "observationKind": "ble_device",
+          "detected": true,
+          "observedAt": null,
+          "evidenceRefs": [
+            "d3cae184-fa73-55d7-b57d-18b3befe2020"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "d3cae184-fa73-55d7-b57d-18b3befe2020",
+          "sourceRef": "297417b8-2321-5ea6-91c1-5cad8edfd3fb",
+          "observedAt": null,
+          "reportedAt": "2026-10-31T12:00:00+00:00",
+          "freshnessBasis": "source_report",
+          "maxAgeSeconds": 900,
+          "freshness": "current"
+        }
+      ],
+      "limitations": [
+        "reported_state_only"
+      ]
+    },
+    "weather.current": {
+      "version": 1,
+      "capability": "weather.current",
+      "revision": 1,
+      "answerType": "weather.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0,
+        "unit": "subject"
+      },
+      "summary": {
+        "status": "observed",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "cb65720c-c6df-59e7-a263-0ceaac936f87",
+          "subjectId": "8d3c2aaf-2522-5f7f-a04c-be10463c8132",
+          "condition": "sunny",
+          "measurements": [
+            {
+              "metric": "temperature",
+              "value": 20,
+              "unit": "°C"
+            }
+          ],
+          "evidenceRefs": [
+            "35845f18-fe19-5afe-a0c5-9fcb1fdd9388"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "35845f18-fe19-5afe-a0c5-9fcb1fdd9388",
+          "sourceRef": "ed8b5595-93a9-5102-9960-69c738442be6",
+          "observedAt": null,
+          "reportedAt": "2026-10-31T12:00:00+00:00",
+          "freshnessBasis": "reported_state",
+          "maxAgeSeconds": null,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "provider_sync_unknown",
+        "reported_state_only"
+      ]
+    },
+    "awnings.status": {
+      "version": 1,
+      "capability": "awnings.status",
+      "revision": 1,
+      "answerType": "awnings.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0,
+        "unit": "subject"
+      },
+      "summary": {
+        "status": "unknown",
+        "affected": 1,
+        "basis": "reported"
+      },
+      "facts": [
+        {
+          "id": "919e93f8-1ac0-5b1e-98d3-472c5411bc02",
+          "subjectId": "3de0ebd0-f60c-5a08-84f9-fcb104bcd8ad",
+          "label": "Patio",
+          "state": "extended",
+          "positionPercent": 80,
+          "stateBasis": "reported",
+          "positionBasis": "reported",
+          "alarm": "unknown",
+          "alarmBasis": "unknown",
+          "lastHeardAt": null,
+          "evidenceRefs": [
+            "f3998fe2-8dd2-593e-b811-db041a79d8b7"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "f3998fe2-8dd2-593e-b811-db041a79d8b7",
+          "sourceRef": "de587441-bcf4-545c-b474-ec1492d42d46",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "reported_state",
+          "maxAgeSeconds": null,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "reported_state_only"
+      ]
+    },
+    "climate-air.air_readings": {
+      "version": 1,
+      "capability": "climate-air.air_readings",
+      "revision": 1,
+      "answerType": "air.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0
+      },
+      "summary": {
+        "status": "unknown",
+        "affected": 0
+      },
+      "facts": [
+        {
+          "id": "9faf1cc1-4a8d-55ab-9bac-d87b8f76a4e6",
+          "subjectId": "c7dd4c3f-2434-5db8-b2a9-7fd4373dcc65",
+          "roomId": "c7dd4c3f-2434-5db8-b2a9-7fd4373dcc65",
+          "label": "Study",
+          "metric": "co2",
+          "value": 900.0,
+          "unit": "ppm",
+          "status": "usable",
+          "assessment": "unknown",
+          "evidenceRefs": [
+            "c81ba7db-bb3a-5ead-8aa7-40b00049fa91"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "c81ba7db-bb3a-5ead-8aa7-40b00049fa91",
+          "sourceRef": "3d87034e-2117-5b99-93b7-4132a9ca1bce",
+          "observedAt": null,
+          "reportedAt": "2026-10-31T12:00:00+00:00",
+          "freshnessBasis": "source_report",
+          "maxAgeSeconds": 900,
+          "freshness": "current"
+        }
+      ],
+      "limitations": []
+    },
+    "climate-air.air_assessment": {
+      "version": 1,
+      "capability": "climate-air.air_assessment",
+      "revision": 1,
+      "answerType": "air.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0
+      },
+      "summary": {
+        "status": "raised",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "9faf1cc1-4a8d-55ab-9bac-d87b8f76a4e6",
+          "subjectId": "c7dd4c3f-2434-5db8-b2a9-7fd4373dcc65",
+          "roomId": "c7dd4c3f-2434-5db8-b2a9-7fd4373dcc65",
+          "label": "Study",
+          "metric": "co2",
+          "value": 900.0,
+          "unit": "ppm",
+          "status": "usable",
+          "assessment": "raised",
+          "evidenceRefs": [
+            "c81ba7db-bb3a-5ead-8aa7-40b00049fa91"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "c81ba7db-bb3a-5ead-8aa7-40b00049fa91",
+          "sourceRef": "3d87034e-2117-5b99-93b7-4132a9ca1bce",
+          "observedAt": null,
+          "reportedAt": "2026-10-31T12:00:00+00:00",
+          "freshnessBasis": "source_report",
+          "maxAgeSeconds": 900,
+          "freshness": "current",
+          "policy": {
+            "id": "air-band",
+            "revision": 1,
+            "bounds": {
+              "level1": 800,
+              "level2": 1200
+            },
+            "direction": "lower_is_better",
+            "source": "configured"
+          }
+        }
+      ],
+      "limitations": []
+    },
+    "media.now_playing": {
+      "version": 1,
+      "capability": "media.now_playing",
+      "revision": 1,
+      "answerType": "media.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0,
+        "unit": "subject"
+      },
+      "summary": {
+        "status": "playing",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "1f32abd8-8652-527a-aba4-2ebf6a26e4e6",
+          "subjectId": "ba71b8e9-c6bb-5511-b383-495927e0f5c1",
+          "label": "Media",
+          "state": "playing",
+          "metadataStatus": "current",
+          "evidenceRefs": [
+            "33212063-aeb3-510d-bef7-4b792c31616b"
+          ],
+          "title": "Song"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "33212063-aeb3-510d-bef7-4b792c31616b",
+          "sourceRef": "c94d8e69-6e23-5024-bcbd-5344785acac5",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "reported_state",
+          "maxAgeSeconds": null,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "reported_state_only"
+      ]
+    },
+    "media.status": {
+      "version": 1,
+      "capability": "media.status",
+      "revision": 1,
+      "answerType": "media.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0,
+        "unit": "subject"
+      },
+      "summary": {
+        "status": "playing",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "1f32abd8-8652-527a-aba4-2ebf6a26e4e6",
+          "subjectId": "ba71b8e9-c6bb-5511-b383-495927e0f5c1",
+          "label": "Media",
+          "state": "playing",
+          "metadataStatus": "current",
+          "evidenceRefs": [
+            "33212063-aeb3-510d-bef7-4b792c31616b"
+          ],
+          "title": "Song"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "33212063-aeb3-510d-bef7-4b792c31616b",
+          "sourceRef": "c94d8e69-6e23-5024-bcbd-5344785acac5",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "reported_state",
+          "maxAgeSeconds": null,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "reported_state_only"
+      ]
+    },
+    "lights.status": {
+      "version": 1,
+      "capability": "lights.status",
+      "revision": 1,
+      "answerType": "lights.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0,
+        "unit": "subject"
+      },
+      "summary": {
+        "status": "on",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "bb2cb054-fefe-58a9-b9e8-ae1487ce3735",
+          "subjectId": "dca68da9-3a37-5e2a-833a-a66aa8051f9d",
+          "label": "Lamp",
+          "state": "on",
+          "countUnit": "group",
+          "reachability": "unknown",
+          "evidenceRefs": [
+            "23bb2200-4c05-5d43-8ff8-eabebc1cfa10"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "23bb2200-4c05-5d43-8ff8-eabebc1cfa10",
+          "sourceRef": "541ebb3c-a0a5-5698-8da6-1a9c42a84e16",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "reported_state",
+          "maxAgeSeconds": null,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "reported_state_only"
+      ]
+    },
+    "calendar.agenda": {
+      "version": 1,
+      "capability": "calendar.agenda",
+      "revision": 1,
+      "answerType": "calendar.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "ready",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "missing": 0,
+        "unit": "event_source"
+      },
+      "summary": {
+        "status": "events",
+        "affected": 1
+      },
+      "facts": [
+        {
+          "id": "687c0d02-f3c1-58af-98d8-33655c90b7e2",
+          "subjectId": "c730c5a0-e6f7-5a97-bd0f-2dcce76091de",
+          "calendarId": "c730c5a0-e6f7-5a97-bd0f-2dcce76091de",
+          "eventId": "687c0d02-f3c1-58af-98d8-33655c90b7e2",
+          "title": "Appointment",
+          "start": "2026-10-31T13:00:00+00:00",
+          "end": "2026-10-31T14:00:00+00:00",
+          "allDay": false,
+          "ongoing": false,
+          "evidenceRefs": [
+            "68cee665-4fc7-526f-94f3-cfd440f7ae2c"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "68cee665-4fc7-526f-94f3-cfd440f7ae2c",
+          "sourceRef": "cbdbbd75-4a07-564f-884e-575b78d0c1d7",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "provider_response",
+          "maxAgeSeconds": null,
+          "freshness": "current"
+        }
+      ],
+      "limitations": [
+        "provider_sync_unknown"
+      ],
+      "intervalStart": "2026-10-31T00:00:00+00:00",
+      "intervalEnd": "2026-11-01T00:00:00+00:00",
+      "timezone": "UTC",
+      "providerSyncAt": null,
+      "truncated": false
+    }
+  }
+}

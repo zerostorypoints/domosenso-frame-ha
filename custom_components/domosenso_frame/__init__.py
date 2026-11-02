@@ -24,6 +24,7 @@ from .semantics import assess, validate_policy, METRICS
 from .display import validate_config, default_config, selection
 from .studio_sources import validate_sources
 from .studio_api import setup as setup_studio
+from .assistant_api import setup as setup_assistant
 
 DOMAIN='domosenso_frame'
 LABEL=vol.All(str,vol.Length(min=1,max=80))
@@ -114,6 +115,11 @@ async def _async_setup_bridge(hass,settings,source,entry_id=None):
         hass.data[DOMAIN]['studio_ready']=True
     except Exception:
         logging.getLogger(__name__).exception('Frame Studio unavailable; legacy display remains active')
+    try:
+        await setup_assistant(hass,grant,register_command,POLICY_READ)
+        hass.data[DOMAIN]['assistant_ready']=True
+    except Exception:
+        logging.getLogger(__name__).exception('Assistant unavailable; legacy bridge remains active')
     state=hass.data[DOMAIN]
     def later(delay,fn):
         handle=hass.loop.call_later(delay,fn)
@@ -128,7 +134,7 @@ async def _async_setup_bridge(hass,settings,source,entry_id=None):
     state['radar_cancel']=hass.bus.async_listen('state_changed',radar_changed)
     for eid in endpoints:radar.refresh(eid)
     for command in [layout_get,layout_save,profile,begin,finish,status,data,display,dashboard,subscribe,devices,approve,revoke,remove_device,screen]:register_command(hass,command)
-    await register_static_paths(hass,[StaticPathConfig('/domosenso_frame/panel.js',str(Path(__file__).with_name('panel.js')),False),StaticPathConfig('/domosenso_frame/editor.js',str(Path(__file__).with_name('editor.js')),False),StaticPathConfig('/domosenso_frame/editor-model.js',str(Path(__file__).with_name('editor-model.js')),False),StaticPathConfig('/domosenso_frame/ui/0.1.0',str(Path(__file__).parent/'ui/0.1.0'),False)])
+    await register_static_paths(hass,[StaticPathConfig('/domosenso_frame/assistant-panel.js',str(Path(__file__).with_name('assistant-panel.js')),False),StaticPathConfig('/domosenso_frame/panel.js',str(Path(__file__).with_name('panel.js')),False),StaticPathConfig('/domosenso_frame/editor.js',str(Path(__file__).with_name('editor.js')),False),StaticPathConfig('/domosenso_frame/editor-model.js',str(Path(__file__).with_name('editor-model.js')),False),StaticPathConfig('/domosenso_frame/ui/0.1.0',str(Path(__file__).parent/'ui/0.1.0'),False)])
     frontend.async_register_built_in_panel(hass,'custom',sidebar_title='DomoSenso Frame',sidebar_icon='mdi:tablet-dashboard',frontend_url_path=DOMAIN,require_admin=True,
       config={'_panel_custom':{'name':'domosenso-frame-panel','module_url':'/domosenso_frame/panel.js','embed_iframe':False,'trust_external':False}})
     return True
@@ -148,7 +154,7 @@ def grant(hass,connection):
 @callback
 def profile(hass,connection,msg):
     state=hass.data[DOMAIN]
-    connection.send_result(msg['id'],{'protocol':1,'installationId':state['saved']['installationId'],'name':hass.config.location_name,'timezone':hass.config.time_zone,'demo':state['settings']['demo'],
+    connection.send_result(msg['id'],{'protocol':1,**({'assistantVersion':1} if state.get('assistant_ready') else {}),'installationId':state['saved']['installationId'],'name':hass.config.location_name,'timezone':hass.config.time_zone,'demo':state['settings']['demo'],
       'endpoints':[{'id':e['id'],'name':e['name'],'dashboard':e['dashboard'],'rooms':[s['label'] for s in e['temperature']],
        **({'capabilitiesVersion':1} if state.get('studio_ready') else {}),'semanticVersion':e.get('semantic_version',0),'displayVersion':1 if 'display' in e else 0,'studioVersion':2 if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else 0,
        'topics':[t for t,key in [('temperature','temperature'),('air','air'),('calendar','calendars')] if e[key]]} for e in state['endpoints'].values()]})
