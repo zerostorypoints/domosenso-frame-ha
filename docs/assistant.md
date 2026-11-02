@@ -101,3 +101,13 @@ npm test
 
 These pure Python and DOM checks also run in the `assistant-tests` CI job. The isolated HA smoke
 remains an explicit runtime check and additionally requires Docker and the framework compiler.
+
+Clock localization is an optional extension loaded from the separate fixed directory
+`<HA config>/domosenso/assistant-runtime/ramka.yaml` at the same startup/admin reload
+boundaries. It has the same profile envelope but only the `ramka.current_time`
+capability with `runtime_source: ha_clock`; frame labels may remain, with no entity
+fields or policies. The bridge checks the installed identity and keeps these profiles
+in `assistant_runtime_artifacts`, separate from legacy read artifacts. Missing or
+mismatched text falls back to built-in localization and never grants access. The
+compiler preserves legacy read definitions/translations, so older strict read loaders
+ignore the new directory and do not require a bridge-first rollout for existing reads.

@@ -25,6 +25,8 @@ from .display import validate_config, default_config, selection
 from .studio_sources import validate_sources
 from .studio_api import setup as setup_studio
 from .assistant_api import setup as setup_assistant
+from .timer_api import setup as setup_timers
+from .timers import validate_mapping as validate_timers
 
 DOMAIN='domosenso_frame'
 LABEL=vol.All(str,vol.Length(min=1,max=80))
@@ -33,7 +35,7 @@ SOURCE=vol.Schema({vol.Required('entity'):cv.entity_id,vol.Required('label'):LAB
 DISPLAY=vol.Schema({vol.Optional('locale',default='en'):vol.In(['en','de','pl']),vol.Optional('config'):validate_config,vol.Optional('weather'):cv.entity_id,vol.Optional('status',default=[]):vol.All([vol.Schema({vol.Required('entity'):cv.entity_id,vol.Required('label'):LABEL})],vol.Length(max=64)),vol.Optional('mode_entity'):cv.entity_id,vol.Optional('page_entity'):cv.entity_id})
 ENDPOINT=vol.Schema({vol.Required('id'):vol.Match(r'^[a-z][a-z0-9_-]{0,39}$'),vol.Required('name'):LABEL,
     vol.Optional('semantic_version'):vol.In([1]),vol.Optional('metadata_source'):vol.Schema({'component':LABEL,'revision':vol.All(str,vol.Length(max=160))}),
-    vol.Optional('radar'):validate_radar,vol.Optional('display'):DISPLAY,vol.Optional('studio'):validate_sources,
+    vol.Optional('timers'):validate_timers,vol.Optional('radar'):validate_radar,vol.Optional('display'):DISPLAY,vol.Optional('studio'):validate_sources,
     vol.Required('dashboard'):vol.All(str,vol.Match(r'^/(?!/|auth/|api/)[A-Za-z0-9_/-]+$')),
     vol.Optional('temperature',default=[]):vol.All([SOURCE],vol.Length(max=64)),
     vol.Optional('air',default=[]):vol.All([SOURCE],vol.Length(max=64)),
@@ -73,6 +75,7 @@ async def async_unload_entry(hass,entry):
     for unsubscribe in list(state.get('subscriptions',())):unsubscribe()
     if radar:=state.get('radar'):radar.close()
     if cancel:=state.get('radar_cancel'):cancel()
+    if close:=state.get('timers_close'):await close()
     hass.data.pop(DOMAIN)
     frontend.async_remove_panel(hass,DOMAIN)
     return True
@@ -120,6 +123,10 @@ async def _async_setup_bridge(hass,settings,source,entry_id=None):
         hass.data[DOMAIN]['assistant_ready']=True
     except Exception:
         logging.getLogger(__name__).exception('Assistant unavailable; legacy bridge remains active')
+    try:
+        await setup_timers(hass,grant,register_command)
+    except Exception:
+        logging.getLogger(__name__).exception('Shared timers unavailable; existing bridge remains active')
     state=hass.data[DOMAIN]
     def later(delay,fn):
         handle=hass.loop.call_later(delay,fn)
@@ -134,7 +141,7 @@ async def _async_setup_bridge(hass,settings,source,entry_id=None):
     state['radar_cancel']=hass.bus.async_listen('state_changed',radar_changed)
     for eid in endpoints:radar.refresh(eid)
     for command in [layout_get,layout_save,profile,begin,finish,status,data,display,dashboard,subscribe,devices,approve,revoke,remove_device,screen]:register_command(hass,command)
-    await register_static_paths(hass,[StaticPathConfig('/domosenso_frame/assistant-panel.js',str(Path(__file__).with_name('assistant-panel.js')),False),StaticPathConfig('/domosenso_frame/panel.js',str(Path(__file__).with_name('panel.js')),False),StaticPathConfig('/domosenso_frame/editor.js',str(Path(__file__).with_name('editor.js')),False),StaticPathConfig('/domosenso_frame/editor-model.js',str(Path(__file__).with_name('editor-model.js')),False),StaticPathConfig('/domosenso_frame/ui/0.1.0',str(Path(__file__).parent/'ui/0.1.0'),False)])
+    await register_static_paths(hass,[StaticPathConfig('/domosenso_frame/timer-panel.js',str(Path(__file__).with_name('timer-panel.js')),False),StaticPathConfig('/domosenso_frame/assistant-panel.js',str(Path(__file__).with_name('assistant-panel.js')),False),StaticPathConfig('/domosenso_frame/panel.js',str(Path(__file__).with_name('panel.js')),False),StaticPathConfig('/domosenso_frame/editor.js',str(Path(__file__).with_name('editor.js')),False),StaticPathConfig('/domosenso_frame/editor-model.js',str(Path(__file__).with_name('editor-model.js')),False),StaticPathConfig('/domosenso_frame/ui/0.1.0',str(Path(__file__).parent/'ui/0.1.0'),False)])
     frontend.async_register_built_in_panel(hass,'custom',sidebar_title='DomoSenso Frame',sidebar_icon='mdi:tablet-dashboard',frontend_url_path=DOMAIN,require_admin=True,
       config={'_panel_custom':{'name':'domosenso-frame-panel','module_url':'/domosenso_frame/panel.js','embed_iframe':False,'trust_external':False}})
     return True
@@ -284,6 +291,8 @@ def subscribe(hass,connection,msg):
         except ValueError:return
         if event.data.get('endpoint')!=current['endpoint']:return
         if event.data.get('radar') and not can_read(endpoint):return
+        if event.data.get('kind')=='timers':
+            connection.send_event(msg['id'],{'kind':'timers'});return
         payload={'kind':'screen','action':event.data['action']}
         if event.data.get('radar'):
             if endpoint.get('radar'):
@@ -334,7 +343,9 @@ async def revoke(hass,connection,msg):
     try:
         async with state['grants_lock']:
             if not connection.user.is_active or hass.data.get(DOMAIN) is not state:raise ValueError('Frame unavailable')
-            state['grants'].revoke(msg['deviceId']);hass.bus.async_fire(DOMAIN+'_event',{'kind':'revoked','deviceId':msg['deviceId']});await state['store'].async_save(state['saved']);connection.send_result(msg['id'],{'revoked':True})
+            state['grants'].revoke(msg['deviceId']);state.get('timers_changed',lambda:None)();hass.bus.async_fire(DOMAIN+'_event',{'kind':'revoked','deviceId':msg['deviceId']});await state['store'].async_save(state['saved'])
+            if state.get('timers'):await state['timers'].mapping_changed()
+            connection.send_result(msg['id'],{'revoked':True})
     except ValueError as err:reject(connection,msg,err)
 
 @command('remove_device',deviceId=str)

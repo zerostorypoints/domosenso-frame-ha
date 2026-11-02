@@ -9,9 +9,10 @@ import tempfile
 import uuid
 from .layouts import Conflict,save_verified
 from .assistant_bindings import validate_selections, validate_new_selections
+from .timers import validate_mapping as validate_timers, eligible as timer_eligible
 from .radar import validate as validate_radar, eligible as radar_eligible
 
-GROUPS={'rooms','air','weather','calendars','media','lights','covers','status','mains','radar','assistant'}
+GROUPS={'rooms','air','weather','calendars','media','lights','covers','status','mains','radar','assistant','timers'}
 CLASSES={'temperature':{'temperature'},'humidity':{'humidity'},'co2':{'carbon_dioxide'},'pm2_5':{'pm25','pm2_5'},'voc':{'volatile_organic_compounds','volatile_organic_compounds_parts'},'nox':{'nitrogen_dioxide'},'power':{'power'},'voltage':{'voltage'}}
 MEDIA_BITS={'play_pause':1|16384,'previous':16,'next':32,'power':128|256,'volume':4,'source':2048}
 
@@ -22,6 +23,7 @@ def media_controls(state):
     return {key:(features&bits)==bits for key,bits in MEDIA_BITS.items()}
 
 def eligible(state,kind):
+    if kind == 'timers': return timer_eligible(state)
     if kind in ('radar_presence','radar_distance'):return radar_eligible(state,kind)
     if not state:return False
     domain=state.entity_id.partition('.')[0]
@@ -31,7 +33,7 @@ def eligible(state,kind):
     return domain=={'media':'media_player','calendars':'calendar','lights':'light','covers':'cover'}.get(kind,kind)
 
 def discover(states):
-    kinds=['radar_presence','radar_distance',*CLASSES,'weather','calendars','media','lights','covers','status','assistant']
+    kinds=['timers','radar_presence','radar_distance',*CLASSES,'weather','calendars','media','lights','covers','status','assistant']
     result={key:[] for key in kinds}
     values=states.values() if isinstance(states,dict) else states.async_all()
     for state in sorted(values,key=lambda s:(not bool(s.attributes.get('component')),s.entity_id)):
@@ -45,7 +47,7 @@ def editable(endpoint):
     s=endpoint.get('studio',{});d=endpoint.get('display',{})
     rooms=s.get('rooms',[{'label':r['label'],'temperature':r['entity']} for r in endpoint.get('temperature',[])])
     rows=lambda values,keys:[{k:v for k,v in row.items() if k in keys} for row in values]
-    return copy.deepcopy({'assistant':endpoint.get('assistant',{'subjects':[],'sensitive':False}),'radar':endpoint.get('radar',{}),'rooms':rows(rooms,{'label','temperature','humidity','roomKey'}),'air':rows(endpoint.get('air',[]),{'label','entity','metric'}),'weather':d.get('weather'),'calendars':endpoint.get('calendars',[]),'media':{'entity':s['media']['entity']} if s.get('media') else {},'lights':rows(s.get('lights',[]),{'label','entity'}),'covers':rows(s.get('covers',[]),{'label','entity'}),'status':rows(s.get('status',d.get('status',[])),{'label','entity'}),'mains':s.get('mains',{})})
+    return copy.deepcopy({'timers':endpoint.get('timers',{'writeEnabled':False,'items':[]}),'assistant':endpoint.get('assistant',{'subjects':[],'sensitive':False}),'radar':endpoint.get('radar',{}),'rooms':rows(rooms,{'label','temperature','humidity','roomKey'}),'air':rows(endpoint.get('air',[]),{'label','entity','metric'}),'weather':d.get('weather'),'calendars':endpoint.get('calendars',[]),'media':{'entity':s['media']['entity']} if s.get('media') else {},'lights':rows(s.get('lights',[]),{'label','entity'}),'covers':rows(s.get('covers',[]),{'label','entity'}),'status':rows(s.get('status',d.get('status',[])),{'label','entity'}),'mains':s.get('mains',{})})
 
 def readiness(endpoint,states):
     s=endpoint.get('studio',{});m=editable(endpoint);result={}
@@ -88,7 +90,9 @@ def merge_patch(endpoint,patch,states=None):
         if not isinstance(v,str) or not re.fullmatch(r'[a-z_]+\.[a-z0-9_]+',v):raise ValueError('Invalid mapping entity')
         if states is not None and v not in previous and not eligible(states.get(v),kind):raise ValueError('Select an existing eligible entity')
     for key,value in patch.items():
-        if key=='assistant':
+        if key=='timers':
+            out['timers']=validate_timers(value,states,endpoint)
+        elif key=='assistant':
             shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive','component_sources'])
             validate_selections(value.get('component_sources',[]))
             if not {'subjects','sensitive'}<=set(value) or type(value['sensitive']) is not bool or not isinstance(value['subjects'],list) or len(value['subjects'])>100:raise ValueError('Invalid assistant mapping')

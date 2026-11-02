@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from .assistant_data import calendar_window
 from .assistant_extended import ExtendedRuntime
+from . import timer_api
 from .assistant_contract import load_directory, identity_matches
 
 DOMAIN = 'domosenso_frame'
@@ -70,7 +71,7 @@ def capabilities(hass, connection, msg, grant, policy_read, now=lambda: datetime
         if not isinstance(supported, list) or len(supported) > 64 or any(not isinstance(p, dict) or set(p) != {'queryType', 'answerType'} or any(not isinstance(v, str) or len(v) > 80 for v in p.values()) for p in supported):
             raise ValueError('Invalid supported types')
         endpoint, engine = _engine(hass, connection, grant, msg, policy_read, now)
-        result = {'version': 1, 'asOf': now().isoformat(), 'capabilities': engine.capabilities(endpoint, supported)}
+        result = {'version': 1, 'asOf': now().isoformat(), 'capabilities': engine.capabilities(endpoint, supported) + timer_api.read_capabilities(hass, connection, msg, grant, policy_read, now)}
         current, _ = _engine(hass, connection, grant, msg, policy_read, now)
         if current is not endpoint:
             raise ValueError('Mapping changed')
@@ -93,6 +94,23 @@ def query(hass, connection, msg, grant, policy_read, now=lambda: datetime.now(ti
 
 
 async def query_async(hass, connection, msg, grant, policy_read, now=lambda: datetime.now(timezone.utc)):
+    if msg.get('capability') in timer_api.READS:
+        try:
+            _validate(msg, {'endpoint','version','capability','revision','answerType','arguments'})
+            state, endpoint, _ = timer_api.access(hass, connection, msg, grant, policy_read)
+            import copy
+            mapping = copy.deepcopy(endpoint.get('timers'))
+            result = timer_api.read_query(hass, connection, msg, grant, policy_read, now)
+            if msg['capability'] == 'timers.status': await state['timers'].flush()
+            _, current, _ = timer_api.access(hass, connection, msg, grant, policy_read)
+            if current.get('timers') != mapping or hass.data.get(DOMAIN) is not state: raise ValueError('Mapping changed')
+            # Re-evaluate permissions after persistence without releasing a formerly allowed fact.
+            checked = timer_api.read_query(hass, connection, msg, grant, policy_read, now)
+            if {f['subjectId'] for f in result['facts']} != {f['subjectId'] for f in checked['facts']}: raise ValueError('Authorization changed')
+            connection.send_result(msg['id'], result)
+        except Exception:
+            connection.send_error(msg['id'], 'frame_denied', 'Timer/time unavailable or access denied')
+        return
     if msg.get('capability') == 'weather.forecast':
         try:
             from zoneinfo import ZoneInfo
@@ -200,6 +218,14 @@ async def setup(hass, grant, register_command, policy_read):
     state['assistant_state_get'] = lambda eid: state_for_assistant(hass.states.get(eid), registry.async_get(eid))
     state['assistant_registry_id'] = lambda eid: getattr(registry.async_get(eid), 'id', None)
     async def reload_metadata():
+        from .assistant_runtime_contract import load_directory as load_runtime
+        runtime, runtime_errors = await hass.async_add_executor_job(load_runtime, hass.config.path())
+        state['assistant_runtime_artifacts'] = runtime
+        state['assistant_runtime_errors'] = runtime_errors
+        from .timer_contract import load_directory as load_actions
+        commands, command_errors = await hass.async_add_executor_job(load_actions, hass.config.path())
+        state['assistant_action_artifacts'] = commands
+        state['assistant_action_errors'] = command_errors
         loaded, errors = await hass.async_add_executor_job(load_directory, hass.config.path())
         state['assistant_artifacts'] = loaded
         inventory = hass.states.get('sensor.domosenso_components') if hasattr(hass, 'states') else None

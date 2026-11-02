@@ -1,0 +1,772 @@
+{
+  "capabilities": {
+    "version": 1,
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "capabilities": [
+      {
+        "id": "timers.status",
+        "revision": 1,
+        "queryType": "timer-query.v1",
+        "answerType": "timer-status.v1",
+        "title": {
+          "en": "Timer status",
+          "de": "Timerstatus",
+          "pl": "Stan minutnika"
+        },
+        "description": {
+          "en": "Timer status",
+          "de": "Timerstatus",
+          "pl": "Stan minutnika"
+        },
+        "examples": {
+          "en": [
+            "How much time remains?"
+          ],
+          "de": [
+            "Wie viel Zeit bleibt?"
+          ],
+          "pl": [
+            "Ile zostało czasu?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-11-02T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+            "kind": "timer",
+            "label": "Demo"
+          }
+        ]
+      },
+      {
+        "id": "ramka.current_time",
+        "revision": 1,
+        "queryType": "time-query.v1",
+        "answerType": "time.v1",
+        "title": {
+          "en": "Current time",
+          "de": "Aktuelle Uhrzeit",
+          "pl": "Aktualny czas"
+        },
+        "description": {
+          "en": "Current time",
+          "de": "Aktuelle Uhrzeit",
+          "pl": "Aktualny czas"
+        },
+        "examples": {
+          "en": [
+            "Which hour is it?"
+          ],
+          "de": [
+            "Wie spät ist es?"
+          ],
+          "pl": [
+            "Która godzina?"
+          ]
+        },
+        "configuration": "configured",
+        "availability": "ready",
+        "limitations": [],
+        "availabilityBasis": "live_states",
+        "availabilityAsOf": "2026-11-02T12:00:00+00:00",
+        "subjects": [
+          {
+            "id": "85d7e983-8a6a-50c7-acad-5d1d384dd87a",
+            "kind": "frame",
+            "label": "frame"
+          }
+        ]
+      }
+    ]
+  },
+  "actions": {
+    "version": 1,
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "actions": [
+      {
+        "id": "timers.start",
+        "revision": 1,
+        "actionType": "timer-action.v1",
+        "resultType": "timer-result.v1",
+        "title": {
+          "en": "Start timer",
+          "de": "Timer starten",
+          "pl": "Uruchom minutnik"
+        },
+        "description": {
+          "en": "Start timer",
+          "de": "Timer starten",
+          "pl": "Uruchom minutnik"
+        },
+        "examples": {
+          "en": [
+            "Set a timer for five minutes"
+          ],
+          "de": [
+            "Stelle einen Timer auf fünf Minuten"
+          ],
+          "pl": [
+            "Ustaw minutnik na pięć minut"
+          ]
+        },
+        "subjects": [
+          {
+            "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+            "label": "Demo"
+          }
+        ]
+      },
+      {
+        "id": "timers.pause",
+        "revision": 1,
+        "actionType": "timer-action.v1",
+        "resultType": "timer-result.v1",
+        "title": {
+          "en": "Pause timer",
+          "de": "Timer pausieren",
+          "pl": "Wstrzymaj minutnik"
+        },
+        "description": {
+          "en": "Pause timer",
+          "de": "Timer pausieren",
+          "pl": "Wstrzymaj minutnik"
+        },
+        "examples": {
+          "en": [
+            "Pause the timer"
+          ],
+          "de": [
+            "Pausiere den Timer"
+          ],
+          "pl": [
+            "Wstrzymaj minutnik"
+          ]
+        },
+        "subjects": [
+          {
+            "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+            "label": "Demo"
+          }
+        ]
+      },
+      {
+        "id": "timers.resume",
+        "revision": 1,
+        "actionType": "timer-action.v1",
+        "resultType": "timer-result.v1",
+        "title": {
+          "en": "Resume timer",
+          "de": "Timer fortsetzen",
+          "pl": "Wznów minutnik"
+        },
+        "description": {
+          "en": "Resume timer",
+          "de": "Timer fortsetzen",
+          "pl": "Wznów minutnik"
+        },
+        "examples": {
+          "en": [
+            "Resume the timer"
+          ],
+          "de": [
+            "Setze den Timer fort"
+          ],
+          "pl": [
+            "Wznów minutnik"
+          ]
+        },
+        "subjects": [
+          {
+            "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+            "label": "Demo"
+          }
+        ]
+      },
+      {
+        "id": "timers.cancel",
+        "revision": 1,
+        "actionType": "timer-action.v1",
+        "resultType": "timer-result.v1",
+        "title": {
+          "en": "Cancel timer",
+          "de": "Timer abbrechen",
+          "pl": "Anuluj minutnik"
+        },
+        "description": {
+          "en": "Cancel timer",
+          "de": "Timer abbrechen",
+          "pl": "Anuluj minutnik"
+        },
+        "examples": {
+          "en": [
+            "Cancel the timer"
+          ],
+          "de": [
+            "Brich den Timer ab"
+          ],
+          "pl": [
+            "Anuluj minutnik"
+          ]
+        },
+        "subjects": [
+          {
+            "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+            "label": "Demo"
+          }
+        ]
+      }
+    ]
+  },
+  "time": {
+    "version": 1,
+    "capability": "ramka.current_time",
+    "revision": 1,
+    "answerType": "time.v1",
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "availability": "ready",
+    "coverage": {
+      "eligible": 1,
+      "evaluated": 1,
+      "missing": 0,
+      "unit": "frame"
+    },
+    "summary": {
+      "status": "reported",
+      "affected": 1
+    },
+    "facts": [
+      {
+        "id": "85d7e983-8a6a-50c7-acad-5d1d384dd87a",
+        "subjectId": "85d7e983-8a6a-50c7-acad-5d1d384dd87a",
+        "instant": "2026-11-02T12:00:00+00:00",
+        "timezone": "Europe/Warsaw",
+        "evidenceRefs": [
+          "85d7e983-8a6a-50c7-acad-5d1d384dd87a"
+        ]
+      }
+    ],
+    "evidence": [
+      {
+        "id": "85d7e983-8a6a-50c7-acad-5d1d384dd87a",
+        "sourceRef": "85d7e983-8a6a-50c7-acad-5d1d384dd87a",
+        "observedAt": null,
+        "reportedAt": null,
+        "freshnessBasis": "provider_response",
+        "maxAgeSeconds": null,
+        "freshness": "current"
+      }
+    ],
+    "limitations": []
+  },
+  "idle": {
+    "version": 1,
+    "capability": "timers.status",
+    "revision": 1,
+    "answerType": "timer-status.v1",
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "availability": "ready",
+    "coverage": {
+      "eligible": 1,
+      "evaluated": 1,
+      "missing": 0,
+      "unit": "timer"
+    },
+    "summary": {
+      "status": "idle",
+      "affected": 1
+    },
+    "facts": [
+      {
+        "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "evidenceRefs": [
+          "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+        ],
+        "state": "idle",
+        "durationSeconds": 300,
+        "remainingSeconds": 0,
+        "deadline": null,
+        "runId": null,
+        "stateRevision": "b1c7ea4d-b67f-5a17-b665-d4ee6e19e0e0",
+        "outcome": "none",
+        "alarmDeviceId": "tablet",
+        "acknowledged": false
+      }
+    ],
+    "evidence": [
+      {
+        "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "sourceRef": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "observedAt": null,
+        "reportedAt": null,
+        "freshnessBasis": "provider_response",
+        "maxAgeSeconds": null,
+        "freshness": "current"
+      }
+    ],
+    "limitations": []
+  },
+  "startRequest": {
+    "version": 1,
+    "endpoint": "frame",
+    "capability": "timers.start",
+    "revision": 1,
+    "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+    "requestId": "request-1",
+    "expectedStateRevision": "b1c7ea4d-b67f-5a17-b665-d4ee6e19e0e0",
+    "expectedRunId": null,
+    "arguments": {
+      "durationSeconds": 60
+    }
+  },
+  "applied": {
+    "version": 1,
+    "capability": "timers.start",
+    "revision": 1,
+    "resultType": "timer-result.v1",
+    "requestId": "request-1",
+    "status": "applied",
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "timer": {
+      "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "evidenceRefs": [
+        "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+      ],
+      "state": "active",
+      "durationSeconds": 60,
+      "remainingSeconds": 60,
+      "deadline": "2026-11-02T12:01:00+00:00",
+      "runId": "7ed262a0-4cf5-584a-b22e-b87b7d28356b",
+      "stateRevision": "81533dc7-31b3-548e-809a-688879fef509",
+      "outcome": "none",
+      "alarmDeviceId": "tablet",
+      "acknowledged": false
+    }
+  },
+  "active": {
+    "version": 1,
+    "capability": "timers.status",
+    "revision": 1,
+    "answerType": "timer-status.v1",
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "availability": "ready",
+    "coverage": {
+      "eligible": 1,
+      "evaluated": 1,
+      "missing": 0,
+      "unit": "timer"
+    },
+    "summary": {
+      "status": "active",
+      "affected": 1
+    },
+    "facts": [
+      {
+        "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "evidenceRefs": [
+          "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+        ],
+        "state": "active",
+        "durationSeconds": 60,
+        "remainingSeconds": 60,
+        "deadline": "2026-11-02T12:01:00+00:00",
+        "runId": "7ed262a0-4cf5-584a-b22e-b87b7d28356b",
+        "stateRevision": "81533dc7-31b3-548e-809a-688879fef509",
+        "outcome": "none",
+        "alarmDeviceId": "tablet",
+        "acknowledged": false
+      }
+    ],
+    "evidence": [
+      {
+        "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "sourceRef": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "observedAt": null,
+        "reportedAt": null,
+        "freshnessBasis": "provider_response",
+        "maxAgeSeconds": null,
+        "freshness": "current"
+      }
+    ],
+    "limitations": []
+  },
+  "conflict": {
+    "version": 1,
+    "capability": "timers.start",
+    "revision": 1,
+    "resultType": "timer-result.v1",
+    "requestId": "stale",
+    "status": "conflict",
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "timer": {
+      "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "evidenceRefs": [
+        "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+      ],
+      "state": "active",
+      "durationSeconds": 60,
+      "remainingSeconds": 60,
+      "deadline": "2026-11-02T12:01:00+00:00",
+      "runId": "7ed262a0-4cf5-584a-b22e-b87b7d28356b",
+      "stateRevision": "81533dc7-31b3-548e-809a-688879fef509",
+      "outcome": "none",
+      "alarmDeviceId": "tablet",
+      "acknowledged": false
+    }
+  },
+  "confirmationRequired": {
+    "version": 1,
+    "capability": "timers.start",
+    "revision": 1,
+    "resultType": "timer-result.v1",
+    "requestId": "replace",
+    "status": "confirmation_required",
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "timer": {
+      "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "evidenceRefs": [
+        "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+      ],
+      "state": "active",
+      "durationSeconds": 60,
+      "remainingSeconds": 60,
+      "deadline": "2026-11-02T12:01:00+00:00",
+      "runId": "7ed262a0-4cf5-584a-b22e-b87b7d28356b",
+      "stateRevision": "81533dc7-31b3-548e-809a-688879fef509",
+      "outcome": "none",
+      "alarmDeviceId": "tablet",
+      "acknowledged": false
+    }
+  },
+  "pausedResult": {
+    "version": 1,
+    "capability": "timers.pause",
+    "revision": 1,
+    "resultType": "timer-result.v1",
+    "requestId": "pause",
+    "status": "applied",
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "timer": {
+      "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "evidenceRefs": [
+        "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+      ],
+      "state": "paused",
+      "durationSeconds": 300,
+      "remainingSeconds": 30,
+      "deadline": null,
+      "runId": "7ed262a0-4cf5-584a-b22e-b87b7d28356b",
+      "stateRevision": "fc0a8d95-22a8-555b-b33d-39a1773fca91",
+      "outcome": "none",
+      "alarmDeviceId": "tablet",
+      "acknowledged": false
+    }
+  },
+  "paused": {
+    "version": 1,
+    "capability": "timers.status",
+    "revision": 1,
+    "answerType": "timer-status.v1",
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "availability": "ready",
+    "coverage": {
+      "eligible": 1,
+      "evaluated": 1,
+      "missing": 0,
+      "unit": "timer"
+    },
+    "summary": {
+      "status": "paused",
+      "affected": 1
+    },
+    "facts": [
+      {
+        "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "evidenceRefs": [
+          "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+        ],
+        "state": "paused",
+        "durationSeconds": 300,
+        "remainingSeconds": 30,
+        "deadline": null,
+        "runId": "7ed262a0-4cf5-584a-b22e-b87b7d28356b",
+        "stateRevision": "fc0a8d95-22a8-555b-b33d-39a1773fca91",
+        "outcome": "none",
+        "alarmDeviceId": "tablet",
+        "acknowledged": false
+      }
+    ],
+    "evidence": [
+      {
+        "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "sourceRef": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "observedAt": null,
+        "reportedAt": null,
+        "freshnessBasis": "provider_response",
+        "maxAgeSeconds": null,
+        "freshness": "current"
+      }
+    ],
+    "limitations": []
+  },
+  "resumedResult": {
+    "version": 1,
+    "capability": "timers.resume",
+    "revision": 1,
+    "resultType": "timer-result.v1",
+    "requestId": "resume",
+    "status": "applied",
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "timer": {
+      "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "evidenceRefs": [
+        "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+      ],
+      "state": "active",
+      "durationSeconds": 30,
+      "remainingSeconds": 30,
+      "deadline": "2026-11-02T12:00:30+00:00",
+      "runId": "7ed262a0-4cf5-584a-b22e-b87b7d28356b",
+      "stateRevision": "07da726c-2474-56cc-a4ee-91a89243c2eb",
+      "outcome": "none",
+      "alarmDeviceId": "tablet",
+      "acknowledged": false
+    }
+  },
+  "cancelledResult": {
+    "version": 1,
+    "capability": "timers.cancel",
+    "revision": 1,
+    "resultType": "timer-result.v1",
+    "requestId": "cancel",
+    "status": "applied",
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "timer": {
+      "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "evidenceRefs": [
+        "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+      ],
+      "state": "idle",
+      "durationSeconds": 300,
+      "remainingSeconds": 0,
+      "deadline": "2026-11-02T12:00:30+00:00",
+      "runId": "7ed262a0-4cf5-584a-b22e-b87b7d28356b",
+      "stateRevision": "4d05d7f1-5ed6-5969-9366-7e82b2eb7e3c",
+      "outcome": "cancelled",
+      "alarmDeviceId": "tablet",
+      "acknowledged": false
+    }
+  },
+  "cancelled": {
+    "version": 1,
+    "capability": "timers.status",
+    "revision": 1,
+    "answerType": "timer-status.v1",
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "availability": "ready",
+    "coverage": {
+      "eligible": 1,
+      "evaluated": 1,
+      "missing": 0,
+      "unit": "timer"
+    },
+    "summary": {
+      "status": "idle",
+      "affected": 1
+    },
+    "facts": [
+      {
+        "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "evidenceRefs": [
+          "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+        ],
+        "state": "idle",
+        "durationSeconds": 300,
+        "remainingSeconds": 0,
+        "deadline": "2026-11-02T12:00:30+00:00",
+        "runId": "7ed262a0-4cf5-584a-b22e-b87b7d28356b",
+        "stateRevision": "4d05d7f1-5ed6-5969-9366-7e82b2eb7e3c",
+        "outcome": "cancelled",
+        "alarmDeviceId": "tablet",
+        "acknowledged": false
+      }
+    ],
+    "evidence": [
+      {
+        "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "sourceRef": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "observedAt": null,
+        "reportedAt": null,
+        "freshnessBasis": "provider_response",
+        "maxAgeSeconds": null,
+        "freshness": "current"
+      }
+    ],
+    "limitations": []
+  },
+  "completed": {
+    "version": 1,
+    "capability": "timers.status",
+    "revision": 1,
+    "answerType": "timer-status.v1",
+    "asOf": "2026-11-02T12:01:00+00:00",
+    "availability": "ready",
+    "coverage": {
+      "eligible": 1,
+      "evaluated": 1,
+      "missing": 0,
+      "unit": "timer"
+    },
+    "summary": {
+      "status": "idle",
+      "affected": 1
+    },
+    "facts": [
+      {
+        "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "evidenceRefs": [
+          "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+        ],
+        "state": "idle",
+        "durationSeconds": 300,
+        "remainingSeconds": 0,
+        "deadline": "2026-11-02T12:01:00+00:00",
+        "runId": "717fb806-ee8e-5255-ba7c-a6330071bf32",
+        "stateRevision": "624d5b57-8805-5575-a2e9-2b93e8be8cbf",
+        "outcome": "completed",
+        "alarmDeviceId": "tablet",
+        "acknowledged": false
+      }
+    ],
+    "evidence": [
+      {
+        "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "sourceRef": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "observedAt": null,
+        "reportedAt": null,
+        "freshnessBasis": "provider_response",
+        "maxAgeSeconds": null,
+        "freshness": "current"
+      }
+    ],
+    "limitations": []
+  },
+  "acknowledgeRequest": {
+    "version": 1,
+    "endpoint": "frame",
+    "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+    "runId": "717fb806-ee8e-5255-ba7c-a6330071bf32"
+  },
+  "acknowledged": {
+    "version": 1,
+    "asOf": "2026-11-02T12:01:00+00:00",
+    "timer": {
+      "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "evidenceRefs": [
+        "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+      ],
+      "state": "idle",
+      "durationSeconds": 300,
+      "remainingSeconds": 0,
+      "deadline": "2026-11-02T12:01:00+00:00",
+      "runId": "717fb806-ee8e-5255-ba7c-a6330071bf32",
+      "stateRevision": "efc13646-6ab9-5ca3-a2e3-2c5a0e262852",
+      "outcome": "completed",
+      "alarmDeviceId": "tablet",
+      "acknowledged": true
+    }
+  },
+  "outcomeUnknown": {
+    "version": 1,
+    "capability": "timers.start",
+    "revision": 1,
+    "resultType": "timer-result.v1",
+    "requestId": "request-1",
+    "status": "outcome_unknown",
+    "asOf": "2026-11-02T12:00:00+00:00",
+    "timer": {
+      "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+      "evidenceRefs": [
+        "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+      ],
+      "state": "idle",
+      "durationSeconds": 300,
+      "remainingSeconds": 0,
+      "deadline": null,
+      "runId": null,
+      "stateRevision": "eaf368d1-38fc-593a-b3d5-ce442e3dd5bf",
+      "outcome": "none",
+      "alarmDeviceId": "tablet",
+      "acknowledged": false
+    }
+  },
+  "unavailable": {
+    "version": 1,
+    "capability": "timers.status",
+    "revision": 1,
+    "answerType": "timer-status.v1",
+    "asOf": "2026-11-02T12:01:00+00:00",
+    "availability": "unavailable",
+    "coverage": {
+      "eligible": 1,
+      "evaluated": 0,
+      "missing": 1,
+      "unit": "timer"
+    },
+    "summary": {
+      "status": "unknown",
+      "affected": 0
+    },
+    "facts": [
+      {
+        "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "subjectId": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "evidenceRefs": [
+          "a2e2c041-a039-53bb-b4b3-99ef8179f393"
+        ],
+        "state": "unknown",
+        "durationSeconds": 300,
+        "remainingSeconds": null,
+        "deadline": "2026-11-02T12:01:00+00:00",
+        "runId": "717fb806-ee8e-5255-ba7c-a6330071bf32",
+        "stateRevision": "9f455631-7faf-59bb-85c1-3c7d8664f2e3",
+        "outcome": "completed",
+        "alarmDeviceId": "tablet",
+        "acknowledged": true
+      }
+    ],
+    "evidence": [
+      {
+        "id": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "sourceRef": "a2e2c041-a039-53bb-b4b3-99ef8179f393",
+        "observedAt": null,
+        "reportedAt": null,
+        "freshnessBasis": "provider_response",
+        "maxAgeSeconds": null,
+        "freshness": "current"
+      }
+    ],
+    "limitations": [
+      "missing_source"
+    ]
+  },
+  "invalidation": {
+    "kind": "timers"
+  }
+}

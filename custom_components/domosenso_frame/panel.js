@@ -1,17 +1,18 @@
 import './ui/0.2.0/studio.js';
 import './assistant-panel.js';
+import './timer-panel.js';
 class DomoSensoFramePanel extends HTMLElement {
- set hass(value){this._hass=value;this.mount();this.editor.hass=value;this.assistant.hass=value;if(!this.started){this.started=true;this.refresh();}}
+ set hass(value){this._hass=value;this.mount();this.editor.hass=value;this.assistant.hass=value;this.timers.hass=value;if(!this.started){this.started=true;this.refresh();}}
  mount(){
   if(this.editor)return;
-  this.assistant=document.createElement('domosenso-frame-assistant');this.grants=document.createElement('div');this.editor=document.createElement('domosenso-frame-studio');this.welcome=document.createElement('section');
+  this.timers=document.createElement('domosenso-frame-timers');this.assistant=document.createElement('domosenso-frame-assistant');this.grants=document.createElement('div');this.editor=document.createElement('domosenso-frame-studio');this.welcome=document.createElement('section');
   this.welcome.style.cssText='padding:24px;max-width:760px;font-family:sans-serif;line-height:1.6';
   const title=document.createElement('h1');title.textContent='Get started with DomoSenso Frame';this.welcome.append(title);
   for(const text of ['1. Choose sources for this frame. In Template Studio, Map sources shows eligible sensors and entities; Suggested is a hint, not automatic permission. Empty mappings are allowed. Air measurements have no inferred quality thresholds.', '2. Open the Android app, enter this Home Assistant address and sign in. Select your frame. The app includes its display; a custom HA dashboard is not required.', '3. Open Devices and pairing here. Compare the six-digit code shown on the tablet before approving. Approval is specific to the device, HA user and frame.', '4. Use Template Studio to arrange widgets and apply a template after the tablet connects. Sources, templates and device grants are managed separately.']){const p=document.createElement('p');p.textContent=text;this.welcome.append(p);}
-  const show=view=>{this.assistant.hidden=view!=='assistant';this.assistant.style.display=view==='assistant'?'block':'none';this.editor.hidden=view!=='studio';this.editor.style.display=view==='studio'?'block':'none';this.grants.hidden=view!=='devices';this.welcome.hidden=view!=='welcome';};
+  const show=view=>{this.timers.hidden=view!=='timers';this.timers.style.display=view==='timers'?'block':'none';this.assistant.hidden=view!=='assistant';this.assistant.style.display=view==='assistant'?'block':'none';this.editor.hidden=view!=='studio';this.editor.style.display=view==='studio'?'block':'none';this.grants.hidden=view!=='devices';this.welcome.hidden=view!=='welcome';};
   const makeButton=(label,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='padding:10px 18px;border:1px solid #b4c6d4;border-radius:8px;cursor:pointer';b.onclick=fn;return b;};
   const tabs=document.createElement('nav');tabs.style.cssText='display:flex;flex-wrap:wrap;gap:8px;padding:12px 24px;background:#e6edf2';
-  for(const [label,view] of [['Get started','welcome'],['Template Studio','studio'],['Devices and pairing','devices'],['Assistant sources','assistant']])tabs.append(makeButton(label,()=>show(view)));
+  for(const [label,view] of [['Get started','welcome'],['Template Studio','studio'],['Devices and pairing','devices'],['Assistant sources','assistant'],['Timers / Timer / Minutniki','timers']])tabs.append(makeButton(label,()=>show(view)));
   const links=document.createElement('div');links.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
   for(const [label,group] of [['Map radar','radar'],['Map temperature','rooms'],['Map air','air'],['Map weather','weather'],['Map calendars','calendars'],['Map media','media']])links.append(makeButton(label,async()=>{show('studio');if(!this.editor.mapping)await this.editor.loadMappings();if(this.editor.mapping)this.editor.openMapping(group);}));
   this.assistant.addEventListener('open-manual-assistant',async event=>{
@@ -25,7 +26,7 @@ class DomoSensoFramePanel extends HTMLElement {
    if(editor.endpoint===endpoint&&editor.mapping?.endpoint===endpoint){editor.openMapping('assistant');show('studio');}
    else{this.assistant.notice='error';this.assistant.render();}
   });
-  this.welcome.append(links);this.replaceChildren(tabs,this.welcome,this.editor,this.grants,this.assistant);show('welcome');
+  this.welcome.append(links);this.replaceChildren(tabs,this.welcome,this.editor,this.grants,this.assistant,this.timers);show('welcome');
  }
  connectedCallback(){this.timer=setInterval(()=>this.refresh(),5000);}
  disconnectedCallback(){clearInterval(this.timer);}
