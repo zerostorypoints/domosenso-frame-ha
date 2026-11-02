@@ -12,6 +12,34 @@ sys.modules[package.__name__] = package
 runtime = importlib.import_module('frame_runtime_package.assistant_data')
 
 
+def test_unitless_air_indexes_use_typed_wire_units_without_accepting_unitless_co2():
+    now = datetime(2026, 10, 31, 12, tzinfo=timezone.utc)
+    for metric, value, expected_unit in [('voc', 100, 'index'), ('nox', 1, 'index'), ('score', 90, '%'), ('co2', 800, None)]:
+        sample = SimpleNamespace(state=str(value), attributes={}, last_reported=now)
+        endpoint = {'id':'frame', 'air':[{'entity':'sensor.air', 'label':'Living room', 'metric':metric}]}
+        api = importlib.import_module('frame_runtime_package.assistant_api')
+        key = {'voc':'voc_index','nox':'nox_index','score':'iaqs','co2':'carbon_dioxide'}[metric]
+        entry = SimpleNamespace(platform='ruuvitag_ble', entity_id='sensor.air', unique_id='AA:BB:CC:DD:EE:FF-'+key)
+        engine = runtime.Runtime('0123456789abcdef0123456789abcdef', lambda _:api.state_for_assistant(sample, entry), lambda _:True, lambda:now, verified_source=lambda _:True)
+        result = engine.query(endpoint, 'climate-air.air_readings', 1, 'air.v1', {})
+        if expected_unit:
+            assert result['availability'] == 'ready'
+            assert result['facts'][0]['unit'] == expected_unit
+            assert result['facts'][0]['value'] == value
+            assert sample.attributes == {}  # never mutate HA state or its settings
+            entry.platform = 'template'
+            assert engine.query(endpoint, 'climate-air.air_readings', 1, 'air.v1', {})['availability'] == 'unavailable'
+            entry.platform = 'ruuvitag_ble'
+            sample.attributes['restored'] = True
+            assert engine.query(endpoint, 'climate-air.air_readings', 1, 'air.v1', {})['availability'] == 'unavailable'
+            sample.attributes.clear()
+            sample.last_reported = now.replace(day=30)
+            assert engine.query(endpoint, 'climate-air.air_readings', 1, 'air.v1', {})['availability'] == 'unavailable'
+        else:
+            assert result['availability'] == 'unavailable'
+            assert 'invalid_unit' in result['limitations']
+
+
 def test_capabilities_filter_unmapped_and_denied_sources_before_state_reads():
     subjects = [{'key': 'allowed', 'kind': 'room', 'label': 'Living', 'fields': {'temperature': {'entity': 'sensor.living'}}},
                 {'key': 'hidden', 'kind': 'room', 'label': 'Private', 'fields': {'temperature': {'entity': 'sensor.private'}}},

@@ -8,6 +8,24 @@ from .assistant_contract import load_directory, identity_matches
 DOMAIN = 'domosenso_frame'
 
 
+def state_for_assistant(state, entry):
+    """Normalize only provider-declared dimensionless Ruuvi indexes, without HA writes."""
+    if (state is None or entry is None or entry.platform != 'ruuvitag_ble'
+            or not getattr(entry, 'entity_id', '').startswith('sensor.')
+            or state.attributes.get('unit_of_measurement')):
+        return state
+    # HA PassiveBluetoothProcessorEntity uses address-key[-device_id] identity.
+    key = getattr(entry, 'unique_id', '').split('-', 2)
+    unit = {'voc_index': 'index', 'nox_index': 'index', 'iaqs': '%'}.get(key[1] if len(key) > 1 else '')
+    if not unit:
+        return state
+    from types import SimpleNamespace
+    return SimpleNamespace(state=state.state, attributes={**state.attributes, 'unit_of_measurement': unit},
+                           last_reported=getattr(state, 'last_reported', None),
+                           last_changed=getattr(state, 'last_changed', None),
+                           last_updated=getattr(state, 'last_updated', None))
+
+
 def active_artifacts(artifacts, records):
     """Match unique installed inventory entries; inventory never supplies authorization."""
     if not isinstance(records, list) or len(records) > 256:
@@ -40,7 +58,7 @@ def _engine(hass, connection, grant, msg, policy_read, now):
     inventory = hass.states.get('sensor.domosenso_components')
     records = getattr(inventory, 'attributes', {}).get('components') if inventory else None
     artifacts = active_artifacts(state.get('assistant_artifacts', {}), records)
-    return endpoint, ExtendedRuntime(state['saved']['installationId'], hass.states.get,
+    return endpoint, ExtendedRuntime(state['saved']['installationId'], state.get('assistant_state_get', hass.states.get),
                              lambda eid: connection.user.permissions.check_entity(eid, policy_read), now,
                              state['settings']['stale_seconds'], state.get('assistant_source_verified'), artifacts, state.get('assistant_registry_id'))
 
@@ -177,8 +195,9 @@ async def setup(hass, grant, register_command, policy_read):
     def source_verified(eid):
         entry = registry.async_get(eid)
         # Until an adapter establishes its report semantics, an unknown platform is not current evidence.
-        return bool(entry and (entry.platform == 'esphome' or (entry.platform == 'xiaomi_ble' and eid.startswith('sensor.'))))
+        return bool(entry and (entry.platform == 'esphome' or (entry.platform in ('xiaomi_ble', 'ruuvitag_ble', 'tplink') and eid.startswith('sensor.'))))
     state['assistant_source_verified'] = source_verified
+    state['assistant_state_get'] = lambda eid: state_for_assistant(hass.states.get(eid), registry.async_get(eid))
     state['assistant_registry_id'] = lambda eid: getattr(registry.async_get(eid), 'id', None)
     async def reload_metadata():
         loaded, errors = await hass.async_add_executor_job(load_directory, hass.config.path())

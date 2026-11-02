@@ -73,6 +73,20 @@ def test_setup_registers_routes_loads_metadata_and_admin_reload(tmp_path, monkey
     assert state['assistant_artifacts'] == {}
     assert state['assistant_source_verified']('sensor.xiaomi_ble')
     assert state['assistant_source_verified']('sensor.esphome')
+    for platform in ('tplink', 'ruuvitag_ble'):
+        now = datetime(2026, 10, 31, 12, tzinfo=timezone.utc)
+        sample = types.SimpleNamespace(state='22.5', attributes={'unit_of_measurement':'°C'}, last_reported=now)
+        from frame_api_package.assistant_extended import ExtendedRuntime
+        engine = ExtendedRuntime('0123456789abcdef0123456789abcdef', lambda _: sample, lambda _: True, lambda: now, verified_source=state['assistant_source_verified'])
+        endpoint = {'id':'f', 'temperature':[{'entity':'sensor.'+platform, 'label':'Living room'}]}
+        answer = engine.query(endpoint, 'climate-air.temperature', 1, 'temperature.v1', {})
+        assert answer['availability'] == 'ready'
+        assert answer['facts'][0]['value'] == 22.5
+        sample.attributes['restored'] = True
+        assert engine.query(endpoint, 'climate-air.temperature', 1, 'temperature.v1', {})['availability'] == 'unavailable'
+        sample.attributes.pop('restored')
+        sample.last_reported = now.replace(day=30)
+        assert engine.query(endpoint, 'climate-air.temperature', 1, 'temperature.v1', {})['availability'] == 'unavailable'
     assert not any(state['assistant_source_verified'](p) for p in ('sensor.template','sensor.statistics','unknown','binary_sensor.xiaomi_ble'))
     now=datetime(2026,10,31,12,tzinfo=timezone.utc)
     from frame_api_package.assistant_extended import ExtendedRuntime

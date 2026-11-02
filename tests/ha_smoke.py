@@ -66,6 +66,18 @@ async def main():
         assert result and result['answerType']=='temperature.v1', 'temperature query failed'
         # Unknown platform reports must remain qualified, never fresh physical measurements.
         assert result['availability'] in ('unavailable','partial'), 'unknown source was not qualified'
+        from homeassistant.helpers import entity_registry as er
+        registry = er.async_get(hass)
+        temperature = registry.async_get_or_create('sensor', 'tplink', 'demo-temperature', suggested_object_id='demo_temperature')
+        state['endpoints']['frame']['temperature'] = [{'entity':temperature.entity_id,'label':'Office'}]
+        hass.states.async_set(temperature.entity_id, 22.5, {'unit_of_measurement':'°C'})
+        direct = await request(8,'assistant_query',endpoint='frame',version=1,capability='climate-air.temperature',revision=1,answerType='temperature.v1',arguments={})
+        assert direct and any(f['value'] == 22.5 for f in direct['facts']), 'direct temperature report missing'
+        air = registry.async_get_or_create('sensor', 'ruuvitag_ble', 'AA:BB:CC:DD:EE:FF-voc_index', suggested_object_id='demo_voc')
+        state['endpoints']['frame']['air'] = [{'entity':air.entity_id,'label':'Demo air','metric':'voc'}]
+        hass.states.async_set(air.entity_id, 100, {})
+        index = await request(9,'assistant_query',endpoint='frame',version=1,capability='climate-air.air_readings',revision=1,answerType='air.v1',arguments={})
+        assert index and index['facts'][0]['unit'] == 'index' and index['facts'][0]['value'] == 100, 'Ruuvi index normalization missing'
         if compiler_fixtures:
             explanation=await request(7,'assistant_query',endpoint='frame',version=1,capability='floorplan.explain',revision=1,answerType='component-description.v1',arguments={})
             assert explanation and explanation['facts'][0]['componentId']=='floorplan', 'floorplan explanation missing'
@@ -74,7 +86,7 @@ async def main():
         state['grants'].revoke(pending['deviceId'])
         await request(6,'assistant_query',endpoint='frame',version=1,capability='climate-air.temperature',revision=1,answerType='temperature.v1',arguments={})
         assert 6 in connection.errors and 6 not in connection.results
-        summary={'setup':'ok','studio':'ok','profile':'v1','pairing':'signed-and-approved','capabilities':'ok','query':'qualified unknown source','revocation':'denied'}
+        summary={'setup':'ok','studio':'ok','profile':'v1','pairing':'signed-and-approved','capabilities':'ok','query':'qualified unknown source','directTemperature':'ok','ruuviIndex':'ok','revocation':'denied'}
         if compiler_fixtures:summary.update({'compilerArtifacts':'loaded','floorplan':'explanation-only'})
         print(json.dumps(summary))
     finally:
