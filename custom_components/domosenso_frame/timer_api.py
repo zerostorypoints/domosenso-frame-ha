@@ -269,6 +269,13 @@ def observe_event(engine, event, state_get):
     """Correlate lifecycle events with core state; late events cannot finish a new run."""
     eid = event.data['entity_id']
     sample = event.data.get('new_state') if event.event_type == 'state_changed' else state_get(eid)
+    if event.event_type in ('timer.started', 'timer.restarted'):
+        if not sample or sample.state != 'active' or sample.attributes.get('last_transition') != event.event_type.split('.')[1]: return
+        # A delayed/replayed lifecycle event must not be applied to a newer
+        # report. Core writes state before firing service lifecycle events;
+        # during platform restoration the first write may be suppressed.
+        fired, reported = getattr(event, 'time_fired', None), getattr(sample, 'last_reported', None)
+        if fired and reported and fired < reported: return
     if event.event_type in ('timer.finished','timer.cancelled'):
         if not sample or sample.state != 'idle' or sample.attributes.get('last_transition') != event.event_type.split('.')[1]: return
         previous = engine.data['observations'].get(eid, {})
@@ -304,7 +311,7 @@ async def setup(hass, grant, register_command):
         for eid, endpoint in state['endpoints'].items():
             if entity is None or any(r['entity'] == entity for r in endpoint.get('timers', {}).get('items', [])):
                 hass.bus.async_fire(DOMAIN + '_event', {'kind':'timers','endpoint':eid})
-    engine = state['timers'] = Timers(state['saved']['installationId'], hass.states.get, persist, await store.async_load(), emit=emit)
+    engine = state['timers'] = Timers(state['saved']['installationId'], hass.states.get, persist, await store.async_load(), emit=emit, endpoints=state['endpoints'])
     state['timers_changed'] = emit
     tasks = set()
     def schedule_save():

@@ -34,3 +34,13 @@ test('late responses cannot replace a newly selected endpoint',async()=>{
  const old=el.load('old');await el.load('new');finish({endpoint:'old',mappings:{timers:{writeEnabled:true,items:[]}}});await old;
  assert.equal(el.endpoint,'new');assert.equal(el.draft.writeEnabled,false);el.remove();
 });
+test('target help explains endpoint mapping and server rejection stays actionable',async()=>{
+ for(const [language,term] of [['en','Map the helper on'],['de','Ordne den Helfer zuerst'],['pl','Najpierw przypisz pomocnik']]){
+  const {el}=await panel(language);assert.ok(el.textContent.includes(term));
+  el.querySelector('[data-add]').click();
+  el._hass.callWS=async()=>{throw {message:'Map timer.demo on endpoint other first <b>read-only allowed</b>'};};
+  el.querySelector('[data-save]').click();await tick();
+  assert.ok(el.textContent.includes('Map timer.demo on endpoint other first'));
+  assert.equal(el.querySelector('b'),null);assert.equal(el.draft.items.length,1);el.remove();
+ }
+});

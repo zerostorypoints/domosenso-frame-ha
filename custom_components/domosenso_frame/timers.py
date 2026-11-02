@@ -60,7 +60,15 @@ def validate_mapping(value, states=None, endpoint=None):
     return copy.deepcopy(value)
 
 
-def validate_targets(endpoints):
+def target_reachable(entity, target, endpoints, devices):
+    device = devices.get(target, {})
+    endpoint = endpoints.get(device.get('endpoint'), {})
+    return device.get('state') == 'approved' and any(
+        row['entity'] == entity and row.get('alarmDeviceId') == target
+        for row in endpoint.get('timers', {}).get('items', []))
+
+
+def validate_targets(endpoints, devices=None, *, previous=None):
     targets = {}
     for endpoint in endpoints.values():
         mapping = validate_mapping(endpoint.get('timers', {'writeEnabled':False,'items':[]}))
@@ -68,6 +76,23 @@ def validate_targets(endpoints):
             if row['entity'] in targets and targets[row['entity']] != row['alarmDeviceId']:
                 raise ValueError('Shared timer must use the same alarm device on every frame')
             targets[row['entity']] = row['alarmDeviceId']
+    if devices is not None:
+        for entity, target in targets.items():
+            if target is None: continue
+            device = devices.get(target, {})
+            if previous is not None and not target_reachable(entity, target, previous, devices):
+                # Revocation/re-pairing can invalidate retained assignments. Let
+                # admins withdraw those views one endpoint at a time, but never
+                # add/reassign one or break a previously reachable target.
+                def assignments(views):
+                    return {(eid, row.get('alarmDeviceId')) for eid, endpoint in views.items()
+                            for row in endpoint.get('timers', {}).get('items', []) if row['entity'] == entity}
+                if assignments(endpoints) < assignments(previous): continue
+            if device.get('state') != 'approved': raise ValueError(f'Select an approved alarm device for {entity}')
+            if not target_reachable(entity, target, endpoints, devices):
+                raise ValueError(f'Map {entity} on alarm device endpoint {device.get("endpoint", "(missing)")} first, '
+                                 'using the same alarm device (read-only is allowed). Before removing that helper, '
+                                 'remove its assignments from the other frames.')
 
 
 def validate_request(req):
@@ -86,9 +111,10 @@ def validate_request(req):
 
 
 class Timers:
-    def __init__(self, installation, state_get, persist, saved=None, *, now=lambda: datetime.now(timezone.utc), emit=lambda _: None):
+    def __init__(self, installation, state_get, persist, saved=None, *, now=lambda: datetime.now(timezone.utc), emit=lambda _: None, endpoints=None):
         self.installation, self.state_get, self.persist = installation, state_get, persist
         self.now, self.emit = now, emit
+        self.endpoints = endpoints if endpoints is not None else {}
         self.data = copy.deepcopy(saved) if saved is not None else {'version': 1, 'observations': {}, 'requests': {}, 'receipts': {}}
         if self.data.get('version') != 1 or any(not isinstance(self.data.get(k), dict) for k in ('observations', 'requests', 'receipts')): raise ValueError('Invalid timer ledger')
         self.data.setdefault('browserDeliveries', {})
@@ -124,11 +150,19 @@ class Timers:
         changed = previous is None or previous['signature'] != signature
         operation = self.inflight.get(entity)
         force_start = bool(operation and context == operation['context'] and operation['action'] == 'start' and not operation.get('observed') and status == 'active')
-        if not changed and event not in ('timer.finished', 'timer.cancelled') and not force_start: return
+        # A force-update report (including a rename) is not a start. Core also
+        # emits restarted during restore and resume. Correlate that event with
+        # the report which already established/restored/resumed the run.
+        report = str(getattr(state, 'last_reported', ''))
+        lifecycle_start = status == 'active' and event in ('timer.started', 'timer.restarted')
+        distinct_start = lifecycle_start and previous and previous.get('startReport') != report
+        if not changed and event not in ('timer.finished', 'timer.cancelled') and not force_start and not distinct_start: return
         if operation and context != operation['context']: operation['external'] = True
         record = copy.deepcopy(previous) if previous else {'runId': None, 'outcome': 'none', 'deadline': None}
         prior_state = record.get('state')
-        new_run = status == 'active' and (prior_state not in ('active', 'paused') or (prior_state == 'active' and changed and not restoring))
+        new_run = status == 'active' and (prior_state not in ('active', 'paused') or
+                  (prior_state == 'active' and instant(record.get('deadline')) != deadline) or
+                  (distinct_start and prior_state == 'active' and not restoring))
         if force_start:
             new_run = True
             operation['observed'] = True
@@ -143,6 +177,8 @@ class Timers:
             record['outcome'] = 'completed' if event == 'timer.finished' else 'cancelled'
         if status == 'active': record['deadline'] = deadline.isoformat() if deadline else None
         elif status == 'paused': record['deadline'] = None
+        if status == 'active' and (new_run or restoring or prior_state == 'paused' or lifecycle_start):
+            record['startReport'] = report
         record.update(state=status, durationSeconds=seconds(attrs.get('duration')), remainingSeconds=seconds(attrs.get('remaining')) if status == 'paused' else 0,
                       signature=signature, stateRevision=str(uuid.uuid4()))
         if record['runId']: self.data['runs'][self.subject(entity) + ':' + record['runId']] = True
@@ -169,7 +205,7 @@ class Timers:
             deadline = instant(record['deadline'])
             remaining = max(0, math.ceil((deadline - as_of).total_seconds())) if deadline else None
         target = row.get('alarmDeviceId')
-        if devices.get(target, {}).get('state') != 'approved': target = None
+        if target is not None and not target_reachable(eid, target, self.endpoints, devices): target = None
         visible_state = record['state']
         live = self.state_get(eid)
         if not live or live.state not in ('idle','active','paused'):

@@ -9,7 +9,8 @@ from homeassistant.core import callback
 from .studio import Library,Conflict,validate_config
 from .studio_runtime import Runtime,installed_durations
 from .studio_data import Data
-from .studio_mappings import Mappings,save_mappings_verified
+from .studio_mappings import Mappings,save_mappings_verified,merge_patch
+from .timers import validate_targets
 from .studio_actions import validate_action,perform,takeover
 from .layouts import save_verified
 from .assistant_api import inventory_diagnostics
@@ -39,7 +40,7 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
     mappings=state['studio_mappings']=Mappings(state['endpoints'],mapping_saved,persist_mappings,lambda:assistant_context()[0])
     def with_assistant_catalog(result):
         verified,errors,records=assistant_context()
-        result['timerDevices']=[{'deviceId':d['deviceId'],'name':d['name']} for d in state['grants'].devices() if d['state']=='approved']
+        result['timerDevices']=[{'deviceId':d['deviceId'],'name':d['name'], 'endpoint':d['endpoint']} for d in state['grants'].devices() if d['state']=='approved']
         result['candidates']['timers']=[r for r in result['candidates'].get('timers',[]) if state.get('timer_source_verified',lambda _:False)(r['entity'])]
         result['assistantCatalog']=assistant_catalog(verified,errors,records,state['endpoints'][result['endpoint']],hass.states)
         return result
@@ -71,12 +72,12 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
                 if 'timers' in msg['patch']:
                     for row in msg['patch']['timers'].get('items',[]):
                         if not state.get('timer_source_verified',lambda _:False)(row.get('entity')): raise ValueError('Select a core timer helper')
-                        target=row.get('alarmDeviceId')
-                        if target is not None and state['grants'].records.get(target,{}).get('state')!='approved': raise ValueError('Select an approved alarm device')
-                        for other_id,other in state['endpoints'].items():
-                            if other_id==msg['endpoint']: continue
-                            for existing in other.get('timers',{}).get('items',[]):
-                                if existing['entity']==row.get('entity') and existing.get('alarmDeviceId')!=target: raise ValueError('Shared timer must use the same alarm device on every frame')
+                    # Validate the whole projected mapping, both before and after
+                    # persistence. This permits a first helper/target on its own
+                    # endpoint and catches removals which strand other views.
+                    effective=dict(state['endpoints'])
+                    effective[msg['endpoint']]=merge_patch(effective[msg['endpoint']],msg['patch'],h.states)
+                    validate_targets(effective,state['grants'].records,previous=state['endpoints'])
             result=await mappings.update(msg['endpoint'],msg['revision'],msg['patch'],h.states,authorize_mapping)
             data.cache.clear();runtime.reset(msg['endpoint'])
             if 'timers' in msg['patch'] and state.get('timers'):await state['timers'].mapping_changed()

@@ -30,6 +30,11 @@ class Connection:
 
 
 async def main():
+    if '--websocket' in sys.argv and '--no-listener' in sys.argv:
+        raise ValueError('WebSocket transport requires the HTTP listener')
+    from aiohttp import ClientSession
+    client = ClientSession() if '--websocket' in sys.argv else None
+    sockets = {}
     if '--no-listener' in sys.argv:
         # Restricted runners can still exercise actual HA services and WS handlers.
         # Only the TCP listener is omitted; no bridge/provider behavior is mocked.
@@ -56,12 +61,33 @@ async def main():
                 nonlocal seq
                 seq+=1; ident=seq; name=kind if '/' in kind else 'domosenso_frame/'+kind
                 handler,schema=hass.data[websocket_api.DOMAIN][name]
-                msg={'id':ident,'type':name,**fields}; msg=schema(msg) if schema else msg
-                ret=handler(hass,conn,msg)
-                if asyncio.iscoroutine(ret): await ret
-                for _ in range(500):
-                    if ident in conn.results or ident in conn.errors: break
-                    await asyncio.sleep(.01)
+                msg={'id':ident,'type':name,**fields}
+                if client is None and schema: msg=schema(msg)
+                if client is not None:
+                    if conn not in sockets:
+                        refresh = await hass.auth.async_create_refresh_token(conn.user, client_id='http://localhost/')
+                        token = hass.auth.async_create_access_token(refresh)
+                        ws = sockets[conn] = await client.ws_connect('http://127.0.0.1:18187/api/websocket')
+                        assert (await ws.receive_json(timeout=15))['type'] == 'auth_required'
+                        await ws.send_json({'type':'auth','access_token':token})
+                        assert (await ws.receive_json(timeout=15))['type'] == 'auth_ok'
+                    ws = sockets[conn]
+                    await ws.send_json(msg)
+                    while True:
+                        response = await ws.receive_json(timeout=15)
+                        if response.get('type') == 'event':
+                            conn.events.append(response['event'])
+                            continue
+                        assert response.get('type') == 'result' and response['id'] == ident
+                        if response['success']: conn.results[ident] = response.get('result')
+                        else: conn.errors[ident] = (response['error']['code'], response['error']['message'])
+                        break
+                else:
+                    ret=handler(hass,conn,msg)
+                    if asyncio.iscoroutine(ret): await ret
+                    for _ in range(500):
+                        if ident in conn.results or ident in conn.errors: break
+                        await asyncio.sleep(.01)
                 assert ident not in conn.errors, (kind, conn.errors.get(ident))
                 assert ident in conn.results, (kind,'no response')
                 return conn.results[ident]
@@ -130,7 +156,8 @@ async def main():
             browser_state=await request(browser,'timer_browser_snapshot',version=1,entities=['timer.catalog_demo'])
             fact=browser_state['timers'][0]['timer']; assert fact['outcome']=='completed',fact
             browser_run={'version':1,'subjectId':fact['subjectId'],'runId':fact['runId']}
-            claims=await asyncio.gather(request(browser,'timer_browser_claim',**browser_run),request(browser,'timer_browser_claim',**browser_run))
+            second_tab = Connection(browser.user)
+            claims=await asyncio.gather(request(browser,'timer_browser_claim',**browser_run),request(second_tab,'timer_browser_claim',**browser_run))
             assert sorted(r['claimed'] for r in claims)==[False,True]
             assert not any(r['timer']['acknowledged'] for r in claims)
             browser_receipt=await request(browser,'timer_browser_acknowledge',**browser_run)
@@ -166,8 +193,10 @@ async def main():
             except AssertionError:
                 assert browser.errors[before+1][0]=='frame_denied'
             else: raise AssertionError('inactive browser still authorized')
-            print('PASS HA 2026.9.2: fresh YAML/core + UI helper, ordinary paired user, all action/read/receipt routes, lifecycle invalidations, durable executor reload/replay, device revocation, unpaired READ-only browser snapshot/claim/ack, concurrent claims and browser replay after reload')
+            print(('WEBSOCKET ' if client is not None else 'HANDLER ') + 'PASS HA 2026.9.2: fresh YAML/core + UI helper, ordinary paired user, all action/read/receipt routes, lifecycle invalidations, durable executor reload/replay, device revocation, unpaired READ-only browser snapshot/claim/ack, concurrent claims and browser replay after reload')
         finally:
+            for socket in sockets.values(): await socket.close()
+            if client is not None: await client.close()
             if 'domosenso_frame' in hass.data and 'timers_close' in hass.data['domosenso_frame']:
                 await hass.data['domosenso_frame']['timers_close']()
             await hass.async_stop(force=True)

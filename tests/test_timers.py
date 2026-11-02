@@ -31,7 +31,7 @@ class Rig:
         self.calls = []
         self.events = []
         self.devices = {'tablet': {'state': 'approved', 'endpoint': 'frame'}}
-        self.engine = timer_module().Timers('0123456789abcdef0123456789abcdef', self.states.get, self.persist, saved, now=lambda: self.now, emit=self.events.append)
+        self.engine = timer_module().Timers('0123456789abcdef0123456789abcdef', self.states.get, self.persist, saved, now=lambda: self.now, emit=self.events.append, endpoints={'frame':self.endpoint})
     def state(self, value, duration=300, remaining=None, deadline=None):
         return types.SimpleNamespace(entity_id='timer.demo', state=value, attributes={'duration': str(timedelta(seconds=duration)), 'remaining': str(timedelta(seconds=remaining)) if remaining is not None else None, 'finishes_at': deadline}, last_updated=self.now)
     async def persist(self, value): self.saved = copy.deepcopy(value)
@@ -299,4 +299,22 @@ def test_permission_revoked_while_saving_early_result_never_releases_fact(pendin
         r.engine.persist=persist
         with pytest.raises(ValueError):await r.execute(req)
         assert r.calls==[]
+    run(case)
+
+
+def test_repeated_restored_reports_and_config_writes_keep_run_and_receipt():
+    async def case():
+        r = Rig(); before = (await r.execute(r.request()))['timer']
+        await r.engine.acknowledge(r.endpoint, before['subjectId'], before['runId'], lambda _: True, r.devices)
+        restored = Rig(r.saved); restored.states.update(copy.deepcopy(r.states))
+        for report in range(1, 4):
+            state = restored.states['timer.demo']
+            state.last_reported = r.now + timedelta(microseconds=report)
+            state.attributes['friendly_name'] = f'Renamed {report}'
+            restored.engine.observe('timer.demo', state, event='state_changed')
+            assert restored.fact()['runId'] == before['runId']
+            assert restored.fact()['acknowledged']
+        await restored.engine.flush()
+        again = Rig(restored.saved); again.states.update(restored.states)
+        assert again.fact()['runId'] == before['runId'] and again.fact()['acknowledged']
     run(case)

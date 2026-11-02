@@ -17,16 +17,30 @@ and add up to 16 helpers. Select **Allow timer start, pause, resume and cancel**
 only if that endpoint should be writable. This grant defaults off. Select one
 approved paired tablet as the alarm target, or leave it empty for foreground
 sound only. Save explicitly. No YAML, terminal or catalog metadata is required.
+The selected tablet's paired endpoint must explicitly map the same helper and
+alarm device. That endpoint may be read-only. Start on the tablet's endpoint:
+adding its helper and selecting that tablet in one save is supported. Then add
+the helper to other endpoints with the same target. Selecting a device never
+automatically exposes a helper to its endpoint. Device choices show the paired
+endpoint; validation errors retain the draft and explain which mapping is needed.
 The UI is translated into English, German and Polish. Shared helpers must use the
 same alarm target on every endpoint; changing targets requires clearing/reselecting
-the other mappings as needed. Helpers with the reserved `_controls` or `_rotation`
+the other mappings as needed. Remove the helper from other views before removing
+it from the alarm device's endpoint. Saves validate the complete proposed mapping
+before and after persistence, including removals and device-binding changes.
+Helpers with the reserved `_controls` or `_rotation`
 suffix, a `component: ramka` marker, or an endpoint runtime binding are excluded.
 
 Native commands require pairing and the HA user's READ and CONTROL permissions.
 Classic browser snapshots, delivery claims and acknowledgements require an active
 HA user with READ permission; pairing and the write grant are unnecessary. Metadata
-cannot grant access. A revoked device is no longer returned as a native alarm target;
-its explicit assignment still blocks browser delivery until an administrator clears it.
+cannot grant access. A revoked device, or one re-approved on an endpoint lacking
+the helper, is no longer returned as a native alarm target. Its retained assignment
+still blocks browser delivery. Explicitly map the helper on the new paired endpoint
+with the same target, or remove the stale helper assignments one view at a time
+and configure them again. Removing already-invalid assignments is allowed; adding
+or reassigning an unreachable target is rejected. No automatic fallback or exposure
+is inferred from device re-approval.
 The Android client must independently have notification/alarm permission; mapping a
 target does not grant OS permission or prove background delivery.
 
@@ -134,7 +148,14 @@ events are observed, read back and reconciled; an observed intervening change re
 a conflict. This is not global compare-and-swap against arbitrary HA automations.
 There is necessarily a boundary between returning a result and a later HA action.
 
-Startup reconciliation preserves restored active/paused runs. An idle helper with
+Startup reconciliation preserves restored active/paused runs and their receipts.
+Repeated force-update reports and configuration/name changes with the same deadline
+do not replace the run. Start/restart lifecycle events are correlated with their
+state report: restore/resume retain identity, while a distinct active restart gets
+a new run even when HA rounds it to the identical deadline in the same second.
+Duplicate and stale start events do not replace the run again. This uses HA's
+actual timer lifecycle; `last_reported` alone is not evidence of a new countdown.
+An idle helper with
 a previously active elapsed deadline yields `inferred_completed` unless a matching
 HA finish event was observed. Missing/unavailable state during restoration does not
 erase that evidence. Clients must not sound for cancelled or unknown outcomes.
@@ -158,6 +179,17 @@ revocation during lock/save/service waits, stale revisions, conflicting/duplicat
 requests, persistence failure, pending recovery, direct HA races, same-second
 replacement, downtime inference, old receipts, source validation and translated UI.
 
+`tests/test_timer_ha_lifecycle.py` additionally exercises real HA core entity
+restore/add/configuration lifecycle, a registered `timer.start` service, duplicate
+events, and the registered Studio mapping callback with the real `Mappings`
+manager and verified temporary storage. Install `homeassistant==2026.9.2` and the
+test requirements in an independent compatible Python environment, then run
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -q tests/test_timer_ha_lifecycle.py`.
+Each scenario uses its own subprocess and temporary installation, without full HA
+bootstrap, network listeners or Docker. The tests skip when HA is not installed.
+Process isolation also avoids a reproduced interpreter shutdown fault when both
+HA scenarios run in one local Python 3.14 process; it does not bypass assertions.
+
 With an independent HA 2026.9.2 Python environment and the test dependencies,
 run `python tests/timers_ha_smoke.py`. It creates a temporary fictional installation,
 a YAML core helper and a UI-created helper, pairs an ordinary HA user, and exercises
@@ -165,10 +197,20 @@ actual registered WebSocket handlers and core services. It also exercises an unp
 READ-only HA user through the browser snapshot/claim/ack routes, concurrent claims,
 server timestamps and persisted delivery suppression after executor reload. It deletes only its own
 temporary directory. `--no-listener` omits the HTTP TCP listener for restricted CI;
-that mode does not verify TCP/WebSocket transport. No existing HA configuration is
+that mode does not verify TCP/WebSocket transport. Use `--websocket` to send every
+command through authenticated WebSocket connections, including separate read-only
+browser connections racing for the durable sound claim. No existing HA configuration is
 read. An existing HA runtime may lack unrelated auto-loaded component dependencies.
 
-The implementation was exercised in that in-process mode on HA 2026.9.2. Android,
+The implementation was exercised through real WebSocket transport in a fresh
+`homeassistant/home-assistant:2026.9.2` container:
+
+```sh
+docker run --rm --volume "$PWD":/work:ro --entrypoint python \
+  homeassistant/home-assistant:2026.9.2 /work/tests/timers_ha_smoke.py --websocket
+```
+
+The scenario reloads the durable executor, not the entire HA process. Android,
 physical tablets, Doze, reboot sound reliability, full process restart, browser visual
 QA and production deployment are separate acceptance work; unit tests do not prove
 hardware alarm delivery. A fresh technical review is required before release.

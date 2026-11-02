@@ -222,3 +222,27 @@ def test_claim_and_ack_strict_request_validation(change):
         await module().browser_acknowledge(h,c,req,'read')
         assert len(c.errors) == 2 and not c.results and not r.calls
     run(case)
+
+
+def test_reapproved_device_on_unmapped_endpoint_is_not_advertised_or_browser_fallback():
+    async def case():
+        r,h,c=rig()
+        r.endpoint['timers']['items'][0]['alarmDeviceId']='tablet'
+        other={'id':'other','timers':{'writeEnabled':False,'items':[]}}
+        r.engine.endpoints['other']=other
+        h.data['domosenso_frame']['endpoints']=r.engine.endpoints
+        request=complete(r)
+        assert r.fact()['alarmDeviceId']=='tablet'
+        r.devices['tablet'].update(state='revoked')
+        assert r.fact()['alarmDeviceId'] is None
+        # A later approved binding must not make retained assignments reachable.
+        r.devices['tablet'].update(state='approved',endpoint='other')
+        assert r.fact()['alarmDeviceId'] is None
+        await module().browser_claim(h,c,request,'read')
+        assert not c.results[-1]['claimed']
+        assert other['timers']['items']==[]
+        other['timers']['items']=copy.deepcopy(r.endpoint['timers']['items'])
+        assert r.fact()['alarmDeviceId']=='tablet'
+        await module().browser_claim(h,c,request,'read')
+        assert not c.results[-1]['claimed']
+    run(case)
