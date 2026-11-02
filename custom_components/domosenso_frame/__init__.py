@@ -24,6 +24,7 @@ from .semantics import assess, validate_policy, METRICS
 from .display import validate_config, default_config, selection
 from .studio_sources import validate_sources
 from .studio_api import setup as setup_studio
+from .assistant_api import setup as setup_assistant
 
 DOMAIN='domosenso_frame'
 LABEL=vol.All(str,vol.Length(min=1,max=80))
@@ -114,6 +115,11 @@ async def _async_setup_bridge(hass,settings,source,entry_id=None):
         hass.data[DOMAIN]['studio_ready']=True
     except Exception:
         logging.getLogger(__name__).exception('Frame Studio unavailable; legacy display remains active')
+    try:
+        await setup_assistant(hass,grant,register_command,POLICY_READ)
+        hass.data[DOMAIN]['assistant_ready']=True
+    except Exception:
+        logging.getLogger(__name__).exception('Assistant unavailable; legacy bridge remains active')
     state=hass.data[DOMAIN]
     def later(delay,fn):
         handle=hass.loop.call_later(delay,fn)
@@ -148,7 +154,7 @@ def grant(hass,connection):
 @callback
 def profile(hass,connection,msg):
     state=hass.data[DOMAIN]
-    connection.send_result(msg['id'],{'protocol':1,'installationId':state['saved']['installationId'],'name':hass.config.location_name,'timezone':hass.config.time_zone,'demo':state['settings']['demo'],
+    connection.send_result(msg['id'],{'protocol':1,**({'assistantVersion':1} if state.get('assistant_ready') else {}),'installationId':state['saved']['installationId'],'name':hass.config.location_name,'timezone':hass.config.time_zone,'demo':state['settings']['demo'],
       'endpoints':[{'id':e['id'],'name':e['name'],'dashboard':e['dashboard'],'rooms':[s['label'] for s in e['temperature']],
        **({'capabilitiesVersion':1} if state.get('studio_ready') else {}),'semanticVersion':e.get('semantic_version',0),'displayVersion':1 if 'display' in e else 0,'studioVersion':2 if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else 0,
        'topics':[t for t,key in [('temperature','temperature'),('air','air'),('calendar','calendars')] if e[key]]} for e in state['endpoints'].values()]})

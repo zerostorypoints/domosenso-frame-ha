@@ -6,10 +6,11 @@ import json
 import re
 import os
 import tempfile
+import uuid
 from .layouts import Conflict,save_verified
 from .radar import validate as validate_radar, eligible as radar_eligible
 
-GROUPS={'rooms','air','weather','calendars','media','lights','covers','status','mains','radar'}
+GROUPS={'rooms','air','weather','calendars','media','lights','covers','status','mains','radar','assistant'}
 CLASSES={'temperature':{'temperature'},'humidity':{'humidity'},'co2':{'carbon_dioxide'},'pm2_5':{'pm25','pm2_5'},'voc':{'volatile_organic_compounds','volatile_organic_compounds_parts'},'nox':{'nitrogen_dioxide'},'power':{'power'},'voltage':{'voltage'}}
 MEDIA_BITS={'play_pause':1|16384,'previous':16,'next':32,'power':128|256,'volume':4,'source':2048}
 
@@ -24,11 +25,12 @@ def eligible(state,kind):
     if not state:return False
     domain=state.entity_id.partition('.')[0]
     if kind in CLASSES:return domain=='sensor' and isinstance(state.attributes.get('device_class'),str) and state.attributes['device_class'] in CLASSES[kind]
+    if kind=='assistant':return domain in {'sensor','binary_sensor','plant','media_player','light','calendar','weather','cover','person','device_tracker','input_boolean','input_number','input_select','input_datetime','number','select','switch'}
     if kind=='status':return domain in {'sensor','binary_sensor','input_boolean','light','cover','switch','person','device_tracker'}
     return domain=={'media':'media_player','calendars':'calendar','lights':'light','covers':'cover'}.get(kind,kind)
 
 def discover(states):
-    kinds=['radar_presence','radar_distance',*CLASSES,'weather','calendars','media','lights','covers','status']
+    kinds=['radar_presence','radar_distance',*CLASSES,'weather','calendars','media','lights','covers','status','assistant']
     result={key:[] for key in kinds}
     values=states.values() if isinstance(states,dict) else states.async_all()
     for state in sorted(values,key=lambda s:(not bool(s.attributes.get('component')),s.entity_id)):
@@ -42,7 +44,7 @@ def editable(endpoint):
     s=endpoint.get('studio',{});d=endpoint.get('display',{})
     rooms=s.get('rooms',[{'label':r['label'],'temperature':r['entity']} for r in endpoint.get('temperature',[])])
     rows=lambda values,keys:[{k:v for k,v in row.items() if k in keys} for row in values]
-    return copy.deepcopy({'radar':endpoint.get('radar',{}),'rooms':rows(rooms,{'label','temperature','humidity'}),'air':rows(endpoint.get('air',[]),{'label','entity','metric'}),'weather':d.get('weather'),'calendars':endpoint.get('calendars',[]),'media':{'entity':s['media']['entity']} if s.get('media') else {},'lights':rows(s.get('lights',[]),{'label','entity'}),'covers':rows(s.get('covers',[]),{'label','entity'}),'status':rows(s.get('status',d.get('status',[])),{'label','entity'}),'mains':s.get('mains',{})})
+    return copy.deepcopy({'assistant':endpoint.get('assistant',{'subjects':[],'sensitive':False}),'radar':endpoint.get('radar',{}),'rooms':rows(rooms,{'label','temperature','humidity','roomKey'}),'air':rows(endpoint.get('air',[]),{'label','entity','metric'}),'weather':d.get('weather'),'calendars':endpoint.get('calendars',[]),'media':{'entity':s['media']['entity']} if s.get('media') else {},'lights':rows(s.get('lights',[]),{'label','entity'}),'covers':rows(s.get('covers',[]),{'label','entity'}),'status':rows(s.get('status',d.get('status',[])),{'label','entity'}),'mains':s.get('mains',{})})
 
 def readiness(endpoint,states):
     s=endpoint.get('studio',{});m=editable(endpoint);result={}
@@ -76,11 +78,47 @@ def merge_patch(endpoint,patch,states=None):
         if not isinstance(v,dict) or set(v)-set(keys):raise ValueError('Invalid mapping fields')
     def label(v):
         if not isinstance(v,str) or not v.strip() or len(v)>80 or any(ord(c)<32 for c in v):raise ValueError('Invalid mapping label')
+    def localized_label(v):
+        if isinstance(v,dict):
+            if 'en' not in v or set(v)-{'en','de','pl'}: raise ValueError('Invalid localized label')
+            for text in v.values(): label(text)
+        else: label(v)
     def entity(v,kind,previous=()):
         if not isinstance(v,str) or not re.fullmatch(r'[a-z_]+\.[a-z0-9_]+',v):raise ValueError('Invalid mapping entity')
         if states is not None and v not in previous and not eligible(states.get(v),kind):raise ValueError('Select an existing eligible entity')
     for key,value in patch.items():
-        if key=='radar':
+        if key=='assistant':
+            shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive'])
+            if not {'subjects','sensitive'}<=set(value) or type(value['sensitive']) is not bool or not isinstance(value['subjects'],list) or len(value['subjects'])>100:raise ValueError('Invalid assistant mapping')
+            if any(k in value and type(value[k]) is not bool for k in ('calendar_sensitive','presence_sensitive')):raise ValueError('Invalid sensitive exposure')
+            explanations=value.get('explanations',[])
+            if not isinstance(explanations,list) or len(explanations)>64 or any(not isinstance(cid,str) or not re.fullmatch(r'[a-z][a-z0-9-]{0,79}',cid) for cid in explanations) or len(set(explanations))!=len(explanations):raise ValueError('Invalid component explanations')
+            kinds={'room','plant','player','light','calendar','weather','presence_source','awning','audio_source','backup','frame'}
+            primary={'light':'light','player':'media_player','calendar':'calendar','weather':'weather','awning':'cover'}
+            seen=set()
+            for row in value['subjects']:
+                shape(row,['key','kind','label','fields','roomKey','roomLabel','indoor','limits'])
+                localized_label(row.get('label'))
+                if not isinstance(row.get('key'),str) or not re.fullmatch(r'[a-zA-Z0-9_-]{1,80}',row['key']) or row['key'] in seen or row.get('kind') not in kinds:raise ValueError('Invalid assistant subject')
+                seen.add(row['key'])
+                if 'roomKey' in row and (not isinstance(row['roomKey'],str) or not re.fullmatch(r'[a-zA-Z0-9_-]{1,80}',row['roomKey'])):raise ValueError('Invalid room key')
+                if 'roomLabel' in row:
+                    localized_label(row['roomLabel'])
+                if 'indoor' in row and type(row['indoor']) is not bool:raise ValueError('Invalid indoor flag')
+                fields=row.get('fields')
+                if not isinstance(fields,dict) or not fields or len(fields)>32:raise ValueError('Invalid assistant fields')
+                for role,source in fields.items():
+                    if not isinstance(role,str) or not re.fullmatch(r'[a-z][a-z0-9_-]{0,79}',role):raise ValueError('Invalid role')
+                    shape(source,['entity','attribute','maxAgeSeconds'])
+                    eid=source.get('entity')
+                    if not isinstance(eid,str) or not re.fullmatch(r'[a-z_]+\.[a-z0-9_]+',eid) or eid.split('.')[0] in {'script','automation','button','scene','service'}:raise ValueError('Invalid assistant entity')
+                    if role=='state' and row['kind'] in primary and not eid.startswith(primary[row['kind']]+'.'):raise ValueError('Invalid subject domain')
+                    if 'attribute' in source and (not isinstance(source['attribute'],str) or not re.fullmatch(r'[A-Za-z0-9_]{1,80}',source['attribute'])):raise ValueError('Invalid assistant attribute')
+                    if 'maxAgeSeconds' in source and (type(source['maxAgeSeconds']) is not int or not 60<=source['maxAgeSeconds']<=86400):raise ValueError('Invalid freshness')
+                    if states is not None and not states.get(eid) and not any(eid==f.get('entity') for oldrow in old['assistant']['subjects'] for f in oldrow['fields'].values()):raise ValueError('Select an existing assistant entity')
+                if 'limits' in row and (not isinstance(row['limits'],dict) or len(row['limits'])>32 or any(not isinstance(k,str) or type(v) not in (int,float,str,bool) for k,v in row['limits'].items())):raise ValueError('Invalid assistant limits')
+            out['assistant']=copy.deepcopy(value)
+        elif key=='radar':
             radar=validate_radar(value,states)
             if radar:out['radar']=radar
             else:out.pop('radar',None)
@@ -107,7 +145,7 @@ def merge_patch(endpoint,patch,states=None):
             rows=[];seen=set()
             existing=s.get(key,[]) if key!='air' else endpoint.get('air',[])
             for row in value:
-                shape(row,['label','temperature','humidity'] if key=='rooms' else ['label','entity','metric'] if key=='air' else ['label','entity']);label(row.get('label'))
+                shape(row,['label','temperature','humidity','roomKey'] if key=='rooms' else ['label','entity','metric'] if key=='air' else ['label','entity']);label(row.get('label'))
                 if key=='rooms':
                     if not any(row.get(k) for k in ('temperature','humidity')):raise ValueError('Select at least one room measurement')
                     for field in ('temperature','humidity'):
@@ -116,9 +154,13 @@ def merge_patch(endpoint,patch,states=None):
                     exact=[r for r in existing if all(r.get(k)==row.get(k) for k in ('temperature','humidity'))]
                     shared=[r for r in existing if any(row.get(k) and r.get(k)==row[k] for k in ('temperature','humidity'))]
                     candidates=exact or shared
-                    if len(candidates)!=1:candidates=[r for r in (candidates or existing) if r['label']==row['label']]
+                    if row.get('roomKey'):
+                        try: uuid.UUID(row['roomKey'])
+                        except (ValueError, TypeError, AttributeError): raise ValueError('Invalid room key')
+                        candidates=[r for r in existing if r.get('roomKey')==row['roomKey']]
                     previous=candidates[0] if len(candidates)==1 else {}
                     merged={k:v for k,v in previous.items() if k not in ('temperature','humidity','label')}
+                    merged['roomKey'] = previous.get('roomKey') or row.get('roomKey') or str(uuid.uuid4())
                 else:
                     metric=row.get('metric');previous=next((r for r in existing if r.get('entity')==row.get('entity')),{});merged=copy.deepcopy(previous)
                     if key=='air' and metric not in {'co2','pm2_5','voc','nox','score'}:raise ValueError('Select an air metric')
@@ -131,7 +173,7 @@ def merge_patch(endpoint,patch,states=None):
             else:s[key]=rows
             if key=='rooms':
                 original={r['entity']:r for r in endpoint.get('temperature',[])}
-                out['temperature']=[{**original.get(r['temperature'],{}),'entity':r['temperature'],'label':r['label'],'metric':'temperature'} for r in rows if r.get('temperature')]
+                out['temperature']=[{**original.get(r['temperature'],{}),'entity':r['temperature'],'label':r['label'],'metric':'temperature','roomKey':r['roomKey']} for r in rows if r.get('temperature')]
             if key=='status':d['status']=[{'label':r['label'],'entity':r['entity']} for r in rows]
     return out
 
@@ -157,6 +199,7 @@ class Mappings:
             combined=copy.deepcopy(updated.get(eid,{}).get('patch',{}))
             for key,value in patch.items():
                 if key=='mains' and value:combined[key]={field:effective.get('studio',{}).get('mains',{}).get(field) for field in ('power','voltage')}
+                elif key=='rooms':combined[key]=copy.deepcopy(effective['studio']['rooms'])
                 else:combined[key]=copy.deepcopy(value)
             updated[eid]={'patch':combined,'sequence':updated.get(eid,{}).get('sequence',0)+1}
             # Recompute from defaults so restart behavior is identical to the live endpoint.

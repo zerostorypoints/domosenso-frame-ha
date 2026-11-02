@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "capability": "climate-air.temperature",
+  "revision": 1,
+  "answerType": "temperature.v1",
+  "asOf": "2026-10-31T12:00:00+00:00",
+  "availability": "ready",
+  "coverage": {
+    "eligible": 1,
+    "evaluated": 1,
+    "missing": 0
+  },
+  "summary": {
+    "status": "measured",
+    "affected": 1
+  },
+  "facts": [
+    {
+      "id": "758b8cd0-fcf5-5812-80d9-3acf8fac4345",
+      "subjectId": "6fa04bce-2ab7-5518-84c9-bc8d37a50253",
+      "roomId": "6fa04bce-2ab7-5518-84c9-bc8d37a50253",
+      "label": "Study",
+      "indoor": true,
+      "metric": "temperature",
+      "value": 21.5,
+      "unit": "°C",
+      "status": "usable",
+      "evidenceRefs": [
+        "dfdbc117-e881-52f8-aafd-9e89a642d50d"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "dfdbc117-e881-52f8-aafd-9e89a642d50d",
+      "sourceRef": "5def7efa-fa94-53aa-9ed5-250d721514e5",
+      "observedAt": null,
+      "reportedAt": "2026-10-31T12:00:00+00:00",
+      "freshnessBasis": "source_report",
+      "maxAgeSeconds": 900,
+      "freshness": "current"
+    }
+  ],
+  "limitations": []
+}

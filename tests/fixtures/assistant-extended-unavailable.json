@@ -1,0 +1,1075 @@
+{
+  "plants.watering_need": {
+    "capability": {
+      "id": "plants.watering_need",
+      "revision": 1,
+      "queryType": "plant-query.v1",
+      "answerType": "plant-watering.v1",
+      "title": {
+        "en": "Plant watering",
+        "de": "Pflanzen gießen",
+        "pl": "Podlewanie roślin"
+      },
+      "description": {
+        "en": "Plant watering",
+        "de": "Pflanzen gießen",
+        "pl": "Podlewanie roślin"
+      },
+      "examples": {
+        "en": [
+          "Which plants need water?"
+        ],
+        "de": [
+          "Welche Pflanzen brauchen Wasser?"
+        ],
+        "pl": [
+          "Które rośliny wymagają podlewania?"
+        ]
+      },
+      "configuration": "configured",
+      "availability": "unavailable",
+      "limitations": [
+        "missing_source"
+      ],
+      "availabilityBasis": "live_states",
+      "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+      "subjects": [
+        {
+          "id": "69a83f18-3423-5161-b843-95eee1d08949",
+          "kind": "plant",
+          "label": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "roomId": "6ea54791-8dc9-500d-9c02-ec290ccd7470",
+          "roomLabel": {
+            "en": "Study",
+            "de": "Arbeitszimmer",
+            "pl": "Gabinet"
+          }
+        }
+      ]
+    },
+    "arguments": {},
+    "answer": {
+      "version": 1,
+      "capability": "plants.watering_need",
+      "revision": 1,
+      "answerType": "plant-watering.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "unavailable",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 0,
+        "missing": 1
+      },
+      "summary": {
+        "status": "unknown",
+        "affected": 0
+      },
+      "facts": [
+        {
+          "subjectId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "id": "c00729b2-01d0-5c2b-b51a-723ffca0d8d9",
+          "label": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "metric": "moisture",
+          "value": null,
+          "unit": "%",
+          "status": "missing",
+          "evidenceRefs": [
+            "bfb5542d-0c6c-56b7-a64e-98d40685367b"
+          ],
+          "plantId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "name": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          }
+        }
+      ],
+      "evidence": [
+        {
+          "id": "bfb5542d-0c6c-56b7-a64e-98d40685367b",
+          "sourceRef": "0b66c829-23a1-57b9-b31c-4cb6fe61ef4c",
+          "observedAt": null,
+          "reportedAt": "2026-10-31T12:00:00+00:00",
+          "freshnessBasis": "unknown",
+          "maxAgeSeconds": 21600,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "missing_source"
+      ]
+    }
+  },
+  "plants.status": {
+    "capability": {
+      "id": "plants.status",
+      "revision": 1,
+      "queryType": "plant-query.v1",
+      "answerType": "plant-status.v1",
+      "title": {
+        "en": "Plant condition",
+        "de": "Pflanzenzustand",
+        "pl": "Stan roślin"
+      },
+      "description": {
+        "en": "Plant condition",
+        "de": "Pflanzenzustand",
+        "pl": "Stan roślin"
+      },
+      "examples": {
+        "en": [
+          "Are any plants reporting problems?"
+        ],
+        "de": [
+          "Melden Pflanzen Probleme?"
+        ],
+        "pl": [
+          "Czy rośliny zgłaszają problemy?"
+        ]
+      },
+      "configuration": "configured",
+      "availability": "unavailable",
+      "limitations": [
+        "missing_source",
+        "provider_history_unknown"
+      ],
+      "availabilityBasis": "live_states",
+      "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+      "subjects": [
+        {
+          "id": "69a83f18-3423-5161-b843-95eee1d08949",
+          "kind": "plant",
+          "label": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "roomId": "6ea54791-8dc9-500d-9c02-ec290ccd7470",
+          "roomLabel": {
+            "en": "Study",
+            "de": "Arbeitszimmer",
+            "pl": "Gabinet"
+          }
+        }
+      ]
+    },
+    "arguments": {},
+    "answer": {
+      "version": 1,
+      "capability": "plants.status",
+      "revision": 1,
+      "answerType": "plant-status.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "unavailable",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 0,
+        "missing": 1
+      },
+      "summary": {
+        "status": "unknown",
+        "affected": 0
+      },
+      "facts": [
+        {
+          "id": "389dd1ff-9b34-500a-be26-43e15aac64cd",
+          "subjectId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "plantId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "name": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "metric": "moisture",
+          "value": null,
+          "unit": "%",
+          "status": "missing",
+          "problems": [
+            {
+              "metric": "moisture",
+              "status": "unknown"
+            }
+          ],
+          "evidenceRefs": [
+            "bfb5542d-0c6c-56b7-a64e-98d40685367b"
+          ]
+        },
+        {
+          "id": "ea43dd67-80f7-58a1-aab9-013512311b40",
+          "subjectId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "plantId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "name": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "metric": "conductivity",
+          "value": null,
+          "unit": "uS/cm",
+          "status": "missing",
+          "problems": [
+            {
+              "metric": "conductivity",
+              "status": "unknown"
+            }
+          ],
+          "evidenceRefs": [
+            "ed559168-4723-5abb-8f00-b259e3e21230"
+          ]
+        },
+        {
+          "id": "4929016d-fd10-57a4-ac24-aee9d4ea8376",
+          "subjectId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "plantId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "name": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "metric": "temperature",
+          "value": null,
+          "unit": "°C",
+          "status": "missing",
+          "problems": [
+            {
+              "metric": "temperature",
+              "status": "unknown"
+            }
+          ],
+          "evidenceRefs": [
+            "eb6cadf1-d94b-54a9-b6cb-4c58e7401590"
+          ]
+        },
+        {
+          "id": "60e986d6-4cd7-5ca7-9082-9e4c4e5ba6a1",
+          "subjectId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "plantId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "name": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "metric": "brightness",
+          "value": null,
+          "unit": "lx",
+          "status": "missing",
+          "problems": [
+            {
+              "metric": "brightness",
+              "status": "unknown"
+            }
+          ],
+          "evidenceRefs": [
+            "a64d8a5a-9c51-5c9b-aec1-3fa3bf21e067"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "bfb5542d-0c6c-56b7-a64e-98d40685367b",
+          "sourceRef": "0b66c829-23a1-57b9-b31c-4cb6fe61ef4c",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "unknown",
+          "maxAgeSeconds": 21600,
+          "freshness": "unknown"
+        },
+        {
+          "id": "ed559168-4723-5abb-8f00-b259e3e21230",
+          "sourceRef": "39b0064f-11d4-5640-984a-ff07f12274f3",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "unknown",
+          "maxAgeSeconds": 21600,
+          "freshness": "unknown"
+        },
+        {
+          "id": "eb6cadf1-d94b-54a9-b6cb-4c58e7401590",
+          "sourceRef": "cef0769a-984d-5090-9f85-91c49dd7d1e2",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "unknown",
+          "maxAgeSeconds": 21600,
+          "freshness": "unknown"
+        },
+        {
+          "id": "a64d8a5a-9c51-5c9b-aec1-3fa3bf21e067",
+          "sourceRef": "4b62d413-2fe1-5a86-9da0-2bec01fc898e",
+          "observedAt": null,
+          "reportedAt": "2026-10-31T12:00:00+00:00",
+          "freshnessBasis": "unknown",
+          "maxAgeSeconds": 21600,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "missing_source",
+        "provider_history_unknown"
+      ]
+    }
+  },
+  "plants.last_watered": {
+    "capability": {
+      "id": "plants.last_watered",
+      "revision": 1,
+      "queryType": "plant-query.v1",
+      "answerType": "plant-event.v1",
+      "title": {
+        "en": "Detected watering",
+        "de": "Erkannte Bewässerung",
+        "pl": "Wykryte podlewanie"
+      },
+      "description": {
+        "en": "Detected watering",
+        "de": "Erkannte Bewässerung",
+        "pl": "Wykryte podlewanie"
+      },
+      "examples": {
+        "en": [
+          "When was watering detected?"
+        ],
+        "de": [
+          "Wann wurde Bewässerung erkannt?"
+        ],
+        "pl": [
+          "Kiedy wykryto podlewanie?"
+        ]
+      },
+      "configuration": "configured",
+      "availability": "unavailable",
+      "limitations": [
+        "missing_source"
+      ],
+      "availabilityBasis": "live_states",
+      "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+      "subjects": [
+        {
+          "id": "69a83f18-3423-5161-b843-95eee1d08949",
+          "kind": "plant",
+          "label": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "roomId": "6ea54791-8dc9-500d-9c02-ec290ccd7470",
+          "roomLabel": {
+            "en": "Study",
+            "de": "Arbeitszimmer",
+            "pl": "Gabinet"
+          }
+        }
+      ]
+    },
+    "arguments": {
+      "plantId": "69a83f18-3423-5161-b843-95eee1d08949"
+    },
+    "answer": {
+      "version": 1,
+      "capability": "plants.last_watered",
+      "revision": 1,
+      "answerType": "plant-event.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "unavailable",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 0,
+        "missing": 1
+      },
+      "summary": {
+        "status": "unknown",
+        "affected": 0
+      },
+      "facts": [
+        {
+          "subjectId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "id": "a0ae2eed-9c2f-5634-b1fd-6a0e2d349a96",
+          "plantId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "name": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "eventAt": null,
+          "basis": "detected",
+          "evidenceRefs": [
+            "6873a417-a0ed-516e-91f7-d59a5e798854"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "6873a417-a0ed-516e-91f7-d59a5e798854",
+          "sourceRef": "c56ba245-e371-58b2-af9c-8963ad5515ba",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "historical_event",
+          "maxAgeSeconds": null,
+          "freshness": "not_applicable"
+        }
+      ],
+      "limitations": [
+        "missing_source"
+      ]
+    }
+  },
+  "plants.water_in": {
+    "capability": {
+      "id": "plants.water_in",
+      "revision": 1,
+      "queryType": "plant-query.v1",
+      "answerType": "plant-estimate.v1",
+      "title": {
+        "en": "Watering estimate",
+        "de": "Bewässerungsschätzung",
+        "pl": "Szacowany termin podlewania"
+      },
+      "description": {
+        "en": "Watering estimate",
+        "de": "Bewässerungsschätzung",
+        "pl": "Szacowany termin podlewania"
+      },
+      "examples": {
+        "en": [
+          "When might this plant need water?"
+        ],
+        "de": [
+          "Wann braucht diese Pflanze möglicherweise Wasser?"
+        ],
+        "pl": [
+          "Kiedy ta roślina może wymagać podlewania?"
+        ]
+      },
+      "configuration": "configured",
+      "availability": "unavailable",
+      "limitations": [
+        "insufficient_history",
+        "missing_source",
+        "watering_history_unknown"
+      ],
+      "availabilityBasis": "live_states",
+      "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+      "subjects": [
+        {
+          "id": "69a83f18-3423-5161-b843-95eee1d08949",
+          "kind": "plant",
+          "label": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "roomId": "6ea54791-8dc9-500d-9c02-ec290ccd7470",
+          "roomLabel": {
+            "en": "Study",
+            "de": "Arbeitszimmer",
+            "pl": "Gabinet"
+          }
+        }
+      ]
+    },
+    "arguments": {
+      "plantId": "69a83f18-3423-5161-b843-95eee1d08949"
+    },
+    "answer": {
+      "version": 1,
+      "capability": "plants.water_in",
+      "revision": 1,
+      "answerType": "plant-estimate.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "unavailable",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 0,
+        "missing": 1
+      },
+      "summary": {
+        "status": "unknown",
+        "affected": 0
+      },
+      "facts": [
+        {
+          "subjectId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "id": "75453913-6e5c-5fb8-b42b-3b5467f6265e",
+          "label": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "metric": "water_in",
+          "value": null,
+          "unit": "d",
+          "status": "unverified",
+          "evidenceRefs": [
+            "54274f55-4ba6-531c-862b-543aa6011c79"
+          ],
+          "plantId": "69a83f18-3423-5161-b843-95eee1d08949",
+          "name": {
+            "en": "Fern",
+            "de": "Farn",
+            "pl": "Paproć"
+          },
+          "basis": "estimate"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "54274f55-4ba6-531c-862b-543aa6011c79",
+          "sourceRef": "93a335a9-3393-58fe-a841-4a9907b48db1",
+          "observedAt": null,
+          "reportedAt": "2026-10-31T12:00:00+00:00",
+          "freshnessBasis": "unknown",
+          "maxAgeSeconds": 900,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "insufficient_history",
+        "missing_source",
+        "watering_history_unknown"
+      ]
+    }
+  },
+  "climate-air.humidity": {
+    "capability": {
+      "id": "climate-air.humidity",
+      "revision": 1,
+      "queryType": "environment-query.v1",
+      "answerType": "environment.v1",
+      "title": {
+        "en": "Humidity",
+        "de": "Luftfeuchtigkeit",
+        "pl": "Wilgotność powietrza"
+      },
+      "description": {
+        "en": "Humidity",
+        "de": "Luftfeuchtigkeit",
+        "pl": "Wilgotność powietrza"
+      },
+      "examples": {
+        "en": [
+          "What is the humidity?"
+        ],
+        "de": [
+          "Wie hoch ist die Luftfeuchtigkeit?"
+        ],
+        "pl": [
+          "Jaka jest wilgotność powietrza?"
+        ]
+      },
+      "configuration": "configured",
+      "availability": "unavailable",
+      "limitations": [
+        "missing_source"
+      ],
+      "availabilityBasis": "live_states",
+      "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+      "subjects": [
+        {
+          "id": "ad3556c7-9611-51e7-b331-93d57c234c76",
+          "kind": "room",
+          "label": "X",
+          "roomId": "ad3556c7-9611-51e7-b331-93d57c234c76"
+        }
+      ]
+    },
+    "arguments": {},
+    "answer": {
+      "version": 1,
+      "capability": "climate-air.humidity",
+      "revision": 1,
+      "answerType": "environment.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "unavailable",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 0,
+        "missing": 1
+      },
+      "summary": {
+        "status": "unknown",
+        "affected": 0
+      },
+      "facts": [
+        {
+          "subjectId": "ad3556c7-9611-51e7-b331-93d57c234c76",
+          "id": "9b82e0de-078f-5fdd-b4bc-007884773342",
+          "label": "X",
+          "metric": "humidity",
+          "value": null,
+          "unit": "%",
+          "status": "missing",
+          "evidenceRefs": [
+            "2dc1a169-d61b-5a2a-8514-13b3d5490f10"
+          ],
+          "roomId": "ad3556c7-9611-51e7-b331-93d57c234c76",
+          "indoor": true
+        }
+      ],
+      "evidence": [
+        {
+          "id": "2dc1a169-d61b-5a2a-8514-13b3d5490f10",
+          "sourceRef": "7a006e1f-3c3c-50a8-a7b5-4e1bbe617b90",
+          "observedAt": null,
+          "reportedAt": "2026-10-31T12:00:00+00:00",
+          "freshnessBasis": "unknown",
+          "maxAgeSeconds": 21600,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "missing_source"
+      ]
+    }
+  },
+  "climate-air.status": {
+    "capability": {
+      "id": "climate-air.status",
+      "revision": 1,
+      "queryType": "environment-query.v1",
+      "answerType": "environment.v1",
+      "title": {
+        "en": "Climate status",
+        "de": "Klimastatus",
+        "pl": "Stan klimatu"
+      },
+      "description": {
+        "en": "Climate status",
+        "de": "Klimastatus",
+        "pl": "Stan klimatu"
+      },
+      "examples": {
+        "en": [
+          "Is there a humidity alert?"
+        ],
+        "de": [
+          "Gibt es einen Feuchtigkeitsalarm?"
+        ],
+        "pl": [
+          "Czy zgłoszono alarm wilgotności?"
+        ]
+      },
+      "configuration": "configured",
+      "availability": "unavailable",
+      "limitations": [
+        "missing_source",
+        "reported_state_only"
+      ],
+      "availabilityBasis": "live_states",
+      "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+      "subjects": [
+        {
+          "id": "ad3556c7-9611-51e7-b331-93d57c234c76",
+          "kind": "room",
+          "label": "X",
+          "roomId": "ad3556c7-9611-51e7-b331-93d57c234c76"
+        }
+      ]
+    },
+    "arguments": {},
+    "answer": {
+      "version": 1,
+      "capability": "climate-air.status",
+      "revision": 1,
+      "answerType": "environment.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "unavailable",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 0,
+        "missing": 1
+      },
+      "summary": {
+        "status": "unknown",
+        "affected": 0
+      },
+      "facts": [
+        {
+          "subjectId": "ad3556c7-9611-51e7-b331-93d57c234c76",
+          "id": "54867bcb-c3a5-5276-8e67-65700553b2b5",
+          "label": "X",
+          "roomId": "ad3556c7-9611-51e7-b331-93d57c234c76",
+          "indoor": true,
+          "evidenceRefs": [
+            "6acd4169-e01c-520e-a68f-9dac90da8f7e"
+          ],
+          "basis": "reported",
+          "metric": "humidity_alert",
+          "value": null,
+          "unit": "%",
+          "status": "missing",
+          "alertCode": "unknown"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "6acd4169-e01c-520e-a68f-9dac90da8f7e",
+          "sourceRef": "53a804d2-b309-58dd-ac20-226d714df36d",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "reported_state",
+          "maxAgeSeconds": null,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "missing_source",
+        "reported_state_only"
+      ]
+    }
+  },
+  "climate-air.status.difference": {
+    "capability": {
+      "id": "climate-air.status",
+      "revision": 1,
+      "queryType": "environment-query.v1",
+      "answerType": "environment.v1",
+      "title": {
+        "en": "Climate status",
+        "de": "Klimastatus",
+        "pl": "Stan klimatu"
+      },
+      "description": {
+        "en": "Climate status",
+        "de": "Klimastatus",
+        "pl": "Stan klimatu"
+      },
+      "examples": {
+        "en": [
+          "Is there a humidity alert?"
+        ],
+        "de": [
+          "Gibt es einen Feuchtigkeitsalarm?"
+        ],
+        "pl": [
+          "Czy zgłoszono alarm wilgotności?"
+        ]
+      },
+      "configuration": "configured",
+      "availability": "unavailable",
+      "limitations": [
+        "missing_source",
+        "reported_state_only"
+      ],
+      "availabilityBasis": "live_states",
+      "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+      "subjects": [
+        {
+          "id": "ad3556c7-9611-51e7-b331-93d57c234c76",
+          "kind": "room",
+          "label": "X",
+          "roomId": "ad3556c7-9611-51e7-b331-93d57c234c76"
+        }
+      ]
+    },
+    "arguments": {},
+    "answer": {
+      "version": 1,
+      "capability": "climate-air.status",
+      "revision": 1,
+      "answerType": "environment.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "unavailable",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 0,
+        "missing": 1
+      },
+      "summary": {
+        "status": "unknown",
+        "affected": 0
+      },
+      "facts": [
+        {
+          "subjectId": "ad3556c7-9611-51e7-b331-93d57c234c76",
+          "id": "980f8368-2506-5c64-b74c-ef3dcb3bdf36",
+          "label": "X",
+          "roomId": "ad3556c7-9611-51e7-b331-93d57c234c76",
+          "indoor": true,
+          "evidenceRefs": [
+            "b885ffc7-af94-5d6a-9059-6be8c0e02518"
+          ],
+          "basis": "reported",
+          "metric": "temperature_difference",
+          "value": null,
+          "unit": "°C",
+          "status": "missing"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "b885ffc7-af94-5d6a-9059-6be8c0e02518",
+          "sourceRef": "56459e30-ced1-5e69-b4a5-000da730bff9",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "reported_state",
+          "maxAgeSeconds": null,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "missing_source",
+        "reported_state_only"
+      ]
+    }
+  },
+  "media.mains": {
+    "capability": {
+      "id": "media.mains",
+      "revision": 1,
+      "queryType": "reading-query.v1",
+      "answerType": "reading.v1",
+      "title": {
+        "en": "Player power and voltage",
+        "de": "Leistung und Spannung des Players",
+        "pl": "Moc i napięcie odtwarzacza"
+      },
+      "description": {
+        "en": "Player power and voltage",
+        "de": "Leistung und Spannung des Players",
+        "pl": "Moc i napięcie odtwarzacza"
+      },
+      "examples": {
+        "en": [
+          "What power does the player use?"
+        ],
+        "de": [
+          "Welche Leistung meldet der Player?"
+        ],
+        "pl": [
+          "Jaką moc zgłasza odtwarzacz?"
+        ]
+      },
+      "configuration": "configured",
+      "availability": "unavailable",
+      "limitations": [
+        "missing_source"
+      ],
+      "availabilityBasis": "live_states",
+      "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+      "subjects": [
+        {
+          "id": "75c2b0f9-7a6c-5750-9b1d-9eaaa81fc616",
+          "kind": "player",
+          "label": "X"
+        }
+      ]
+    },
+    "arguments": {},
+    "answer": {
+      "version": 1,
+      "capability": "media.mains",
+      "revision": 1,
+      "answerType": "reading.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "unavailable",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 0,
+        "missing": 1
+      },
+      "summary": {
+        "status": "unknown",
+        "affected": 0
+      },
+      "facts": [
+        {
+          "subjectId": "75c2b0f9-7a6c-5750-9b1d-9eaaa81fc616",
+          "id": "ee6e6193-ab72-5807-9485-f93d540533c2",
+          "label": "X",
+          "metric": "power",
+          "value": null,
+          "unit": "W",
+          "status": "missing",
+          "evidenceRefs": [
+            "8635ffd5-fa77-5f59-9d6d-afbf95497faa"
+          ],
+          "scope": "individual_meter"
+        }
+      ],
+      "evidence": [
+        {
+          "id": "8635ffd5-fa77-5f59-9d6d-afbf95497faa",
+          "sourceRef": "a903faa1-e2a4-5d95-ac01-c3ee095d24a6",
+          "observedAt": null,
+          "reportedAt": "2026-10-31T12:00:00+00:00",
+          "freshnessBasis": "unknown",
+          "maxAgeSeconds": 900,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "missing_source"
+      ]
+    }
+  },
+  "awnings.wind": {
+    "capability": {
+      "id": "awnings.wind",
+      "revision": 1,
+      "queryType": "awning-query.v1",
+      "answerType": "awnings.v1",
+      "title": {
+        "en": "Awning wind alarm",
+        "de": "Windalarm der Markise",
+        "pl": "Alarm wiatrowy markizy"
+      },
+      "description": {
+        "en": "Awning wind alarm",
+        "de": "Windalarm der Markise",
+        "pl": "Alarm wiatrowy markizy"
+      },
+      "examples": {
+        "en": [
+          "Is an awning wind alarm reported?"
+        ],
+        "de": [
+          "Wird ein Windalarm für die Markise gemeldet?"
+        ],
+        "pl": [
+          "Czy zgłoszono alarm wiatrowy markizy?"
+        ]
+      },
+      "configuration": "configured",
+      "availability": "unavailable",
+      "limitations": [
+        "reported_state_only"
+      ],
+      "availabilityBasis": "live_states",
+      "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+      "subjects": [
+        {
+          "id": "b204dca1-87d9-5cfc-b1e3-29c4c20fb6d4",
+          "kind": "awning",
+          "label": "X"
+        }
+      ]
+    },
+    "arguments": {},
+    "answer": {
+      "version": 1,
+      "capability": "awnings.wind",
+      "revision": 1,
+      "answerType": "awnings.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "unavailable",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 0,
+        "missing": 1
+      },
+      "summary": {
+        "status": "unknown",
+        "affected": 0,
+        "basis": "reported"
+      },
+      "facts": [
+        {
+          "subjectId": "b204dca1-87d9-5cfc-b1e3-29c4c20fb6d4",
+          "id": "59d2fa70-d9a2-5dea-ae40-0632075d6fcd",
+          "label": "X",
+          "state": "unknown",
+          "stateBasis": "reported",
+          "positionBasis": "reported",
+          "alarm": "unknown",
+          "alarmBasis": "unknown",
+          "lastHeardAt": null,
+          "evidenceRefs": [
+            "c169d6fe-1bd5-5816-bc05-fa8edfd7dbab"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "c169d6fe-1bd5-5816-bc05-fa8edfd7dbab",
+          "sourceRef": "c6446907-d9f7-5d82-a7f7-5c996bba7034",
+          "observedAt": null,
+          "reportedAt": null,
+          "freshnessBasis": "reported_state",
+          "maxAgeSeconds": null,
+          "freshness": "unknown"
+        }
+      ],
+      "limitations": [
+        "reported_state_only"
+      ]
+    }
+  },
+  "weather.forecast": {
+    "capability": {
+      "id": "weather.forecast",
+      "revision": 1,
+      "queryType": "weather-query.v1",
+      "answerType": "weather.v1",
+      "title": {
+        "en": "Weather forecast",
+        "de": "Wettervorhersage",
+        "pl": "Prognoza pogody"
+      },
+      "description": {
+        "en": "Weather forecast",
+        "de": "Wettervorhersage",
+        "pl": "Prognoza pogody"
+      },
+      "examples": {
+        "en": [
+          "What is the forecast for tomorrow?"
+        ],
+        "de": [
+          "Wie ist die Vorhersage für morgen?"
+        ],
+        "pl": [
+          "Jaka jest prognoza na jutro?"
+        ]
+      },
+      "configuration": "configured",
+      "availability": "unavailable",
+      "limitations": [
+        "provider_sync_unknown"
+      ],
+      "availabilityBasis": "configuration_only",
+      "availabilityAsOf": "2026-10-31T12:00:00+00:00",
+      "subjects": [
+        {
+          "id": "063bd159-0edc-5b4c-a104-88c58376ef5e",
+          "kind": "weather",
+          "label": "X"
+        }
+      ]
+    },
+    "arguments": {},
+    "answer": {
+      "version": 1,
+      "capability": "weather.forecast",
+      "revision": 1,
+      "answerType": "weather.v1",
+      "asOf": "2026-10-31T12:00:00+00:00",
+      "availability": "unavailable",
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 0,
+        "missing": 1,
+        "unit": "forecast_source"
+      },
+      "summary": {
+        "status": "unknown",
+        "affected": 0
+      },
+      "facts": [],
+      "evidence": [],
+      "limitations": [
+        "missing_source",
+        "provider_sync_unknown"
+      ],
+      "intervalStart": "2026-10-31T00:00:00+01:00",
+      "intervalEnd": "2026-11-01T00:00:00+01:00",
+      "timezone": "Europe/Zurich"
+    }
+  }
+}
