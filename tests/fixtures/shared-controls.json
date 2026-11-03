@@ -155,7 +155,7 @@
         "targets": [
           {
             "id": "7825f6c6-9471-5754-8e9d-77ea0652b322",
-            "revision": "3df2f0117b43524b6169cc425a507070efd900ce3039ac0e61df13283dda7b93",
+            "revision": "359081a31ab99ba7284c47434d5dde3412d1408a6f6199cb9bab21857b93050e",
             "kind": "light",
             "scope": "subject",
             "label": "Desk",
@@ -185,7 +185,7 @@
           },
           {
             "id": "fb985b0b-d0ec-5596-9c0a-8e940f257bef",
-            "revision": "18663c05596272845a314035f578d3d451a5b0ad8d91e15580ca6607c855cb58",
+            "revision": "a35e3063fb34ecc7b82cd93994c9d4259a1fa6abfcdbd0255b772ff69ef76a79",
             "kind": "cover",
             "scope": "subject",
             "label": "Office shade",
@@ -219,7 +219,7 @@
           },
           {
             "id": "906e99ce-15b7-509c-8d45-6c9be0a969ff",
-            "revision": "a8c9528302f5a00920e4e1d91dbddb3c8fc144bc4350027eaed9049614b6d3c0",
+            "revision": "85e8d387618192a519aa25dc55c2e74be2bed75f673c199e934ea3c12c5baccd",
             "kind": "cover",
             "scope": "room",
             "label": "Office",
@@ -255,7 +255,7 @@
           },
           {
             "id": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
-            "revision": "9486864e2d09b2ae8ee2022c7533f502b6314918652afa9d769aa966f946a3d7",
+            "revision": "9eaa529da5f1a4226e69945e0a54cb7d150e588f9b8709fe8e078f163e7b73be",
             "kind": "light",
             "scope": "room",
             "label": "Office",
@@ -296,7 +296,7 @@
         "capability": "covers.open",
         "revision": 1,
         "targetId": "fb985b0b-d0ec-5596-9c0a-8e940f257bef",
-        "targetRevision": "18663c05596272845a314035f578d3d451a5b0ad8d91e15580ca6607c855cb58",
+        "targetRevision": "a35e3063fb34ecc7b82cd93994c9d4259a1fa6abfcdbd0255b772ff69ef76a79",
         "requestId": "11111111-1111-4111-8111-111111111111:test",
         "id": 11,
         "type": "domosenso_frame/control_action"
@@ -308,7 +308,7 @@
         "capability": "covers.open",
         "revision": 1,
         "targetId": "fb985b0b-d0ec-5596-9c0a-8e940f257bef",
-        "targetRevision": "18663c05596272845a314035f578d3d451a5b0ad8d91e15580ca6607c855cb58",
+        "targetRevision": "a35e3063fb34ecc7b82cd93994c9d4259a1fa6abfcdbd0255b772ff69ef76a79",
         "status": "accepted",
         "reason": "command_sent",
         "outcomes": [
@@ -344,7 +344,7 @@
         "targets": [
           {
             "id": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
-            "revision": "800013ff397940d7c1df1e6dea1b72d8fee6ba6118785e81ec910eadf8a2b149",
+            "revision": "5768c0e486cd8ffe516bad3a5deb2673944acc93205c01f35afa7d2a24edfddf",
             "kind": "awning",
             "scope": "subject",
             "label": "Terrace",
@@ -376,7 +376,7 @@
           },
           {
             "id": "196af91a-22c4-539c-af65-c674b7266f99",
-            "revision": "3aa73a5dde2fe5bc59068c68b553f001b51341f62e0b0b1e2658929c5730689c",
+            "revision": "5deae8d55e343c446be86ad5797815b29d79c42554b7424586ec378e47a9fc30",
             "kind": "light",
             "scope": "subject",
             "label": {
@@ -410,7 +410,7 @@
           },
           {
             "id": "26740a73-dd72-535a-8b38-6546b1d6efe2",
-            "revision": "0bb4bb180b4039c276be51d7a0e8dfdd536d30cc0d77df9f0cdfdb2eb9bfcf1f",
+            "revision": "1c444171a9e2cba1119c07d26432469d7affef4852db8275913f2773e637a391",
             "kind": "light",
             "scope": "subject",
             "label": {
@@ -443,7 +443,7 @@
           },
           {
             "id": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
-            "revision": "d141e95638d47ab6d273f60a239b963d6488d047c1f4df27cbea8e162eb91223",
+            "revision": "f501b6326f6d7f3909fe9f9952fecf1b3aa1f363d065a43225d57c6c8dacb760",
             "kind": "light",
             "scope": "room",
             "label": "Office",
@@ -475,7 +475,7 @@
           },
           {
             "id": "2084c3d3-f725-59eb-b7bf-65ef90873a0b",
-            "revision": "b29120e857d970164028c05b3d007883450cc0e8480f0c44b4520ac00eaa0c3a",
+            "revision": "104e53b2f629169cbc33227d46152405a3dd125e6acdad4e184719a0f4f12c5e",
             "kind": "awning",
             "scope": "room",
             "label": "Terrace",
@@ -516,7 +516,7 @@
         "capability": "awnings.extend",
         "revision": 1,
         "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
-        "targetRevision": "800013ff397940d7c1df1e6dea1b72d8fee6ba6118785e81ec910eadf8a2b149",
+        "targetRevision": "5768c0e486cd8ffe516bad3a5deb2673944acc93205c01f35afa7d2a24edfddf",
         "requestId": "11111111-1111-4111-8111-111111111111:test",
         "id": 11,
         "type": "domosenso_frame/control_action"
@@ -528,7 +528,7 @@
         "capability": "awnings.extend",
         "revision": 1,
         "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
-        "targetRevision": "800013ff397940d7c1df1e6dea1b72d8fee6ba6118785e81ec910eadf8a2b149",
+        "targetRevision": "5768c0e486cd8ffe516bad3a5deb2673944acc93205c01f35afa7d2a24edfddf",
         "status": "accepted",
         "reason": "command_sent",
         "outcomes": [
@@ -549,7 +549,7 @@
         "capability": "awnings.extend",
         "revision": 1,
         "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
-        "targetRevision": "800013ff397940d7c1df1e6dea1b72d8fee6ba6118785e81ec910eadf8a2b149",
+        "targetRevision": "5768c0e486cd8ffe516bad3a5deb2673944acc93205c01f35afa7d2a24edfddf",
         "requestId": "11111111-1111-4111-8111-111111111111:test",
         "id": 11,
         "type": "domosenso_frame/control_action"
@@ -561,7 +561,7 @@
         "capability": "awnings.extend",
         "revision": 1,
         "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
-        "targetRevision": "800013ff397940d7c1df1e6dea1b72d8fee6ba6118785e81ec910eadf8a2b149",
+        "targetRevision": "5768c0e486cd8ffe516bad3a5deb2673944acc93205c01f35afa7d2a24edfddf",
         "status": "failed",
         "reason": "wind_block",
         "outcomes": []
@@ -959,6 +959,314 @@
             "assumedState": false
           }
         ]
+      }
+    },
+    "coverGroupTargets": {
+      "request": {
+        "id": 10,
+        "type": "domosenso_frame/control_targets",
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "supported": [
+          {
+            "actionType": "control-action.v1",
+            "resultType": "control-result.v1"
+          }
+        ]
+      },
+      "response": {
+        "version": 1,
+        "actionType": "control-action.v1",
+        "resultType": "control-result.v1",
+        "requestIdPrefix": "11111111-1111-4111-8111-111111111111:",
+        "expiresAt": "2026-11-03T12:10:00+00:00",
+        "targets": [
+          {
+            "id": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+            "revision": "5e69aa1d8e5cc32e685aa70a69bebebe72d6cd5c64dda708ff2282b9616e6b0b",
+            "kind": "light",
+            "scope": "subject",
+            "label": "Desk",
+            "aliases": [],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "7825f6c6-9471-5754-8e9d-77ea0652b322"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "8dda7040-9ec5-5756-94ec-ad0ae189c48e",
+            "revision": "01818808ecc5a5cd71820a2387caada85f3dc07a13f5c654c5de1d1e343e08d1",
+            "kind": "cover",
+            "scope": "subject",
+            "label": "Group",
+            "aliases": [],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "covers.close",
+                "revision": 1
+              },
+              {
+                "id": "covers.open",
+                "revision": 1
+              },
+              {
+                "id": "covers.stop",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "8dda7040-9ec5-5756-94ec-ad0ae189c48e"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "5f0d1fbd-3265-5f82-9214-aa2c41d05dc1",
+            "revision": "1714326388657a68c0993b157886ded17582c35e336bf91ae47bc3fe36c3ee83",
+            "kind": "cover",
+            "scope": "subject",
+            "label": "One",
+            "aliases": [],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "covers.close",
+                "revision": 1
+              },
+              {
+                "id": "covers.open",
+                "revision": 1
+              },
+              {
+                "id": "covers.stop",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "5f0d1fbd-3265-5f82-9214-aa2c41d05dc1"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "906e99ce-15b7-509c-8d45-6c9be0a969ff",
+            "revision": "066b500d7fe6815c845636c352a539a762497cb95d606ce0ed8823ca613d293d",
+            "kind": "cover",
+            "scope": "room",
+            "label": "Office",
+            "aliases": [
+              "Study"
+            ],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "covers.close",
+                "revision": 1
+              },
+              {
+                "id": "covers.open",
+                "revision": 1
+              },
+              {
+                "id": "covers.stop",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "8dda7040-9ec5-5756-94ec-ad0ae189c48e"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+            "revision": "87b092f72c34e61ff8012b59a20c1928856205a7f9752285ff650325d7b310e6",
+            "kind": "light",
+            "scope": "room",
+            "label": "Office",
+            "aliases": [
+              "Study"
+            ],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "7825f6c6-9471-5754-8e9d-77ea0652b322"
+            ],
+            "limitations": []
+          }
+        ]
+      }
+    },
+    "coverGroupAccepted": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "covers.open",
+        "revision": 1,
+        "targetId": "906e99ce-15b7-509c-8d45-6c9be0a969ff",
+        "targetRevision": "066b500d7fe6815c845636c352a539a762497cb95d606ce0ed8823ca613d293d",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "covers.open",
+        "revision": 1,
+        "targetId": "906e99ce-15b7-509c-8d45-6c9be0a969ff",
+        "targetRevision": "066b500d7fe6815c845636c352a539a762497cb95d606ce0ed8823ca613d293d",
+        "status": "accepted",
+        "reason": "command_sent",
+        "outcomes": [
+          {
+            "targetId": "8dda7040-9ec5-5756-94ec-ad0ae189c48e",
+            "status": "accepted",
+            "reason": "command_sent",
+            "assumedState": false
+          }
+        ]
+      }
+    },
+    "coverGroupExcluded": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "covers.open",
+        "revision": 1,
+        "targetId": "8dda7040-9ec5-5756-94ec-ad0ae189c48e",
+        "targetRevision": "01818808ecc5a5cd71820a2387caada85f3dc07a13f5c654c5de1d1e343e08d1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "covers.open",
+        "revision": 1,
+        "targetId": "8dda7040-9ec5-5756-94ec-ad0ae189c48e",
+        "targetRevision": "01818808ecc5a5cd71820a2387caada85f3dc07a13f5c654c5de1d1e343e08d1",
+        "status": "failed",
+        "reason": "stale_revision",
+        "outcomes": []
+      }
+    },
+    "missingWindRetract": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "awnings.retract",
+        "revision": 1,
+        "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
+        "targetRevision": "5768c0e486cd8ffe516bad3a5deb2673944acc93205c01f35afa7d2a24edfddf",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "awnings.retract",
+        "revision": 1,
+        "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
+        "targetRevision": "5768c0e486cd8ffe516bad3a5deb2673944acc93205c01f35afa7d2a24edfddf",
+        "status": "accepted",
+        "reason": "command_sent",
+        "outcomes": [
+          {
+            "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
+            "status": "accepted",
+            "reason": "command_sent",
+            "assumedState": false
+          }
+        ]
+      }
+    },
+    "missingWindExtend": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "awnings.extend",
+        "revision": 1,
+        "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
+        "targetRevision": "5768c0e486cd8ffe516bad3a5deb2673944acc93205c01f35afa7d2a24edfddf",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "awnings.extend",
+        "revision": 1,
+        "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
+        "targetRevision": "5768c0e486cd8ffe516bad3a5deb2673944acc93205c01f35afa7d2a24edfddf",
+        "status": "failed",
+        "reason": "wind_block",
+        "outcomes": []
       }
     }
   }

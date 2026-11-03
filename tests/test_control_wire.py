@@ -27,3 +27,13 @@ def test_export_is_generated_by_actual_routes_and_executor():
     assert [o['status'] for o in cases['partialDispatch']['response']['outcomes']]==['accepted','failed']
     assert cases['partialScopeDenied']['response']['reason']=='partial_scope'
     assert cases['partialScopeChosen']['response']['status']=='accepted'
+
+
+def test_cover_group_and_missing_wind_exports_use_current_routes():
+    from generate_control_wire import build
+    cases=build()['cases']
+    assert cases['coverGroupAccepted']['response']['status']=='accepted'
+    assert len(cases['coverGroupAccepted']['response']['outcomes'])==1
+    assert cases['coverGroupExcluded']['response']['status']=='failed'
+    assert cases['missingWindRetract']['response']['status']=='accepted'
+    assert cases['missingWindExtend']['response']['reason']=='wind_block'

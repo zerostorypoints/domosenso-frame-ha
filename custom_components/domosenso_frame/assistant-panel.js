@@ -87,6 +87,12 @@ class AssistantPanel extends HTMLElement {
    }
    if(source.grant&&!changed){
     const chosen=current.grants.find(g=>g.source===source.source),valid=chosen?.bindingRevision===source.grant.bindingRevision;
+    if(source.kind==='awning'&&(!source.grant.safetyRevision||(valid&&chosen.capabilities['awnings.extend']&&chosen.safetyRevision!==source.grant.safetyRevision))){
+     row.append(text('p',say('Wind binding is unavailable or needs review. Granted retraction and STOP remain available.','Powiązanie wiatru jest niedostępne lub wymaga sprawdzenia. Zatwierdzone zwijanie i STOP pozostają dostępne.')));
+     if(valid&&source.grant.safetyRevision&&chosen.capabilities['awnings.extend']){
+      const review=this.button(say('Review current wind binding for extension','Zatwierdź bieżące powiązanie wiatru dla wysuwania'),()=>{chosen.safetyRevision=source.grant.safetyRevision;this.render();});review.dataset.controlWindReview='';row.append(review);
+     }
+    }
     const all=document.createElement('input');all.type='checkbox';all.dataset.controlGrant='';all.disabled=this.busy;all.checked=!!valid;
     all.onchange=()=>{const c=this.controlsDraft();c.grants=c.grants.filter(g=>g.source!==source.source);if(all.checked)c.grants.push(copy(source.grant));this.render();};
     const label=text('label',say('Grant reviewed actions: ','Zatwierdź działania: ')+Object.keys(source.grant.capabilities).join(', '));label.prepend(all);row.append(label);

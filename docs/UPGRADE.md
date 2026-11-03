@@ -59,3 +59,11 @@ mapping group; retain its preceding read-only mapping backup or remove only
 live controls ledger to “retry” an uncertain command. The old read bundle and
 existing timer API remain unchanged; no read-only bundle migration is required.
 See [controls](controls.md) for bounded request epochs and physical-state limits.
+
+Unreleased review correction: cover grants now bind effective group members and
+member classes/features. Awning grants separate the actuator binding from an
+optional extension `safetyRevision`. Grants saved by the earlier unreleased
+prototype may require explicit review/regrant after this correction; they are
+never automatically broadened. Subsequent wind-provider removal/replacement
+blocks extension without removing separately granted retraction/STOP. The native
+request/result schema remains version 1 and unchanged.

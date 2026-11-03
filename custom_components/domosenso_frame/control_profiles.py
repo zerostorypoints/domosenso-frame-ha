@@ -96,7 +96,9 @@ def validate_mapping(value):
             if row['source'] in seen: raise ValueError('Duplicate control source')
             seen.add(row['source']); entity(row.get('entity'))
             if key == 'grants':
-                if set(row) != {'source','entity','bindingRevision','capabilities'}: raise ValueError('Invalid control grant')
+                required={'source','entity','bindingRevision','capabilities'}
+                if not required <= row.keys() or set(row)-required-{'safetyRevision'}: raise ValueError('Invalid control grant')
+                if 'safetyRevision' in row and (not isinstance(row['safetyRevision'],str) or not re.fullmatch('[a-f0-9]{64}',row['safetyRevision'])):raise ValueError('Invalid safety revision')
                 if not isinstance(row['bindingRevision'],str) or not re.fullmatch('[a-f0-9]{64}',row['bindingRevision']): raise ValueError('Invalid binding revision')
                 caps = row['capabilities']
                 if not isinstance(caps,dict) or not caps or any(c not in ACTIONS or type(v) is not int or v != 1 for c,v in caps.items()): raise ValueError('Invalid action grants')
@@ -130,9 +132,19 @@ class Profiles:
         return {k:entry.get(k) for k in ('id','platform','unique_id','device_id')}
 
     def graph(self, entity, upstream=None):
-        graph, leaves = {}, set()
-        def visit(eid, path, require_group=False):
-            if len(graph) >= 128 or eid in path or not eid.startswith('light.'): raise ValueError('unknown_membership')
+        # Resolution-local memoization: visiting detects cycles; completed nodes
+        # avoid rewalking a DAG. Bound edges as well as nodes before iterating.
+        domain=entity.partition('.')[0]
+        if domain not in ('light','cover') or upstream and domain!='light':raise ValueError('unknown_membership')
+        graph, leaves, visiting, completed = {}, set(), set(), set()
+        edges = 0
+        def visit(eid, require_group=False):
+            nonlocal edges
+            if eid in visiting or not eid.startswith(domain+'.'): raise ValueError('unknown_membership')
+            if eid in completed:
+                if require_group and not graph[eid]: raise ValueError('unknown_membership')
+                return
+            if len(graph) >= 128: raise ValueError('unknown_membership')
             state = self.state_get(eid)
             if not state: raise ValueError('unknown_membership')
             self.identity(eid)
@@ -140,14 +152,19 @@ class Profiles:
             platform = self.registry_get(eid).get('platform')
             if members is None:
                 if require_group or platform in ('group','template') or state.attributes.get('component') == 'lights': raise ValueError('unknown_membership')
-                graph[eid] = []; leaves.add(eid); return
-            if not isinstance(members,(list,tuple)) or not members or any(not isinstance(e,str) for e in members) or len(set(members)) != len(members): raise ValueError('unknown_membership')
-            graph[eid] = sorted(members)
-            for member in members: visit(member, path | {eid})
+                graph[eid] = []; leaves.add(eid); completed.add(eid); return
+            if not isinstance(members,(list,tuple)) or not 1 <= len(members) <= 128 or edges + len(members) > 512:
+                raise ValueError('unknown_membership')
+            if any(not isinstance(e,str) for e in members) or len(set(members)) != len(members): raise ValueError('unknown_membership')
+            edges += len(members)
+            graph[eid] = sorted(members); visiting.add(eid)
+            for member in members: visit(member)
+            visiting.remove(eid); completed.add(eid)
         if upstream:
             if not self.state_get(entity): raise ValueError('unavailable')
-            self.identity(entity);graph[entity]=[upstream];visit(upstream,{entity},True)
-        else: visit(entity,set())
+            self.identity(entity);graph[entity]=[upstream];visiting.add(entity);edges=1
+            visit(upstream,True)
+        else: visit(entity)
         return sorted(leaves), graph
 
     def sources(self, endpoint):
@@ -185,7 +202,7 @@ class Profiles:
             if room_key not in areas or area and area != room_key: raise ValueError('room_conflict')
             area=room_key
         if area and area not in areas: raise ValueError('room_conflict')
-        kind=row['kind'];guard=row.get('guard')
+        kind=row['kind'];guard=row.get('guard');cover_traits={}
         if kind=='light':
             members,graph=self.graph(eid,row.get('group',{}).get('entity'))
             caps=['lights.turn_on','lights.turn_off']
@@ -199,25 +216,42 @@ class Profiles:
             if kind=='awning' and actual != 'awning': raise ValueError('class_conflict')
             kind='awning' if actual=='awning' else 'cover'
             caps=['awnings.extend','awnings.retract','awnings.stop'] if kind=='awning' else ['covers.open','covers.close','covers.stop']
-            features=state.attributes.get('supported_features',0)
-            if type(features) is not int: features=0
-            caps=[c for c in caps if features & ACTIONS[c][2]]
-            members=[eid];graph={eid:[]}
+            members,graph=self.graph(eid)
+            for member in graph:
+                sample=self.state_get(member)
+                cls=actual if member==eid else sample.attributes.get('device_class')
+                if cls in EXCLUDED:raise ValueError('excluded_class')
+                if cls not in WINDOW | {'awning'}:raise ValueError('unverified_class')
+                if (cls=='awning') != (kind=='awning'):raise ValueError('class_conflict')
+                features=sample.attributes.get('supported_features',0)
+                features=int(features) if isinstance(features,int) and not isinstance(features,bool) else 0
+                cover_traits[member]={'class':cls,'features':features}
+                caps=[c for c in caps if features & ACTIONS[c][2]]
             if guard is None: guard=mapping.get('guard')
         if row.get('declared') is not None: caps=[c for c in caps if c in row['declared']]
         if not caps: raise ValueError('unsupported')
-        safety={}
+        safety={};safety_revision=None
         if guard:
-            validate_guard(guard)
-            # Registry identity is retained even while a source is unavailable.
-            for role in ('wind','last_heard'): safety[role]=self.identity(guard[role]['entity'])
+            try:
+                validate_guard(guard)
+                for role in ('wind','last_heard'):safety[role]=self.identity(guard[role]['entity'])
+                safety_revision=digest({'guard':guard,'registrations':safety})
+            except ValueError:
+                # Missing/disabled/replaced safety providers must not remove the
+                # independently granted unchanged actuator's safe directions.
+                safety={}
         graph_areas={e:(self.registry_get(e).get('area_id') or self.registry_get(e).get('device_area_id')) for e in graph}
         if not mapping.get('area') and area and any(a and a!=area for a in graph_areas.values()):raise ValueError('room_conflict')
         binding={'source':row['source'],'entity':eid,'kind':kind,'identity':identity,'provenance':row.get('provenance'),
                  'graph':graph,'graphAreas':graph_areas,'registrations':{e:self.identity(e) for e in graph},'area':area,'guard':guard,'safety':safety,'capabilities':caps}
+        if cover_traits:binding['coverTraits']=cover_traits
+        if kind=='awning':
+            binding.pop('guard');binding.pop('safety')
+        grant={'source':row['source'],'entity':eid,'bindingRevision':digest(binding),'capabilities':{c:1 for c in caps}}
+        if kind=='awning' and safety_revision:grant['safetyRevision']=safety_revision
         return {**row,'kind':kind,'members':members,'graph':graph,'guard':guard,'area':area,
                 'room':{'key':area,'label':areas[area]['name'],'aliases':sorted(areas[area].get('aliases',[]))} if area else None,
-                'aliases':sorted(entry.get('aliases',[])), 'grant':{'source':row['source'],'entity':eid,'bindingRevision':digest(binding),'capabilities':{c:1 for c in caps}}}
+                'aliases':sorted(entry.get('aliases',[])), 'grant':grant}
 
     def catalog(self, endpoint):
         sources=[]
@@ -236,6 +270,8 @@ class Profiles:
             row=available.get(grant['source'],{});current=row.get('grant')
             if not current or any(grant[k]!=current[k] for k in ('source','entity','bindingRevision')) or not grant['capabilities'].items() <= current['capabilities'].items():
                 raise ValueError('Control sources changed. Reload and review the current binding.')
+            if 'awnings.extend' in grant['capabilities'] and grant.get('safetyRevision')!=current.get('safetyRevision'):
+                raise ValueError('Wind sources changed. Reload and review the extension binding.')
 
     def authorized(self, endpoint, permitted):
         controls=endpoint.get('assistant',{}).get('controls',DEFAULT)
@@ -247,6 +283,7 @@ class Profiles:
             grant=next((g for g in controls['grants'] if all(g[k]==current[k] for k in ('source','entity','bindingRevision'))),None)
             if not grant or any(not permitted(e,'read') or not permitted(e,'control') for e in row['graph']): continue
             row['capabilities']=[c for c in current['capabilities'] if grant['capabilities'].get(c)==1]
+            row['extensionAuthorized']=bool(current.get('safetyRevision') and current.get('safetyRevision')==grant.get('safetyRevision'))
             if row['capabilities']: result.append(row)
         return result
 
@@ -263,5 +300,7 @@ class Profiles:
                     members.add(eid)
             elif eid.startswith('cover.'):
                 cls=state.attributes.get('device_class')
-                if kind=='awning' and cls=='awning' or kind=='cover' and cls not in EXCLUDED | {'awning'}: members.add(eid)
+                if kind=='awning' and cls=='awning' or kind=='cover' and cls not in EXCLUDED | {'awning'}:
+                    try:leaves,_=self.graph(eid);members.update(leaves)
+                    except ValueError:members.add(eid)
         return members

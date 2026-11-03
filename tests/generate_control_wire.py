@@ -47,6 +47,14 @@ def build():
     env=rig();r=env[0];r.enable()
     async def uncertain(*args,**kwargs):raise TimeoutError('Provider did not finish')
     env[1].services.async_call=uncertain;execute(env,'unknown')
+    from test_controls import cover_group
+    env=rig();cover_group(env[0]);negotiate(env,'coverGroupTargets');execute(env,'coverGroupAccepted','covers.open',scope='room')
+    env=rig();cover_group(env[0])
+    execute(env,'coverGroupExcluded','covers.open',change=lambda r:r.states['cover.two'].attributes.update(device_class='garage'))
+    env=rig();env[0].compiled();env[0].enable()
+    execute(env,'missingWindRetract','awnings.retract',change=lambda r:r.registry.pop('binary_sensor.awnings_wind'))
+    env=rig();env[0].compiled();env[0].enable()
+    execute(env,'missingWindExtend','awnings.extend',change=lambda r:r.registry.pop('binary_sensor.awnings_wind'))
     return {'version':1,'proof':{'transport':'HA authenticated WebSocket','pairing':['begin(publicKey, endpoint, name)','finish(signature of challenge)','administrator approve(deviceId, code)'],
         'binding':'deviceId must equal the approved proof on this same authenticated connection; reconnect requires a new begin/finish proof',
         'fixtureDeviceId':'tablet','fixtureEndpoint':'frame','verification':'tests/controls_ha_smoke.py exercises P-256 pairing and these registered routes on fresh HA'},'cases':cases}

@@ -338,3 +338,189 @@ def test_cancelled_room_dispatch_restarts_with_per_target_unknown_without_replay
         assert result['status']=='unknown' and len(result['outcomes'])==2
         assert all(o['status']=='unknown' for o in result['outcomes']);assert not r.calls
     run(case)
+
+
+def shared_graph(r, domain='light', layers=11):
+    """Two parents per layer share the entire completed subgraph below them."""
+    children=[]
+    for layer in range(layers):
+        current=[]
+        for side in ('a','b'):
+            eid=f'{domain}.dag_{layer}_{side}'
+            attrs={'entity_id':children} if children else {}
+            r.add(eid,'off' if domain=='light' else 'closed',**attrs)
+            current.append(eid)
+        children=current
+    return children[0],2*layers-1
+
+
+def test_shared_dag_traverses_each_entity_once_without_global_cache():
+    r=Rig();root,count=shared_graph(r);lookups=[]
+    def get(eid):lookups.append(eid);return r.states.get(eid)
+    r.resolver.state_get=get
+    members,graph=r.resolver.graph(root)
+    assert len(graph)==count and len(members)==2
+    assert len(lookups)==count, f'{count} distinct nodes caused {len(lookups)} state lookups'
+    # A new resolution must see a changed completed subgraph immediately.
+    r.states['light.dag_0_a'].attributes['entity_id']=[root]
+    lookups.clear()
+    with pytest.raises(ValueError,match='unknown_membership'):r.resolver.graph(root)
+    assert len(lookups)<=count
+
+
+@pytest.mark.parametrize('shape',['wide','dense','cycle'])
+def test_graph_total_work_is_bounded(shape):
+    r=Rig();r.add('light.root','off')
+    if shape=='wide':r.states['light.root'].attributes['entity_id']=[f'light.child_{i}' for i in range(129)]
+    elif shape=='cycle':
+        r.add('light.child','off',entity_id=['light.root']);r.states['light.root'].attributes['entity_id']=['light.child']
+    else:
+        # 65 nodes, 1056 edges: all nodes fit but excessive graph work must not.
+        leaves=[f'light.leaf_{i}' for i in range(32)]
+        parents=[f'light.parent_{i}' for i in range(32)]
+        for eid in leaves:r.add(eid,'off')
+        for eid in parents:r.add(eid,'off',entity_id=leaves)
+        r.states['light.root'].attributes['entity_id']=parents
+    lookups=[]
+    def get(eid):lookups.append(eid);return r.states.get(eid)
+    r.resolver.state_get=get
+    with pytest.raises(ValueError,match='unknown_membership'):r.resolver.graph('light.root')
+    assert len(lookups)<=128
+
+
+def cover_group(r=None, kind='shade'):
+    r=r or Rig()
+    for eid in ('cover.one','cover.two'):
+        r.add(eid,'closed',area='office',device_class=kind,supported_features=11)
+    r.add('cover.group','closed',area='office',device_class=kind,supported_features=11,entity_id=['cover.one','cover.two'])
+    r.registry['cover.group']['platform']='group'
+    r.endpoint['studio']['covers']=[{'entity':'cover.group','label':'Group'},{'entity':'cover.one','label':'One'}]
+    r.enable();return r
+
+
+def test_cover_group_expansion_to_denied_excluded_child_invalidates_old_grant():
+    r=cover_group();req=r.request('covers.open');before=copy.deepcopy(r.catalog()['sources'])
+    r.add('cover.new','closed',area='office',device_class='garage',supported_features=11);r.denied.add('cover.new')
+    r.states['cover.group'].attributes['entity_id'].append('cover.new')
+    result=run(lambda:r.execute(req))
+    assert result['status']=='failed' and not r.calls, result
+    old=next(s for s in before if s['entity']=='cover.group')
+    new=next(s for s in r.catalog()['sources'] if s['entity']=='cover.group')
+    assert new.get('grant')!=old['grant']
+
+
+def test_cover_room_dedupes_group_and_member_using_actual_service_group():
+    r=cover_group();result=run(lambda:r.execute(r.request('covers.open',scope='room')))
+    assert result['status']=='accepted'
+    assert r.calls==[('cover','open_cover',{'entity_id':'cover.group'})]
+
+
+@pytest.mark.parametrize('role',['wind','last_heard'])
+@pytest.mark.parametrize('change',['missing','replacement','unavailable'])
+def test_wind_registry_failure_preserves_existing_retract_and_stop_grants(role,change):
+    r=Rig();r.compiled();r.enable();retract=r.request('awnings.retract');stop=r.request('awnings.stop');extend=r.request('awnings.extend')
+    eid='binary_sensor.awnings_wind' if role=='wind' else 'input_datetime.wind_heard'
+    if change=='missing':del r.registry[eid]
+    elif change=='replacement':r.registry[eid]['id']='replacement'
+    else:r.states[eid].state='unavailable'
+    # Reject even an old extension token, but keep the unchanged actuator grant.
+    blocked=run(lambda:r.execute(extend));assert blocked['status']=='failed' and not r.calls
+    safe=run(lambda:r.execute(retract|{'requestId':retract['requestId']+'retract'}))
+    assert safe['status']=='accepted',safe
+    safe=run(lambda:r.execute(stop|{'requestId':stop['requestId']+'stop'}))
+    assert safe['status']=='accepted',safe
+    caps={c['id'] for t in r.negotiate()['targets'] for c in t['capabilities']}
+    assert {'awnings.retract','awnings.stop'}<=caps
+
+
+@pytest.mark.parametrize('change',['denied','garage','awning','missing_class','unsupported','unavailable','replacement','missing_members','empty_members','cycle'])
+def test_cover_group_preflights_every_effective_member_after_await(change):
+    r=cover_group();req=r.request('covers.open')
+    def mutate():
+        if change=='denied':r.denied.add('cover.two')
+        elif change in ('garage','awning','missing_class'):r.states['cover.two'].attributes['device_class']=None if change=='missing_class' else change
+        elif change=='unsupported':r.states['cover.two'].attributes['supported_features']=2
+        elif change=='unavailable':r.states['cover.two'].state='unavailable'
+        elif change=='replacement':r.registry['cover.two']['id']='replacement'
+        elif change=='missing_members':r.states['cover.group'].attributes.pop('entity_id',None)
+        elif change=='empty_members':r.states['cover.group'].attributes['entity_id']=[]
+        elif change=='cycle':r.states['cover.two'].attributes['entity_id']=['cover.group']
+    r.on_save=mutate
+    result=run(lambda:r.execute(req));assert result['status']=='failed' and not r.calls,result
+
+
+def test_cover_group_caps_intersect_members_and_incomparable_overlap_is_not_a_room():
+    r=cover_group();r.states['cover.two'].attributes['supported_features']=3;r.enable()
+    target=next(t for t in r.negotiate()['targets'] if t['scope']=='subject' and t['label']=='Group')
+    assert {c['id'] for c in target['capabilities']}=={'covers.open','covers.close'}
+    r.add('cover.three','closed',area='office',device_class='shade',supported_features=11)
+    r.add('cover.other','closed',area='office',device_class='shade',supported_features=11,entity_id=['cover.two','cover.three'])
+    r.registry['cover.other']['platform']='group'
+    r.endpoint['studio']['covers'].append({'entity':'cover.other','label':'Other'});r.enable()
+    assert not any(t['scope']=='room' and t['kind']=='cover' for t in r.negotiate()['targets'])
+
+
+@pytest.mark.parametrize('evidence,expected,assumed',[('root_only','accepted',False),('member_assumed','accepted',True),('all_observed','confirmed',False),('all_moving','moving',False)])
+def test_cover_group_feedback_requires_member_evidence(evidence,expected,assumed):
+    r=cover_group()
+    def observed():
+        for eid in ('cover.group','cover.one','cover.two'):
+            state=r.states[eid];state.state='opening' if evidence=='all_moving' else 'open'
+            if eid=='cover.group' or evidence!='root_only':state.context.id='context';state.last_updated=r.now
+        if evidence=='member_assumed':r.states['cover.two'].attributes['assumed_state']=True
+    r.on_call=observed;result=run(lambda:r.execute(r.request('covers.open')))
+    assert result['status']==expected and result['outcomes'][0]['assumedState'] is assumed,result
+
+
+def test_cover_graph_shares_the_same_current_resolution_work_bound():
+    r=Rig();root,count=shared_graph(r,'cover');lookups=[]
+    def get(eid):lookups.append(eid);return r.states.get(eid)
+    r.resolver.state_get=get
+    members,graph=r.resolver.graph(root)
+    assert len(graph)==count and len(members)==2 and len(lookups)==count
+
+
+def test_replaced_wind_requires_separate_extension_review_not_safe_direction_regrant():
+    r=Rig();r.compiled();r.enable();old=copy.deepcopy(r.endpoint['assistant']['controls'])
+    prior=next(g for g in old['grants'] if g['entity']=='cover.terrace')
+    r.registry['binary_sensor.awnings_wind']['id']='replacement'
+    proposal=next(s['grant'] for s in r.catalog()['sources'] if s['entity']=='cover.terrace')
+    assert proposal['bindingRevision']==prior['bindingRevision'], 'Safe actuator binding must not change with wind identity'
+    assert proposal.get('safetyRevision')!=prior.get('safetyRevision')
+    assert run(lambda:r.execute(r.request('awnings.extend')))['reason']=='wind_block'
+    proposed=copy.deepcopy(old);proposed['grants']=[proposal if g['entity']=='cover.terrace' else g for g in proposed['grants']]
+    r.resolver.validate_change(r.endpoint,proposed);r.endpoint['assistant']['controls']=proposed
+    assert run(lambda:r.execute(r.request('awnings.extend')))['status']=='accepted'
+
+
+def test_grant_without_reviewed_wind_never_inherits_a_later_sensor_identity():
+    r=Rig();r.compiled();del r.registry['binary_sensor.awnings_wind'];r.enable()
+    assert any(c['id']=='awnings.retract' for t in r.negotiate()['targets'] for c in t['capabilities']), 'Missing wind identity must not remove safe actions'
+    assert run(lambda:r.execute(r.request('awnings.retract')))['status']=='accepted'
+    r.add('binary_sensor.awnings_wind','off')
+    assert run(lambda:r.execute(r.request('awnings.extend')|{'requestId':r.negotiate()['requestIdPrefix']+'extend'}))['reason']=='wind_block'
+    assert r.calls==[('cover','close_cover',{'entity_id':'cover.terrace'})]
+
+
+def test_safe_directions_still_invalidate_on_actuator_replacement():
+    r=Rig();r.compiled();r.enable();req=r.request('awnings.retract')
+    del r.registry['binary_sensor.awnings_wind'];r.registry['cover.terrace']['id']='replacement'
+    assert run(lambda:r.execute(req))['reason']=='stale_revision';assert not r.calls
+
+
+def test_forged_extension_safety_revision_is_rejected_by_admin_validation():
+    r=Rig();r.compiled();r.enable();proposed=copy.deepcopy(r.endpoint['assistant']['controls'])
+    next(g for g in proposed['grants'] if g['entity']=='cover.terrace')['safetyRevision']='a'*64
+    with pytest.raises(ValueError):r.resolver.validate_change(r.endpoint,proposed)
+
+
+def test_cover_group_accepts_native_intflag_features_but_not_booleans():
+    from enum import IntFlag
+    class Features(IntFlag):
+        OPEN=1
+        CLOSE=2
+        STOP=8
+    r=cover_group();r.states['cover.group'].attributes['supported_features']=Features.OPEN|Features.CLOSE|Features.STOP;r.enable()
+    assert any(t['label']=='Group' for t in r.negotiate()['targets'] if t['scope']=='subject'), 'HA groups expose native IntFlag features'
+    r.states['cover.two'].attributes['supported_features']=True;r.enable()
+    assert not any(t['label']=='Group' for t in r.negotiate()['targets'] if t['scope']=='subject')

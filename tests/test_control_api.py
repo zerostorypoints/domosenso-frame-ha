@@ -42,3 +42,45 @@ def test_read_and_control_are_independent_requirements(policy):
     c.user.permissions.check_entity=lambda e,p:p!=policy
     api.targets(h,c,{'id':1,'version':1,'endpoint':'frame','deviceId':'tablet','supported':[{'actionType':'control-action.v1','resultType':'control-result.v1'}]},grant,'read','control')
     assert c.results[-1]['targets']==[]
+
+
+def test_cover_group_route_authorizes_members_and_deduplicates_room():
+    from test_controls import cover_group
+    async def case():
+        api=module('control_api');r,h,c,grant=api_rig();cover_group(r)
+        c.user.permissions.check_entity=lambda e,p:e not in r.denied
+        msg=r.request('covers.open',scope='room')|{'id':1}
+        await api.action(h,c,msg,grant,'read','control')
+        assert c.results[-1]['status']=='accepted' and r.calls==[('cover','open_cover',{'entity_id':'cover.group'})]
+        req=r.request('covers.close')|{'id':2,'requestId':r.negotiate()['requestIdPrefix']+'close'}
+        r.on_save=lambda:r.denied.add('cover.two')
+        await api.action(h,c,req,grant,'read','control')
+        assert c.results[-1]['status']=='failed' and len(r.calls)==1
+    run(case)
+
+
+def test_cover_route_rejects_new_excluded_child_and_incomparable_room_overlap():
+    from test_controls import cover_group
+    async def case():
+        api=module('control_api');r,h,c,grant=api_rig();cover_group(r);req=r.request('covers.open')|{'id':1}
+        r.add('cover.new','closed',area='office',device_class='garage',supported_features=11)
+        r.states['cover.group'].attributes['entity_id'].append('cover.new')
+        await api.action(h,c,req,grant,'read','control');assert c.results[-1]['status']=='failed' and not r.calls
+        r.states['cover.group'].attributes['entity_id'].remove('cover.new')
+        r.add('cover.three','closed',area='office',device_class='shade',supported_features=11)
+        r.add('cover.overlap','closed',area='office',device_class='shade',supported_features=11,entity_id=['cover.two','cover.three'])
+        r.endpoint['studio']['covers'].append({'entity':'cover.overlap','label':'Overlap'});r.enable()
+        api.targets(h,c,{'id':2,'version':1,'endpoint':'frame','deviceId':'tablet','supported':[{'actionType':'control-action.v1','resultType':'control-result.v1'}]},grant,'read','control')
+        assert not any(t['kind']=='cover' and t['scope']=='room' for t in c.results[-1]['targets'])
+    run(case)
+
+
+def test_missing_wind_registry_keeps_existing_safe_actions_on_authenticated_route():
+    async def case():
+        api=module('control_api');r,h,c,grant=api_rig();r.compiled();r.enable()
+        retract=r.request('awnings.retract')|{'id':1};extend=r.request('awnings.extend')|{'id':2,'requestId':r.negotiate()['requestIdPrefix']+'extend'}
+        del r.registry['binary_sensor.awnings_wind']
+        await api.action(h,c,retract,grant,'read','control');assert c.results[-1]['status']=='accepted'
+        await api.action(h,c,extend,grant,'read','control');assert c.results[-1]['reason']=='wind_block'
+        assert r.calls==[('cover','close_cover',{'entity_id':'cover.terrace'})]
+    run(case)

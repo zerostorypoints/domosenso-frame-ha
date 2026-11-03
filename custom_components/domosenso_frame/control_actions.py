@@ -47,7 +47,7 @@ class Controls:
             if room: room={'id':self.opaque('area:'+room.pop('key')),**room}
             caps=sorted(set.intersection(*(set(r['capabilities']) for r in selected)))
             if not caps:return
-            revision=digest({'epoch':epoch,'device':device,'endpoint':endpoint,'rows':[r['grant'] for r in selected],
+            revision=digest({'epoch':epoch,'device':device,'endpoint':endpoint,'rows':[{k:v for k,v in r['grant'].items() if k!='safetyRevision'} for r in selected],
                              'room':room,'partial':partial,'known':sorted(self.profiles.known_room_members(area,kind)) if area else []})
             targets.append({'id':ident,'revision':revision,'kind':kind,'scope':scope,'label':room['label'] if scope=='room' else selected[0]['label'],
                             'aliases':room['aliases'] if scope=='room' else selected[0]['aliases'],'room':room,
@@ -117,7 +117,7 @@ class Controls:
 
     def wind(self,row,permitted):
         guard=row.get('guard')
-        if not guard:raise Denied('wind_block')
+        if not guard or not row.get('extensionAuthorized'):raise Denied('wind_block')
         wind_id=guard['wind']['entity'];heard_id=guard['last_heard']['entity']
         if not permitted(wind_id,'read') or not permitted(heard_id,'read'):raise Denied('wind_block')
         wind=self.profiles.state_get(wind_id);heard=self.profiles.state_get(heard_id)
@@ -134,13 +134,21 @@ class Controls:
             if not 0<=age<=guard['max_age_seconds']:raise ValueError('Stale wind')
         except (ValueError,TypeError,OverflowError):raise Denied('wind_block') from None
 
+    def assumed(self,row):
+        return any(bool((state:=self.profiles.state_get(e)) and state.attributes.get('assumed_state')) for e in row['graph'])
+
     def observed(self,row,capability,context,started):
-        state=self.profiles.state_get(row['entity']);assumed=bool(state and state.attributes.get('assumed_state'))
+        assumed=self.assumed(row)
         result={'targetId':self.opaque(self._endpoint+':'+row['source']),'status':'accepted','reason':'command_sent','assumedState':assumed}
-        if not state or assumed or getattr(getattr(state,'context',None),'id',None)!=context or getattr(state,'last_updated',started)<started:return result
+        if assumed:return result
         wanted={'lights.turn_on':'on','lights.turn_off':'off','covers.open':'open','covers.close':'closed','awnings.extend':'open','awnings.retract':'closed'}.get(capability)
-        if state.state==wanted:result.update(status='confirmed',reason='state_observed')
-        elif state.state in ('opening','closing'):result.update(status='moving',reason='motion_observed')
+        moving={'covers.open':'opening','covers.close':'closing','awnings.extend':'opening','awnings.retract':'closing'}.get(capability)
+        # An aggregate group state is not evidence that every effective member
+        # completed. Require fresh same-context observations of all leaf members.
+        samples=[self.profiles.state_get(e) for e in row['members']]
+        if any(not state or getattr(getattr(state,'context',None),'id',None)!=context or getattr(state,'last_updated',started)<started for state in samples):return result
+        if wanted and all(state.state==wanted for state in samples):result.update(status='confirmed',reason='state_observed')
+        elif moving and all(state.state==moving for state in samples):result.update(status='moving',reason='motion_observed')
         return result
 
     async def execute(self,msg,authorize,service,context):
@@ -165,7 +173,7 @@ class Controls:
         except Denied as error:return self.result(msg,'failed',str(error))
         if len(self.data['requests'])>=self.capacity:return self.result(msg,'failed','ledger_full')
         uncertain=[{'targetId':self.opaque(msg['endpoint']+':'+r['source']),'status':'unknown','reason':'outcome_unknown',
-                    'assumedState':bool(self.profiles.state_get(r['entity']).attributes.get('assumed_state'))} for r in target['_rows']]
+                    'assumedState':self.assumed(r)} for r in target['_rows']]
         record={'payload':payload,'result':None,'unknownResult':self.result(msg,'unknown','outcome_unknown',uncertain)}
         self.data['requests'][msg['requestId']]=record
         try:await self.persist(copy.deepcopy(self.data))
@@ -184,7 +192,7 @@ class Controls:
                     await service(domain,name,{'entity_id':row['entity']},context)
                 outcomes.append(self.observed(row,msg['capability'],context,started))
             except Exception:
-                outcomes.append({'targetId':self.opaque(msg['endpoint']+':'+row['source']),'status':'unknown','reason':'service_error','assumedState':bool(self.profiles.state_get(row['entity']) and self.profiles.state_get(row['entity']).attributes.get('assumed_state'))})
+                outcomes.append({'targetId':self.opaque(msg['endpoint']+':'+row['source']),'status':'unknown','reason':'service_error','assumedState':self.assumed(row)})
             # Recheck even after the last dispatch; never claim an unqualified
             # success if permission or safety changed while a service was awaited.
             try:self.check(msg,authorize)

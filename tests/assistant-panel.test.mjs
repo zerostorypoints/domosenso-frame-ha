@@ -118,3 +118,14 @@ test('control area/class/wind edits remove prior grant and require saved review'
  assert.deepEqual(el.draft.controls.mappings,[{source,entity:'cover.demo',area:'office'}]);
  assert.match(el.textContent,/save.*review/i);el.remove();
 });
+test('changed wind binding is reviewed separately while keeping safe direction grants',async()=>{
+ const {el,calls}=await panel();const grant={source:'studio:cover.awning',entity:'cover.awning',bindingRevision:'b'.repeat(64),safetyRevision:'c'.repeat(64),capabilities:{'awnings.extend':1,'awnings.retract':1,'awnings.stop':1}};
+ const updated={...structuredClone(grant),safetyRevision:'d'.repeat(64)};
+ el.draft.controls={enabled:true,grants:[structuredClone(grant)],mappings:[]};
+ el.result.controlCatalog={areas:[],sources:[{source:grant.source,entity:grant.entity,label:'Awning',kind:'awning',members:['cover.awning'],grant:updated}]};el.render();
+ assert.match(el.textContent,/wind.*review/i);assert.equal(el.querySelector('[data-control-grant]').checked,true);
+ const review=el.querySelector('[data-control-wind-review]');assert.ok(review);review.click();
+ assert.deepEqual(el.draft.controls.grants,[updated]);assert.equal(calls.filter(x=>x.type.endsWith('_update')).length,0);
+ el.querySelector('[data-save]').click();await tick();
+ assert.deepEqual(calls.find(x=>x.type.endsWith('_update')).patch.assistant.controls.grants,[updated]);el.remove();
+});

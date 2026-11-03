@@ -42,6 +42,8 @@ async def main():
             config={'homeassistant':{'name':'Fictional controls lab','time_zone':'Europe/Warsaw'},
                     'http':{'server_host':'127.0.0.1','server_port':18189},
                     'input_datetime':{'wind_heard':{'has_date':True,'has_time':True}},
+                    'cover':[{'platform':'group','name':'Reviewed shades','unique_id':'fictional_group','entities':['cover.one','cover.two']},
+                             {'platform':'group','name':'Overlapping shades','unique_id':'fictional_overlap','entities':['cover.two','cover.three']}],
                     'domosenso_frame':{'endpoints':[{'id':'frame','name':'Fictional frame','dashboard':'/dashboard-fictional/main','display':{}}]}}
             assert await bootstrap.async_from_config_dict(config,hass),'bootstrap'
             await hass.async_start();await hass.async_block_till_done()
@@ -60,6 +62,13 @@ async def main():
             entity('light.vanilla','off',office)
             entity('cover.vanilla','closed',office,device_class='shade',supported_features=11)
             entity('cover.terrace','closed',terrace,device_class='awning',supported_features=11,assumed_state=True)
+            group_area=areas.async_create('Groups').id
+            entity('cover.one','closed',group_area,device_class='shade',supported_features=11)
+            entity('cover.two','closed',group_area,device_class='shade',supported_features=11)
+            registry.async_update_entity('cover.reviewed_shades',area_id=group_area)
+            await hass.async_block_till_done()
+            assert registry.async_get('cover.reviewed_shades').platform=='group'
+            assert set(hass.states.get('cover.reviewed_shades').attributes['entity_id'])=={'cover.one','cover.two'}
             entity('binary_sensor.awnings_wind','off')
             hass.states.async_set('sensor.domosenso_components','3',{'components':[{**b['component'],'package':''} for b in bundles.values()]})
             async def intercepted(call):
@@ -154,6 +163,65 @@ async def main():
                 for value in ('unknown','bad',(datetime.now(timezone.utc)+timedelta(seconds=300)).isoformat(),(datetime.now(timezone.utc)-timedelta(seconds=300)).isoformat()):
                     hass.states.async_set('sensor.wind_heard_iso',value);before=len(calls)
                     assert (await command('awnings.extend',label='ISO awning'))[0]['reason']=='wind_block';assert len(calls)==before
+                # Real HA CoverGroup with fictional leaves: review exact members,
+                # map its missing aggregate class explicitly, and preserve the proxy.
+                m=await request(adm,'studio_mappings',version=1,endpoint='frame')
+                covers=m['mappings']['covers']+[{'entity':'cover.reviewed_shades','label':'Reviewed group'},{'entity':'cover.one','label':'One'}]
+                m=await request(adm,'studio_mappings_update',version=1,endpoint='frame',revision=m['revision'],patch={'covers':covers})
+                controls=m['mappings']['assistant']['controls']
+                controls['mappings'].append({'source':'studio:cover.reviewed_shades','entity':'cover.reviewed_shades','coverClass':'shade'})
+                m=await request(adm,'studio_mappings_update',version=1,endpoint='frame',revision=m['revision'],patch={'assistant':{'controls':controls}})
+                group_source=next(row for row in m['controlCatalog']['sources'] if row['entity']=='cover.reviewed_shades')
+                assert group_source['members']==['cover.one','cover.two'],group_source
+                controls['grants'] += [row['grant'] for row in m['controlCatalog']['sources'] if row['entity'] in ('cover.reviewed_shades','cover.one')]
+                m=await request(adm,'studio_mappings_update',version=1,endpoint='frame',revision=m['revision'],patch={'assistant':{'controls':controls}})
+                before=len(calls);accepted,_=await command('covers.open',scope='room',label='Groups')
+                assert accepted['status']=='accepted' and [c['data']['entity_id'] for c in calls[before:]]==['cover.reviewed_shades'],accepted
+                child_attrs=dict(hass.states.get('cover.two').attributes)
+                before=len(calls)
+                excluded,_=await command('covers.open',label='Reviewed group',prepare=lambda:hass.states.async_set('cover.two','closed',{**child_attrs,'device_class':'garage'}))
+                assert excluded['status']=='failed' and len(calls)==before,excluded
+                hass.states.async_set('cover.two','closed',child_attrs);await hass.async_block_till_done()
+                # An expanded reported group graph cannot inherit a former grant.
+                entity('cover.excluded','closed',group_area,device_class='garage',supported_features=11)
+                group_attrs=dict(hass.states.get('cover.reviewed_shades').attributes)
+                expanded,_=await command('covers.open',label='Reviewed group',prepare=lambda:hass.states.async_set('cover.reviewed_shades','closed',{**group_attrs,'entity_id':['cover.one','cover.two','cover.excluded']}))
+                assert expanded['status']=='failed' and len(calls)==before,expanded
+                hass.states.async_set('cover.reviewed_shades','closed',group_attrs)
+                entity('cover.three','closed',group_area,device_class='shade',supported_features=11)
+                registry.async_update_entity('cover.overlapping_shades',area_id=group_area)
+                await hass.async_block_till_done()
+                m=await request(adm,'studio_mappings',version=1,endpoint='frame')
+                covers=m['mappings']['covers']+[{'entity':'cover.overlapping_shades','label':'Overlapping group'}]
+                m=await request(adm,'studio_mappings_update',version=1,endpoint='frame',revision=m['revision'],patch={'covers':covers})
+                controls=m['mappings']['assistant']['controls']
+                controls['mappings'].append({'source':'studio:cover.overlapping_shades','entity':'cover.overlapping_shades','coverClass':'shade'})
+                m=await request(adm,'studio_mappings_update',version=1,endpoint='frame',revision=m['revision'],patch={'assistant':{'controls':controls}})
+                controls['grants'].append(next(row['grant'] for row in m['controlCatalog']['sources'] if row['entity']=='cover.overlapping_shades'))
+                await request(adm,'studio_mappings_update',version=1,endpoint='frame',revision=m['revision'],patch={'assistant':{'controls':controls}})
+                assert not any(t['scope']=='room' and t['kind']=='cover' and t['label']=='Groups' for t in (await negotiate())['targets'])
+                # Losing only wind registry identity must leave existing safe
+                # actuator grants usable, including a previously negotiated token.
+                old_wind=registry.async_get('binary_sensor.awnings_wind').id
+                safe,_=await command('awnings.retract',label='Terrace',prepare=lambda:registry.async_remove('binary_sensor.awnings_wind'))
+                assert safe['status']=='accepted',safe
+                assert (await command('awnings.stop',label='Terrace'))[0]['status']=='accepted'
+                before=len(calls);blocked,_=await command('awnings.extend',label='Terrace')
+                assert blocked['reason']=='wind_block' and len(calls)==before,blocked
+                # The removed fictional provider leaves a state behind; retire it
+                # before HA allocates the new provider's entity ID.
+                hass.states.async_remove('binary_sensor.awnings_wind')
+                replacement=registry.async_get_or_create('binary_sensor','fixture','replacement_wind',suggested_object_id='awnings_wind')
+                assert replacement.entity_id=='binary_sensor.awnings_wind' and replacement.id!=old_wind,replacement
+                hass.states.async_set('binary_sensor.awnings_wind','off')
+                blocked,_=await command('awnings.extend',label='Terrace');assert blocked['reason']=='wind_block' and len(calls)==before
+                m=await request(adm,'studio_mappings',version=1,endpoint='frame');controls=m['mappings']['assistant']['controls']
+                previous=next(g for g in controls['grants'] if g['entity']=='cover.terrace')
+                proposal=next(row['grant'] for row in m['controlCatalog']['sources'] if row['entity']=='cover.terrace')
+                assert proposal['bindingRevision']==previous['bindingRevision'] and proposal['safetyRevision']!=previous['safetyRevision']
+                previous['safetyRevision']=proposal['safetyRevision']
+                await request(adm,'studio_mappings_update',version=1,endpoint='frame',revision=m['revision'],patch={'assistant':{'controls':controls}})
+                assert (await command('awnings.extend',label='Terrace'))[0]['status']=='accepted'
                 # Unknown source in the same area forces a current explicit choice.
                 entity('light.hidden','off',office)
                 before=len(calls);blocked,_=await command('lights.turn_on',scope='room');assert blocked['reason']=='partial_scope' and len(calls)==before
@@ -185,7 +253,7 @@ async def main():
                 await request(tablet,'control_targets',expect_error=True,**common,supported=supported)
                 assert all(call['user']==user.id for call in calls)
                 print('ACTUATOR_CALLS',json.dumps([{k:v for k,v in c.items() if k!='user'} for c in calls],sort_keys=True))
-                print('PASS HA',__version__,'real WebSocket/P-256/admin grants, default disabled, READ-only denial, exact proof, real local input_datetime fresh/future/stale, ISO fresh/unknown/invalid/future/stale, alarm, retract/stop, vanilla cover/light, deduped proxy, explicit partial scope, graph expansion, provider uncertainty and disk reload, mid-dispatch revocation; intercepted calls=',len(calls))
+                print('PASS HA',__version__,'real WebSocket/P-256/admin grants, default disabled, READ-only denial, exact proof, real local input_datetime fresh/future/stale, ISO fresh/unknown/invalid/future/stale, alarm, retract/stop, vanilla cover/light, deduped proxy, explicit partial scope, graph expansion, real cover group dedupe, excluded/expanded child, overlapping groups, missing/replaced wind identity with safe directions and explicit extension regrant, provider uncertainty and disk reload, mid-dispatch revocation; intercepted calls=',len(calls))
                 for ws in sockets:await ws.close()
         finally:
             await hass.async_stop(force=True)
