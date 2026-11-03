@@ -8,6 +8,7 @@ import os
 import tempfile
 import uuid
 from .layouts import Conflict,save_verified
+from .assistant_selection import validate_policy, validate_change
 from .assistant_bindings import validate_selections, validate_new_selections
 from .timers import validate_mapping as validate_timers, eligible as timer_eligible
 from .radar import validate as validate_radar, eligible as radar_eligible
@@ -93,7 +94,9 @@ def merge_patch(endpoint,patch,states=None):
         if key=='timers':
             out['timers']=validate_timers(value,states,endpoint)
         elif key=='assistant':
-            shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive','component_sources'])
+            shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive','component_sources','source_policy'])
+            if 'source_policy' in value:validate_policy(value['source_policy'])
+            elif 'source_policy' in out.get('assistant',{}):value={**value,'source_policy':copy.deepcopy(out['assistant']['source_policy'])}
             validate_selections(value.get('component_sources',[]))
             if not {'subjects','sensitive'}<=set(value) or type(value['sensitive']) is not bool or not isinstance(value['subjects'],list) or len(value['subjects'])>100:raise ValueError('Invalid assistant mapping')
             if any(k in value and type(value[k]) is not bool for k in ('calendar_sensitive','presence_sensitive')):raise ValueError('Invalid sensitive exposure')
@@ -203,6 +206,7 @@ class Mappings:
             if revision!=self.get(eid,states)['revision']:raise Conflict('Source mappings changed. Reload mappings; your template draft is retained.')
             def validate_component_change():
                 if self.assistant_artifacts is not None and 'assistant' in patch:
+                    if 'source_policy' in patch['assistant']:validate_change(self.endpoints[eid].get('assistant',{}).get('source_policy'),patch['assistant']['source_policy'],self.assistant_artifacts())
                     validate_new_selections(self.endpoints[eid].get('assistant',{}).get('component_sources',[]), patch['assistant'].get('component_sources',[]), self.assistant_artifacts())
             validate_component_change()
             effective=merge_patch(self.endpoints[eid],patch,states);updated=copy.deepcopy(self.saved)
@@ -210,6 +214,7 @@ class Mappings:
             combined=copy.deepcopy(updated.get(eid,{}).get('patch',{}))
             for key,value in patch.items():
                 if key=='mains' and value:combined[key]={field:effective.get('studio',{}).get('mains',{}).get(field) for field in ('power','voltage')}
+                elif key=='assistant':combined[key]=copy.deepcopy(effective['assistant'])
                 elif key=='rooms':combined[key]=copy.deepcopy(effective['studio']['rooms'])
                 else:combined[key]=copy.deepcopy(value)
             updated[eid]={'patch':combined,'sequence':updated.get(eid,{}).get('sequence',0)+1}
@@ -228,6 +233,19 @@ async def save_mappings_verified(store,value,path,executor):
     """Retain the previous envelope even when Store writes bytes but verification fails."""
     def backup():return path.read_bytes() if path.exists() else None
     previous=await executor(backup)
+    if any('source_policy' in entry.get('patch',{}).get('assistant',{}) for entry in value.values()):
+        def retain_pre_policy():
+            destination=path.with_name(path.name+'.pre-source-policy-v1')
+            if destination.is_symlink():raise OSError('Invalid source policy backup')
+            try:fd=os.open(destination,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+            except FileExistsError:return
+            try:
+                with os.fdopen(fd,'wb') as file:
+                    file.write(previous if previous is not None else json.dumps({'version':1,'minor_version':1,'key':'domosenso_frame_mappings','data':{}}).encode())
+                    file.flush();os.fsync(file.fileno())
+            except Exception:
+                destination.unlink(missing_ok=True);raise
+        await executor(retain_pre_policy)
     try:await save_verified(store,value,path,'domosenso_frame_mappings',executor)
     except Exception:
         def restore():

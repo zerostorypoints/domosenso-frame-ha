@@ -29,3 +29,10 @@ core helpers, claim one recent unacknowledged run with no assigned native target
 and acknowledge known runs. Browser routes do not require CONTROL or invoke core
 services. Native facts remain opaque; only the classic snapshot wrapper includes
 requested permitted entity IDs. An older bridge has no browser delivery support.
+
+
+The optional `assistant.source_policy` extension is version 1. Absent means legacy/explicit
+semantics. Scope tuples (`component`, `kind`, `roles`, read `capabilities`, `exclude`) are validated
+server-side and cannot grant actions. Omitted policy fields on older editor saves are preserved.
+Dynamic subject identity follows the component key, not its translated label. Existing display v2
+and assistant v1 response formats remain unchanged; metadata refresh does not require new pairing.

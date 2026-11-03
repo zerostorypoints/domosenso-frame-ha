@@ -36,7 +36,7 @@ def validate_selections(value):
     return value
 
 
-def selected_subjects(endpoint, artifacts):
+def selected_subjects(endpoint, artifacts, capability=None):
     """Resolve only exact role/source matches in *currently verified* artifacts."""
     result = []
     for chosen in endpoint.get('assistant', {}).get('component_sources', []):
@@ -50,6 +50,11 @@ def selected_subjects(endpoint, artifacts):
                   if chosen['fields'].get(role) == source_identity(field)}
         if fields:
             result.append({**copy.deepcopy(subject), 'fields': fields, '_component': chosen['component']})
+    from .assistant_selection import dynamic_subjects
+    for subject in dynamic_subjects(endpoint, artifacts, capability):
+        match=next((s for s in result if (s['_component'],s['key'])==(subject['_component'],subject['key'])),None)
+        if match:match['fields'].update(subject['fields'])
+        else:result.append(subject)
     return result
 
 
@@ -81,4 +86,7 @@ def catalog(artifacts, errors, inventory, endpoint, states):
                 subjects.append({'key':row['key'], 'kind':row['kind'], 'label':copy.deepcopy(row['label']),
                                  'selection':selection, 'missing':sum(states.get(f['entity']) is None for f in row['fields'].values())})
         result.append({'id':cid, 'status':'verified' if bundle else errors.get(cid, 'missing_metadata'), 'subjects':subjects, 'explanation':bool(bundle and any(c['id']==cid+'.explain' for c in bundle['definitions']['capabilities']))})
+    from .assistant_selection import proposals
+    for row in result:
+        row['scopes']=proposals(row['id'],artifacts[row['id']]) if row['id'] in artifacts else []
     return {'components':result}

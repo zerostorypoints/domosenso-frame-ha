@@ -69,3 +69,20 @@ test('manual mapping handoff saves to the frame selected in assistant sources',a
  editor.mappingDraft.assistant.sensitive=true;await editor.saveMapping();
  assert.equal(editor.endpoint,'beta');assert.equal(calls.find(c=>c.type.endsWith('_update')).endpoint,'beta');
 });
+test('future mode uses a bounded proposal and individual checkboxes become exclusions',async()=>{
+ const {el,calls}=await panel('pl');
+ const scope={component:'plants',kind:'plant',roles:['moisture','plant'],capabilities:{'plants.watering_need':1},exclude:[]};
+ el.result.assistantCatalog.components[0].scopes=[scope];el.render();
+ const future=el.querySelector('[data-future]');assert.ok(future);future.click();
+ assert.match(el.textContent,/obecne i przyszłe/);
+ assert.deepEqual(el.draft.source_policy,{version:1,scopes:[scope]});
+ el.querySelector('[data-subject]').click();
+ assert.deepEqual(el.draft.source_policy.scopes[0].exclude,['plant.fern']);
+ el.querySelector('[data-save]').click();await tick();
+ assert.deepEqual(calls.find(x=>x.type.endsWith('_update')).patch.assistant.source_policy.scopes[0].exclude,['plant.fern']);el.remove();
+});
+test('turning future mode off keeps currently selected subjects as exact references',async()=>{
+ const {el}=await panel();const scope={component:'plants',kind:'plant',roles:['moisture','plant'],capabilities:{'plants.watering_need':1},exclude:[]};
+ el.result.assistantCatalog.components[0].scopes=[scope];el.render();el.querySelector('[data-future]').click();
+ el.querySelector('[data-future]').click();assert.deepEqual(el.draft.source_policy.scopes,[]);assert.deepEqual(el.draft.component_sources,[selection]);el.remove();
+});

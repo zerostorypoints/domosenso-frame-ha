@@ -72,9 +72,9 @@ class Data:
             except Exception:result=None
             if len(self.cache)>256:self.cache.clear();self.locks={key:lock}
             self.cache[key]=(clock.monotonic(),result);return result
-    def check(self,connection,endpoint):
+    def check(self,connection,endpoint,original=None):
         if not connection.user.is_active:raise ValueError('Inactive user')
-        if self.hass and self.hass.data[DOMAIN].get('studio_mappings') and self.hass.data[DOMAIN]['endpoints'].get(endpoint['id']) is not endpoint:raise ValueError('Sources changed during request')
+        if self.hass and self.hass.data[DOMAIN].get('studio_mappings') and self.hass.data[DOMAIN]['endpoints'].get(endpoint['id']) is not (original or endpoint):raise ValueError('Sources changed during request')
         entities=source_entities(endpoint.get('studio',{}))|set(endpoint.get('calendars',[]))
         entities.update(r['entity'] for key in ('temperature','air') for r in endpoint.get(key,[]))
         display=endpoint.get('display',{})
@@ -83,7 +83,16 @@ class Data:
         for eid in entities:
             if not connection.user.permissions.check_entity(eid,POLICY_READ):raise ValueError('Source not permitted')
     async def snapshot(self,connection,endpoint,offset=0,context=None,capabilities_version=False):
-        hass=self.hass;self.check(connection,endpoint);base=self.display_snapshot(hass,connection,endpoint);sources=endpoint.get('studio',{});now=dt_util.utcnow()
+        from .assistant_projection import project
+        from .assistant_api import active_artifacts
+        hass=self.hass;original=endpoint;self.check(connection,original)
+        metadata_revision=hass.data[DOMAIN].get('assistant_metadata_revision',0)
+        inventory=hass.states.get('sensor.domosenso_components')
+        records=getattr(inventory,'attributes',{}).get('components') if inventory else None
+        artifacts=active_artifacts(hass.data[DOMAIN].get('assistant_artifacts',{}),records)
+        endpoint=project(original,artifacts,lambda eid:connection.user.permissions.check_entity(eid,POLICY_READ),original.get('display',{}).get('locale','en'))
+        self.check(connection,endpoint,original)
+        base=self.display_snapshot(hass,connection,endpoint);sources=endpoint.get('studio',{});now=dt_util.utcnow()
         def state(eid):
             if not eid:return None
             if not connection.user.permissions.check_entity(eid,POLICY_READ):raise ValueError('Source not permitted')
@@ -105,12 +114,25 @@ class Data:
         for r in sources.get('status',[]):
             s=state(r['entity']);statuses.append({'label':r['label'],'group':r.get('group','Home'),'value':str(s.state)[:120] if available(s) else '', 'available':available(s),'stale':bool(stale(s))})
         if not statuses:statuses=[{**r,'group':'Home'} for r in base['status']]
+        def field_measure(field,label):
+            if not field:return None
+            sample=state(field['entity'])
+            if 'attribute' in field:return attr_measure(sample,field['attribute'],sample.attributes.get('unit_of_measurement','') if sample else '')
+            return measure(field['entity'],label)
         plants=[]
         for r in sources.get('plants',[]):
+            if '_fields' in r:
+                fields=r['_fields'];roles={'moisture':'moisture','conductivity':'conductivity','brightness':'brightness_peak','temperature':'temperature','battery':'battery'}
+                plants.append({'label':r['label'],'limits':r['limits'],**{key:field_measure(fields.get(role) or fields.get(key),key) for key,role in roles.items()}})
+                continue
             s=state(r['entity']);limits={'moisture':[15,60],'conductivity':[350,2000],'brightness':[500,100000],**r.get('limits',{})}
             plants.append({'label':r['label'],'limits':limits,**{k:attr_measure(s,k,u) for k,u in [('moisture','%'),('conductivity','µS/cm'),('brightness','lx'),('temperature','°C'),('battery','%')]}})
         plant_history=[]
         for row,p in zip(sources.get('plants',[]),plants):
+            if '_fields' in row:
+                field=row['_fields'].get('moisture',{})
+                plant_history.append(field.get('entity') if 'attribute' not in field else None)
+                continue
             ps=state(row['entity'])
             if ps:
                 if finite(ps.attributes.get('max_brightness')) is not None:p['brightness']=attr_measure(ps,'max_brightness','lx')
@@ -147,7 +169,7 @@ class Data:
             active=base['mode'] if base['mode'] in ('controls','ambient','media') else 'ambient'
             screens=next(m['screens'] for m in config['modes'] if m['id']==active)
             screen=base['screen'] if any(s['id']==base['screen'] for s in screens) else screens[0]['id'];elapsed=shield=0
-        uid=connection.user.id;eid=endpoint['id'];generation=id(endpoint)
+        uid=connection.user.id;eid=endpoint['id'];generation=(id(original),metadata_revision)
         async def forecast():
             weather=endpoint.get('display',{}).get('weather')
             if not weather:return []
@@ -193,7 +215,8 @@ class Data:
             if not player:return None
             blob,_=await player.async_get_media_image();return await hass.async_add_executor_job(image_data,blob)
         results=await asyncio.gather(self.cached((uid,eid,generation,'forecast'),600,forecast),self.cached((uid,eid,generation,'calendar',offset,now.date().isoformat()),30,calendar),self.cached((uid,eid,generation,'history'),300,history),self.cached((uid,eid,generation,'art',media.get('title') if media else ''),30,artwork))
-        self.check(connection,endpoint)
+        self.check(connection,endpoint,original)
+        if hass.data[DOMAIN].get('assistant_metadata_revision',0)!=metadata_revision:raise ValueError('Metadata changed during request')
         weather=base['weather']
         if weather:weather={**weather,'forecast':results[0] or [],'pressure':measure(sources.get('pressure'),'Pressure')}
         if media:media['artwork']=results[3]
@@ -208,7 +231,8 @@ class Data:
             exposure=self.runtime.endpoints.get(eid,{}).get('since',0)
             async def loadphoto():return await hass.async_add_executor_job(photos,sources['photos']['directory'],hass.config.path('www'),index,count,exposure)
             photo=await self.cached((uid,eid,generation,'photo',exposure,index,count),60,loadphoto)
-        self.check(connection,endpoint)
+        self.check(connection,endpoint,original)
+        if hass.data[DOMAIN].get('assistant_metadata_revision',0)!=metadata_revision:raise ValueError('Metadata changed during request')
         for sensor in plant_history:
             if sensor:state(sensor)
         return {'version':2,'config':config,'mode':active,'screen':screen,'connected':True,'fetchedAt':dt_util.utcnow().isoformat(),'timezone':hass.config.time_zone,'capabilities':list(set(capabilities)),'off':mode=='off','wind':plain(sources.get('wind')) in ('on','true'),'readOnly':False,'data':{'weather':weather,'rooms':rooms,'air':base['air'],'assessment':base['assessment'],'status':statuses,'plants':plants,'media':media,'mains':mains,'history':history_data,'calendar':results[1],'photos':photo,**controls,'runtime':{'shieldUntil':(now+timedelta(seconds=shield)).isoformat() if shield else None,'approachEnabled':plain(runtime.get('approach'))=='on' if runtime.get('approach') else None}}}

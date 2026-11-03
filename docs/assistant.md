@@ -6,7 +6,7 @@ When the integration is installed and successfully initialized, its profile incl
 
 Frame Studio's **Assistant sources** editor saves explicit per-frame read mappings separately from YAML. Select a subject kind, label and stable key, add the documented role and choose an existing entity. Role names currently used by the manual preview include `temperature` for rooms, `state` for lights, players, weather, awnings and presence, `level` for audio, `archive_count` and optionally `newest_age_hours` or `size` for backup, and `mode`, `page`, `theme`, or `radar_wake_enabled` for the frame. For plant watering configure the `moisture` role and both `min_moisture` and `max_moisture`; no band is invented. For presence choose the observation source type and enable its explicit exposure; it defaults off. For audio set the integration window, unweighted basis, and calibration only when actually known. Some values remain unavailable if adapter-specific evidence is missing. The preview recognizes ESPHome and direct `xiaomi_ble`, `ruuvitag_ble` and `tplink` sensor entities as source-report platforms; other measurement platforms return unknown freshness pending reviewed adapters. In Home Assistant 2026.9.2, Xiaomi Bluetooth sensor values come from the passive Bluetooth processor entity data updated by the Bluetooth sensor update path. Ruuvi uses the same passive Bluetooth processor update path; TP-Link sensor entities write device feature values following coordinator updates. The Ruuvi provider declares `voc_index`, `nox_index` and `iaqs` without dimensional units: only these registry-identified Ruuvi keys are normalized to `index` or the 100-point `%` scale in the response, without mutating HA state. Other unlabeled readings remain invalid. HA `last_reported` records a source report, not a guaranteed physical sample: restored, unknown, missing-timestamp and over-age readings remain unusable. Current weather is a qualified provider-reported state, with unknown provider observation freshness and synchronization; numeric weather attributes have the same qualification. Endpoint mapping does not bypass HA permissions. A light group is a reported group, and its children are never expanded or granted access.
 
-The integration reads YAML artifacts only from `<HA config>/domosenso/assistant/*.yaml` at integration startup and on the administrator-only `domosenso_frame/assistant_reload` command. The command reports load errors without exposing artifact content. Artifacts are parsed and validated against the bundled compiler profile schema. Their component explanation is available only when the administrator explicitly lists that component in the endpoint mapping and the live inventory has one matching installed identity, version, commit and dev flag. Artifact fields are intersected with explicitly selected endpoint entities before use, and policies are joined by exact metric, entity and unit. Matching inventory alone does not grant access. Updating managed artifacts therefore requires integration reload or the explicit admin reload before diagnostics see them. The framework installer is responsible for placing managed artifacts; do not expose them under `www`.
+The integration reads YAML artifacts only from `<HA config>/domosenso/assistant/*.yaml` at integration startup, on inventory changes, within 30 seconds of a private metadata file change, and on the administrator-only `domosenso_frame/assistant_reload` command. The command reports load errors without exposing artifact content. Artifacts are parsed and validated against the bundled compiler profile schema. Their component explanation is available only when the administrator explicitly lists that component in the endpoint mapping and the live inventory has one matching installed identity, version, commit and dev flag. Artifact fields are intersected with explicitly selected endpoint entities before use, and policies are joined by exact metric, entity and unit. Matching inventory alone does not grant access. Same-version input changes are detected by the file fingerprint; explicit admin reload remains available for immediate diagnostics. The framework installer is responsible for placing managed artifacts; do not expose them under `www`.
 
 Before release, review the supported source adapters and exact tested revisions, run the isolated HA smoke and app fixture validation below, and test the release on physical devices. The unit tests do not establish physical-device, speech, or provider synchronization behavior.
 
@@ -55,7 +55,7 @@ English language. Vanilla HA retains **Manual sources / vanilla HA**.
 1. Install component releases carrying assistant definitions with current DomoSenso tooling,
    render and deploy through the normal home workflow. On staging only, developers can use a
    catalog worktree. Metadata lives at `domosenso/assistant/<component>.yaml`, never under `www`.
-2. Reload the integration/metadata after deployment. Inventory and bundle provenance must agree.
+2. Wait up to 30 seconds after deployment, or reload metadata immediately. Inventory and bundle provenance must agree.
 3. Open **Assistant sources**, choose the frame, review the proposed role/entity sources and
    select the intended subjects. Opening this screen never grants access. Component explanations
    are a separate opt-in; presence and newly mapped calendars retain their explicit sensitive flags.
@@ -111,3 +111,36 @@ in `assistant_runtime_artifacts`, separate from legacy read artifacts. Missing o
 mismatched text falls back to built-in localization and never grants access. The
 compiler preserves legacy read definitions/translations, so older strict read loaders
 ignore the new directory and do not require a bridge-first rollout for existing reads.
+
+
+## All current and future sources (SPEC-032, development)
+
+In **Assistant sources**, enable **All current and future sources** for a verified component
+scope, review the current list, optionally uncheck exclusions, and save. Adding a plant or
+sensor to that component's inputs and deploying the generated bindings then includes it without
+another source selection or APK. Replacing the configured sensor also follows the component.
+New capabilities, capability revisions and fact roles do not join an existing grant automatically.
+Switching the mode off keeps currently included subjects as exact explicit selections. Removing
+the stored future scope instead revokes that scope. Opening the panel saves nothing.
+
+The optional `assistant.source_policy` is `{version: 1, scopes: [...]}`. Each scope contains
+`component`, `kind`, `roles`, `capabilities` (id to revision), and `exclude` (stable subject keys).
+The server validates grants against currently verified, implemented read definitions. Removing
+metadata disables dynamic sources; explicit/legacy and sensitive flags keep their prior meaning.
+An exclusion follows label changes; a changed subject key is a new subject under a future grant.
+Old clients omitting the policy during an unrelated save retain it. Revision conflicts reject saves.
+
+Plants and room measurements reuse resolved subjects for the bridge display. Existing explicit
+display overrides retain precedence. The classic HA dashboard keeps its own discovery/visibility;
+assistant grants do not hide cards. Vanilla HA manual subjects are already explicit grants: adding
+one in Manual sources supplies both assistant and supported display data, with no second source
+list. No wildcard discovery of arbitrary vanilla sensors or inferred plant thresholds is added.
+Attribute-backed plant facts work; attribute-backed room metrics still require an adapter and are
+not substituted with the whole entity's state. Other component read adapters use the same future
+selection resolver, but this increment does not create new display widgets or actuator mappings.
+
+Metadata checks run off the event loop; a changed invalid bundle loses access rather than retaining
+old bindings. Metadata revisions invalidate display caches. Asynchronous answers recheck resolved
+sources and permissions before delivery. The framework fixture smoke proves two plants becoming
+three via a same-version file update, a real 30-second refresh, and matching display/answer counts.
+This is isolated HA acceptance, not a claim of deployment to a physical tablet.

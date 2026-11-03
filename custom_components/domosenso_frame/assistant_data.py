@@ -50,7 +50,7 @@ def same_bound_subject(manual, component):
                for role, field in right.items())
 
 
-def merge_verified_bindings(endpoint, artifacts):
+def merge_verified_bindings(endpoint, artifacts, capability=None):
     """Intersect every artifact field with explicitly selected endpoint fields."""
     import copy
     manual = endpoint.get('assistant', {}).get('subjects', [])
@@ -66,7 +66,7 @@ def merge_verified_bindings(endpoint, artifacts):
     if endpoint.get('display',{}).get('weather'):allowed.add(endpoint['display']['weather'])
     result=copy.deepcopy(manual)
     manual_rows=list(result)
-    for subject in selected_subjects(endpoint, artifacts):
+    for subject in selected_subjects(endpoint, artifacts, capability):
         matches=[r for r in manual_rows if same_bound_subject(r,subject)]
         if len(matches)>1:continue
         if matches:
@@ -81,7 +81,7 @@ def merge_verified_bindings(endpoint, artifacts):
         else:result.append(subject)
     # Once explicit component selection is used, legacy entity-level grants cannot
     # reintroduce reassigned or removed roles. Manual/direct adapters still work.
-    if 'component_sources' in endpoint.get('assistant',{}):
+    if {'component_sources','source_policy'} & endpoint.get('assistant',{}).keys():
         return result
     for cid,bundle in artifacts.items():
         for subject in bundle['bindings']['subjects']:
@@ -174,12 +174,12 @@ class Runtime:
         self.artifacts = artifacts or {}
         self.registry_id = registry_id
 
-    def effective_endpoint(self, endpoint):
+    def effective_endpoint(self, endpoint, capability=None):
         """Build a request-local view; verified metadata never becomes a saved mapping."""
         import copy
         out=copy.deepcopy(endpoint)
         config=out.setdefault('assistant',{})
-        config['subjects']=merge_verified_bindings(endpoint,self.artifacts)
+        config['subjects']=merge_verified_bindings(endpoint,self.artifacts,capability)
         aliases={'player':{'player':'state'},'light':{'light':'state'},'calendar':{'calendar':'state'},
                  'weather':{'weather':'state'},'awning':{'cover':'state'},'presence_source':{'presence':'state'},
                  'backup':{'count':'archive_count','age':'newest_age_hours'},'frame':{'radar_wake':'radar_wake_enabled'}}
@@ -189,8 +189,18 @@ class Runtime:
         return out
 
     def capabilities(self, endpoint, supported):
-        endpoint=self.effective_endpoint(endpoint)
-        results=self._capabilities(endpoint,supported)
+        if endpoint.get('assistant',{}).get('source_policy'):
+            from .assistant_selection import READS
+            # Scope before any adapter reads facts, including direct API queries.
+            results=[]
+            for cap in READS:
+                scoped=self.effective_endpoint(endpoint,cap)
+                results.extend(r for r in self._capabilities(scoped,supported) if r['id']==cap)
+            scoped=self.effective_endpoint(endpoint,'__explain__')
+            results.extend(r for r in self._capabilities(scoped,supported) if r['id'].endswith('.explain'))
+        else:
+            endpoint=self.effective_endpoint(endpoint)
+            results=self._capabilities(endpoint,supported)
         for result in results:
             cid=result['id'].partition('.')[0]
             bundle=self.artifacts.get(cid)
@@ -207,7 +217,7 @@ class Runtime:
         return results
 
     def query(self, endpoint, capability, revision, answer_type, arguments):
-        return self._query(self.effective_endpoint(endpoint),capability,revision,answer_type,arguments)
+        return self._query(self.effective_endpoint(endpoint,capability),capability,revision,answer_type,arguments)
 
     def _temperatures(self, endpoint):
         rows = [r for r in endpoint.get('assistant', {}).get('subjects', []) if r.get('kind') == 'room' and 'temperature' in r.get('fields', {})]

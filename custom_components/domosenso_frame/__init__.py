@@ -59,6 +59,8 @@ async def async_setup_entry(hass,entry):
         failed=hass.data.get(DOMAIN,{})
         if radar:=failed.get('radar'):radar.close()
         if cancel:=failed.get('radar_cancel'):cancel()
+        if close:=failed.get('assistant_refresh_close'):await close()
+        for cancel in failed.get('subscriptions',[]):cancel()
         hass.data.pop(DOMAIN,None)
         frontend.async_remove_panel(hass,DOMAIN,warn_if_unknown=False)
         raise
@@ -76,6 +78,7 @@ async def async_unload_entry(hass,entry):
     if radar:=state.get('radar'):radar.close()
     if cancel:=state.get('radar_cancel'):cancel()
     if close:=state.get('timers_close'):await close()
+    if close:=state.get('assistant_refresh_close'):await close()
     hass.data.pop(DOMAIN)
     frontend.async_remove_panel(hass,DOMAIN)
     return True

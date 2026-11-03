@@ -75,9 +75,10 @@ class ExtendedRuntime(Runtime):
 
     def capabilities(self, endpoint, supported):
         result = [c for c in super().capabilities(endpoint, supported) if c['id'] not in ROUTES]
-        endpoint = self.effective_endpoint(endpoint)
+        original_endpoint = endpoint
         for cap, (_, _, query, answer) in ROUTES.items():
             if {'queryType': query, 'answerType': answer} not in supported: continue
+            endpoint = self.effective_endpoint(original_endpoint,cap)
             subjects = self._extended_subjects(endpoint, cap)
             if not subjects: continue
             if cap == 'weather.forecast':
@@ -118,7 +119,7 @@ class ExtendedRuntime(Runtime):
     def query(self, endpoint, capability, revision, answer_type, arguments):
         if capability not in ROUTES: return super().query(endpoint, capability, revision, answer_type, arguments)
         if capability == 'weather.forecast' or type(revision) is not int or revision != 1 or answer_type != ROUTES[capability][3]: raise ValueError('Unsupported capability')
-        return self._answer(capability, self._select(self.effective_endpoint(endpoint), capability, arguments), arguments)
+        return self._answer(capability, self._select(self.effective_endpoint(endpoint,capability), capability, arguments), arguments)
 
     def _read(self, s, role, units=None, bounds=None, default_age=None, *, provider_derived=False):
         field = s['fields'].get(role)
@@ -305,7 +306,7 @@ class ExtendedRuntime(Runtime):
         """
         if not isinstance(arguments,dict) or set(arguments)-{'subjectId','period','date'}: raise ValueError('Invalid forecast arguments')
         start,end=calendar_window(arguments,self.now().astimezone(timezone).date(),timezone)
-        subjects=self._extended_subjects(self.effective_endpoint(endpoint),'weather.forecast')
+        subjects=self._extended_subjects(self.effective_endpoint(endpoint,'weather.forecast'),'weather.forecast')
         if 'subjectId' in arguments: subjects=[s for s in subjects if s['id']==arguments['subjectId']]
         if len(subjects)!=1: raise ValueError('Unknown or ambiguous weather source')
         s=subjects[0]; eid=s['fields']['weather']['entity']
@@ -318,7 +319,7 @@ class ExtendedRuntime(Runtime):
         checked=recheck()
         if hasattr(checked,'__await__'): checked=await checked
         if not checked or not self.permitted(eid): raise ValueError('Authorization changed')
-        current=self._extended_subjects(self.effective_endpoint(endpoint),'weather.forecast')
+        current=self._extended_subjects(self.effective_endpoint(endpoint,'weather.forecast'),'weather.forecast')
         if not any(x['id']==s['id'] and x['fields']['weather']['entity']==eid for x in current): raise ValueError('Mapping changed')
         item=response.get(eid) if isinstance(response,dict) else None
         entries=item.get('forecast') if isinstance(item,dict) else None

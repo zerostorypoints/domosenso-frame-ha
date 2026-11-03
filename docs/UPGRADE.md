@@ -26,3 +26,14 @@ an optional approved alarm target in the admin Timer panel after upgrading. Old
 clients continue their existing read-only behavior; unsupported clients must not
 fall back to generic service calls. Back up `.storage` before upgrades and preserve
 the timer request/run ledger across restarts. See [timer setup and limits](timers.md).
+
+
+## Future-source selection (unreleased)
+
+Existing mappings remain explicit until an administrator opts into a future scope in Assistant
+sources. No pairing, HA helper or dashboard setting needs to be reset. The first policy save
+retains `.storage/domosenso_frame_mappings.pre-source-policy-v1` with mode 0600. Keep this private.
+Before downgrading to a bridge without source-policy support, stop HA, back up current mappings,
+and restore this pre-policy envelope to `.storage/domosenso_frame_mappings`; then start HA.
+The backup is never overwritten by later saves. It cannot preserve mapping edits made after
+migration, so review those before a downgrade. Metadata errors remain visible in the source panel.
