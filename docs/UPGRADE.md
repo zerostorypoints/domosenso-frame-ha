@@ -37,3 +37,25 @@ Before downgrading to a bridge without source-policy support, stop HA, back up c
 and restore this pre-policy envelope to `.storage/domosenso_frame_mappings`; then start HA.
 The backup is never overwritten by later saves. It cannot preserve mapping edits made after
 migration, so review those before a downgrade. Metadata errors remain visible in the source panel.
+
+## Unreleased assistant room controls
+
+1. Keep the existing read metadata and timers installed. For Domosenso lights or
+   awnings, install matching private action sidecars and component provenance;
+   do not copy sidecars into `www` or enable controls during installation.
+2. Update/reload a bridge implementing `controlsVersion: 1`, then a native client
+   negotiating `control-action.v1` / `control-result.v1`. Unsupported clients
+   must show unsupported without falling back to Studio toggle/index commands.
+3. In the existing integration panel, review exact current sources/actions and
+   explicitly enable them. Read grants are not actuator consent. Vanilla sources
+   use the existing manual mappings plus HA areas, class and wind overrides.
+4. After membership, registry identity, installed provenance or safety binding
+   changes, review/regrant the new binding. Never migrate a grant by name alone.
+
+Before downgrading, disable assistant controls and retain backups of the private
+mapping and controls-ledger storage. An older bridge may reject the new controls
+mapping group; retain its preceding read-only mapping backup or remove only
+`assistant.controls` through the new bridge before downgrade. Do not delete a
+live controls ledger to “retry” an uncertain command. The old read bundle and
+existing timer API remain unchanged; no read-only bundle migration is required.
+See [controls](controls.md) for bounded request epochs and physical-state limits.

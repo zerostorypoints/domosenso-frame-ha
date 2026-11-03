@@ -96,3 +96,25 @@ test('disabling future mode freezes approved roles and keeps independent exact g
  el.render();el.querySelector('[data-future]').click();
  assert.deepEqual(el.draft.component_sources[0].fields,{plant:{entity:'plant.fern'},moisture:{entity:'sensor.moisture'}});el.remove();
 });
+test('explicit control grant preserves read selections and starts disabled',async()=>{
+ const {el,calls}=await panel();
+ const grant={source:'studio:light.demo',entity:'light.demo',bindingRevision:'a'.repeat(64),capabilities:{'lights.turn_on':1,'lights.turn_off':1}};
+ el.result.controlCatalog={areas:[{id:'office',name:'Office'}],sources:[{source:grant.source,entity:grant.entity,label:'Desk',kind:'light',members:['light.demo'],grant}]};el.render();
+ assert.equal(el.querySelector('[data-controls-enabled]').checked,false);
+ assert.equal(calls.filter(x=>x.type.endsWith('_update')).length,0);
+ el.querySelector('[data-control-grant]').click();
+ assert.equal(el.draft.controls.enabled,false);
+ el.querySelector('[data-controls-enabled]').click();
+ el.querySelector('[data-save]').click();await tick();
+ const saved=calls.find(x=>x.type.endsWith('_update')).patch.assistant;
+ assert.deepEqual(saved.subjects,original.subjects);assert.equal(saved.sensitive,false);
+ assert.deepEqual(saved.controls,{enabled:true,grants:[grant],mappings:[]});el.remove();
+});
+test('control area/class/wind edits remove prior grant and require saved review',async()=>{
+ const {el}=await panel();const source='studio:cover.demo';
+ el.result.controlCatalog={areas:[{id:'office',name:'Office'}],sources:[{source,entity:'cover.demo',label:'Blind',kind:'cover',reason:'unverified_class',grant:null}]};el.render();
+ assert.ok(el.querySelector('[data-control-area]'));assert.ok(el.querySelector('[data-control-class]'));
+ const area=el.querySelector('[data-control-area]');area.value='office';area.dispatchEvent(new window.Event('change'));
+ assert.deepEqual(el.draft.controls.mappings,[{source,entity:'cover.demo',area:'office'}]);
+ assert.match(el.textContent,/save.*review/i);el.remove();
+});

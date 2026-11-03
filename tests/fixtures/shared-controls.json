@@ -1,0 +1,965 @@
+{
+  "version": 1,
+  "proof": {
+    "transport": "HA authenticated WebSocket",
+    "pairing": [
+      "begin(publicKey, endpoint, name)",
+      "finish(signature of challenge)",
+      "administrator approve(deviceId, code)"
+    ],
+    "binding": "deviceId must equal the approved proof on this same authenticated connection; reconnect requires a new begin/finish proof",
+    "fixtureDeviceId": "tablet",
+    "fixtureEndpoint": "frame",
+    "verification": "tests/controls_ha_smoke.py exercises P-256 pairing and these registered routes on fresh HA"
+  },
+  "cases": {
+    "targets": {
+      "request": {
+        "id": 10,
+        "type": "domosenso_frame/control_targets",
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "supported": [
+          {
+            "actionType": "control-action.v1",
+            "resultType": "control-result.v1"
+          }
+        ]
+      },
+      "response": {
+        "version": 1,
+        "actionType": "control-action.v1",
+        "resultType": "control-result.v1",
+        "requestIdPrefix": "11111111-1111-4111-8111-111111111111:",
+        "expiresAt": "2026-11-03T12:10:00+00:00",
+        "targets": [
+          {
+            "id": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+            "revision": "05b4539bcbc627c6e88ca17379b966e7e6f608d48d21714c32f8fc15dc10fa6c",
+            "kind": "light",
+            "scope": "subject",
+            "label": "Desk",
+            "aliases": [],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "7825f6c6-9471-5754-8e9d-77ea0652b322"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+            "revision": "54aa1d5d087aca831bf7dd5701264958ca20cbad4c33b83c521a1e2a4dff4140",
+            "kind": "light",
+            "scope": "room",
+            "label": "Office",
+            "aliases": [
+              "Study"
+            ],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "7825f6c6-9471-5754-8e9d-77ea0652b322"
+            ],
+            "limitations": []
+          }
+        ]
+      }
+    },
+    "accepted": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "lights.turn_on",
+        "revision": 1,
+        "targetId": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+        "targetRevision": "05b4539bcbc627c6e88ca17379b966e7e6f608d48d21714c32f8fc15dc10fa6c",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "lights.turn_on",
+        "revision": 1,
+        "targetId": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+        "targetRevision": "05b4539bcbc627c6e88ca17379b966e7e6f608d48d21714c32f8fc15dc10fa6c",
+        "status": "accepted",
+        "reason": "command_sent",
+        "outcomes": [
+          {
+            "targetId": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+            "status": "accepted",
+            "reason": "command_sent",
+            "assumedState": false
+          }
+        ]
+      }
+    },
+    "coverTargets": {
+      "request": {
+        "id": 10,
+        "type": "domosenso_frame/control_targets",
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "supported": [
+          {
+            "actionType": "control-action.v1",
+            "resultType": "control-result.v1"
+          }
+        ]
+      },
+      "response": {
+        "version": 1,
+        "actionType": "control-action.v1",
+        "resultType": "control-result.v1",
+        "requestIdPrefix": "11111111-1111-4111-8111-111111111111:",
+        "expiresAt": "2026-11-03T12:10:00+00:00",
+        "targets": [
+          {
+            "id": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+            "revision": "3df2f0117b43524b6169cc425a507070efd900ce3039ac0e61df13283dda7b93",
+            "kind": "light",
+            "scope": "subject",
+            "label": "Desk",
+            "aliases": [],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "7825f6c6-9471-5754-8e9d-77ea0652b322"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "fb985b0b-d0ec-5596-9c0a-8e940f257bef",
+            "revision": "18663c05596272845a314035f578d3d451a5b0ad8d91e15580ca6607c855cb58",
+            "kind": "cover",
+            "scope": "subject",
+            "label": "Office shade",
+            "aliases": [],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "covers.close",
+                "revision": 1
+              },
+              {
+                "id": "covers.open",
+                "revision": 1
+              },
+              {
+                "id": "covers.stop",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "fb985b0b-d0ec-5596-9c0a-8e940f257bef"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "906e99ce-15b7-509c-8d45-6c9be0a969ff",
+            "revision": "a8c9528302f5a00920e4e1d91dbddb3c8fc144bc4350027eaed9049614b6d3c0",
+            "kind": "cover",
+            "scope": "room",
+            "label": "Office",
+            "aliases": [
+              "Study"
+            ],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "covers.close",
+                "revision": 1
+              },
+              {
+                "id": "covers.open",
+                "revision": 1
+              },
+              {
+                "id": "covers.stop",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "fb985b0b-d0ec-5596-9c0a-8e940f257bef"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+            "revision": "9486864e2d09b2ae8ee2022c7533f502b6314918652afa9d769aa966f946a3d7",
+            "kind": "light",
+            "scope": "room",
+            "label": "Office",
+            "aliases": [
+              "Study"
+            ],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "7825f6c6-9471-5754-8e9d-77ea0652b322"
+            ],
+            "limitations": []
+          }
+        ]
+      }
+    },
+    "coverAccepted": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "covers.open",
+        "revision": 1,
+        "targetId": "fb985b0b-d0ec-5596-9c0a-8e940f257bef",
+        "targetRevision": "18663c05596272845a314035f578d3d451a5b0ad8d91e15580ca6607c855cb58",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "covers.open",
+        "revision": 1,
+        "targetId": "fb985b0b-d0ec-5596-9c0a-8e940f257bef",
+        "targetRevision": "18663c05596272845a314035f578d3d451a5b0ad8d91e15580ca6607c855cb58",
+        "status": "accepted",
+        "reason": "command_sent",
+        "outcomes": [
+          {
+            "targetId": "fb985b0b-d0ec-5596-9c0a-8e940f257bef",
+            "status": "accepted",
+            "reason": "command_sent",
+            "assumedState": false
+          }
+        ]
+      }
+    },
+    "awningTargets": {
+      "request": {
+        "id": 10,
+        "type": "domosenso_frame/control_targets",
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "supported": [
+          {
+            "actionType": "control-action.v1",
+            "resultType": "control-result.v1"
+          }
+        ]
+      },
+      "response": {
+        "version": 1,
+        "actionType": "control-action.v1",
+        "resultType": "control-result.v1",
+        "requestIdPrefix": "11111111-1111-4111-8111-111111111111:",
+        "expiresAt": "2026-11-03T12:10:00+00:00",
+        "targets": [
+          {
+            "id": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
+            "revision": "800013ff397940d7c1df1e6dea1b72d8fee6ba6118785e81ec910eadf8a2b149",
+            "kind": "awning",
+            "scope": "subject",
+            "label": "Terrace",
+            "aliases": [],
+            "room": {
+              "id": "870a49a4-c6e1-5956-bc9d-572bf4a8f065",
+              "label": "Terrace",
+              "aliases": []
+            },
+            "capabilities": [
+              {
+                "id": "awnings.extend",
+                "revision": 1
+              },
+              {
+                "id": "awnings.retract",
+                "revision": 1
+              },
+              {
+                "id": "awnings.stop",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "196af91a-22c4-539c-af65-c674b7266f99",
+            "revision": "3aa73a5dde2fe5bc59068c68b553f001b51341f62e0b0b1e2658929c5730689c",
+            "kind": "light",
+            "scope": "subject",
+            "label": {
+              "en": "Office",
+              "de": "B\u00fcro",
+              "pl": "Gabinet"
+            },
+            "aliases": [],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "196af91a-22c4-539c-af65-c674b7266f99"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "26740a73-dd72-535a-8b38-6546b1d6efe2",
+            "revision": "0bb4bb180b4039c276be51d7a0e8dfdd536d30cc0d77df9f0cdfdb2eb9bfcf1f",
+            "kind": "light",
+            "scope": "subject",
+            "label": {
+              "en": "Desk",
+              "pl": "Biurko"
+            },
+            "aliases": [],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "26740a73-dd72-535a-8b38-6546b1d6efe2"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+            "revision": "d141e95638d47ab6d273f60a239b963d6488d047c1f4df27cbea8e162eb91223",
+            "kind": "light",
+            "scope": "room",
+            "label": "Office",
+            "aliases": [
+              "Study"
+            ],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "196af91a-22c4-539c-af65-c674b7266f99"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "2084c3d3-f725-59eb-b7bf-65ef90873a0b",
+            "revision": "b29120e857d970164028c05b3d007883450cc0e8480f0c44b4520ac00eaa0c3a",
+            "kind": "awning",
+            "scope": "room",
+            "label": "Terrace",
+            "aliases": [],
+            "room": {
+              "id": "870a49a4-c6e1-5956-bc9d-572bf4a8f065",
+              "label": "Terrace",
+              "aliases": []
+            },
+            "capabilities": [
+              {
+                "id": "awnings.extend",
+                "revision": 1
+              },
+              {
+                "id": "awnings.retract",
+                "revision": 1
+              },
+              {
+                "id": "awnings.stop",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd"
+            ],
+            "limitations": []
+          }
+        ]
+      }
+    },
+    "awningAccepted": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "awnings.extend",
+        "revision": 1,
+        "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
+        "targetRevision": "800013ff397940d7c1df1e6dea1b72d8fee6ba6118785e81ec910eadf8a2b149",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "awnings.extend",
+        "revision": 1,
+        "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
+        "targetRevision": "800013ff397940d7c1df1e6dea1b72d8fee6ba6118785e81ec910eadf8a2b149",
+        "status": "accepted",
+        "reason": "command_sent",
+        "outcomes": [
+          {
+            "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
+            "status": "accepted",
+            "reason": "command_sent",
+            "assumedState": false
+          }
+        ]
+      }
+    },
+    "windBlock": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "awnings.extend",
+        "revision": 1,
+        "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
+        "targetRevision": "800013ff397940d7c1df1e6dea1b72d8fee6ba6118785e81ec910eadf8a2b149",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "awnings.extend",
+        "revision": 1,
+        "targetId": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
+        "targetRevision": "800013ff397940d7c1df1e6dea1b72d8fee6ba6118785e81ec910eadf8a2b149",
+        "status": "failed",
+        "reason": "wind_block",
+        "outcomes": []
+      }
+    },
+    "ambiguity": {
+      "request": {
+        "id": 10,
+        "type": "domosenso_frame/control_targets",
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "supported": [
+          {
+            "actionType": "control-action.v1",
+            "resultType": "control-result.v1"
+          }
+        ]
+      },
+      "response": {
+        "version": 1,
+        "actionType": "control-action.v1",
+        "resultType": "control-result.v1",
+        "requestIdPrefix": "11111111-1111-4111-8111-111111111111:",
+        "expiresAt": "2026-11-03T12:10:00+00:00",
+        "targets": [
+          {
+            "id": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+            "revision": "276578ee79c4342e9f107d7628a020058391420031fe90cda4bc7fa6aceddf1e",
+            "kind": "light",
+            "scope": "subject",
+            "label": "Desk",
+            "aliases": [],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "7825f6c6-9471-5754-8e9d-77ea0652b322"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "255b1ef6-7737-5714-a755-aa0b49b910b6",
+            "revision": "c79bc654635d786e1dda1f4c6d5a36c13d6f2af132cb7b01d3d89af5059b3809",
+            "kind": "light",
+            "scope": "subject",
+            "label": "Desk",
+            "aliases": [],
+            "room": {
+              "id": "01c5b8d5-69f5-5518-bcf1-02e36427a81f",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "255b1ef6-7737-5714-a755-aa0b49b910b6"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+            "revision": "14cc3b822690238d21b89aa0134e762fe3b6b0f0c2f90ffc0c2755fc115371bf",
+            "kind": "light",
+            "scope": "room",
+            "label": "Office",
+            "aliases": [
+              "Study"
+            ],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "7825f6c6-9471-5754-8e9d-77ea0652b322"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "2b62d7f8-dc27-51f7-8151-4066c50326b9",
+            "revision": "6c7a8541dc87482749a7c824bbc38a0a8bc1d33486c72644018cb43d953d2ff3",
+            "kind": "light",
+            "scope": "room",
+            "label": "Office",
+            "aliases": [
+              "Study"
+            ],
+            "room": {
+              "id": "01c5b8d5-69f5-5518-bcf1-02e36427a81f",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "255b1ef6-7737-5714-a755-aa0b49b910b6"
+            ],
+            "limitations": []
+          }
+        ]
+      }
+    },
+    "partialScope": {
+      "request": {
+        "id": 10,
+        "type": "domosenso_frame/control_targets",
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "supported": [
+          {
+            "actionType": "control-action.v1",
+            "resultType": "control-result.v1"
+          }
+        ]
+      },
+      "response": {
+        "version": 1,
+        "actionType": "control-action.v1",
+        "resultType": "control-result.v1",
+        "requestIdPrefix": "11111111-1111-4111-8111-111111111111:",
+        "expiresAt": "2026-11-03T12:10:00+00:00",
+        "targets": [
+          {
+            "id": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+            "revision": "05b4539bcbc627c6e88ca17379b966e7e6f608d48d21714c32f8fc15dc10fa6c",
+            "kind": "light",
+            "scope": "subject",
+            "label": "Desk",
+            "aliases": [],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": false,
+            "memberIds": [
+              "7825f6c6-9471-5754-8e9d-77ea0652b322"
+            ],
+            "limitations": []
+          },
+          {
+            "id": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+            "revision": "e503316e4facb88bb47de54a430eb51c22a3fdb6d7fe1671981a302f99ba94ea",
+            "kind": "light",
+            "scope": "room",
+            "label": "Office",
+            "aliases": [
+              "Study"
+            ],
+            "room": {
+              "id": "10ce7f1e-ba5a-59bb-825c-1569a573ac52",
+              "label": "Office",
+              "aliases": [
+                "Study"
+              ]
+            },
+            "capabilities": [
+              {
+                "id": "lights.turn_off",
+                "revision": 1
+              },
+              {
+                "id": "lights.turn_on",
+                "revision": 1
+              }
+            ],
+            "partialScope": true,
+            "memberIds": [
+              "7825f6c6-9471-5754-8e9d-77ea0652b322"
+            ],
+            "limitations": [
+              "partial_scope"
+            ]
+          }
+        ]
+      }
+    },
+    "partialScopeDenied": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "lights.turn_on",
+        "revision": 1,
+        "targetId": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+        "targetRevision": "e503316e4facb88bb47de54a430eb51c22a3fdb6d7fe1671981a302f99ba94ea",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "lights.turn_on",
+        "revision": 1,
+        "targetId": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+        "targetRevision": "e503316e4facb88bb47de54a430eb51c22a3fdb6d7fe1671981a302f99ba94ea",
+        "status": "failed",
+        "reason": "partial_scope",
+        "outcomes": []
+      }
+    },
+    "partialScopeChosen": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "lights.turn_on",
+        "revision": 1,
+        "targetId": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+        "targetRevision": "e503316e4facb88bb47de54a430eb51c22a3fdb6d7fe1671981a302f99ba94ea",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action",
+        "scopeChoice": "configured"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "lights.turn_on",
+        "revision": 1,
+        "targetId": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+        "targetRevision": "e503316e4facb88bb47de54a430eb51c22a3fdb6d7fe1671981a302f99ba94ea",
+        "status": "accepted",
+        "reason": "command_sent",
+        "outcomes": [
+          {
+            "targetId": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+            "status": "accepted",
+            "reason": "command_sent",
+            "assumedState": false
+          }
+        ]
+      }
+    },
+    "staleRevision": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "lights.turn_on",
+        "revision": 1,
+        "targetId": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+        "targetRevision": "05b4539bcbc627c6e88ca17379b966e7e6f608d48d21714c32f8fc15dc10fa6c",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "lights.turn_on",
+        "revision": 1,
+        "targetId": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+        "targetRevision": "05b4539bcbc627c6e88ca17379b966e7e6f608d48d21714c32f8fc15dc10fa6c",
+        "status": "failed",
+        "reason": "stale_revision",
+        "outcomes": []
+      }
+    },
+    "partialDispatch": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "lights.turn_on",
+        "revision": 1,
+        "targetId": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+        "targetRevision": "b1d7dd773b03c6f63b90f7d555f671373de28b9ba5a09eb956bb6d160a2fa3b0",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "lights.turn_on",
+        "revision": 1,
+        "targetId": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+        "targetRevision": "b1d7dd773b03c6f63b90f7d555f671373de28b9ba5a09eb956bb6d160a2fa3b0",
+        "status": "failed",
+        "reason": "partial_failure",
+        "outcomes": [
+          {
+            "targetId": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+            "status": "accepted",
+            "reason": "command_sent",
+            "assumedState": false
+          },
+          {
+            "targetId": "1ef5ba38-0ff7-58de-8c4a-ba9b494a384d",
+            "status": "failed",
+            "reason": "stale_revision",
+            "assumedState": false
+          }
+        ]
+      }
+    },
+    "unknown": {
+      "request": {
+        "version": 1,
+        "endpoint": "frame",
+        "deviceId": "tablet",
+        "capability": "lights.turn_on",
+        "revision": 1,
+        "targetId": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+        "targetRevision": "05b4539bcbc627c6e88ca17379b966e7e6f608d48d21714c32f8fc15dc10fa6c",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "id": 11,
+        "type": "domosenso_frame/control_action"
+      },
+      "response": {
+        "version": 1,
+        "resultType": "control-result.v1",
+        "requestId": "11111111-1111-4111-8111-111111111111:test",
+        "capability": "lights.turn_on",
+        "revision": 1,
+        "targetId": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+        "targetRevision": "05b4539bcbc627c6e88ca17379b966e7e6f608d48d21714c32f8fc15dc10fa6c",
+        "status": "unknown",
+        "reason": "outcome_unknown",
+        "outcomes": [
+          {
+            "targetId": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+            "status": "unknown",
+            "reason": "service_error",
+            "assumedState": false
+          }
+        ]
+      }
+    }
+  }
+}

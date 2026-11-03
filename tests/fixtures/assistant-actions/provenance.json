@@ -1,0 +1,16 @@
+{
+  "repository": "zerostorypoints/domosenso",
+  "revision": "05b4f83d274a9c517b8a5fbc658f2ed47bb4d4a3",
+  "sha256": {
+    "awnings.json": "6f8648af462f0f826193077114ec8816e35032c5ea5afca2dd982a44aba19584",
+    "inputs.json": "13cb4931b500c00d05984bca59670e1d009199a245ea0a0b0aa5d9d572cd07b1",
+    "lights-membership.json": "e1346255c30c7e512d4fdeace0fd7595eb9276de8b0f63dce4b8cec7b062ef21",
+    "lights.json": "d54ea1a02d80e7c9caf08bc1f2f3817f983b26e8a9668fa031bc8a6c8d8dba41",
+    "timers.json": "b355c290fb791c4ba6e7bb468b46ea8e05b61f1a469e629e143ea8c1e39b29e6"
+  },
+  "schema": {
+    "source": "schemas/assistant-actions-profile.schema.json",
+    "destination": "custom_components/domosenso_frame/control-actions-profile.schema.json",
+    "sha256": "74ec3d7aaf281ef1fe03d98e6393097378a9e6820f7d06cd2734aec1eb69f1ce"
+  }
+}

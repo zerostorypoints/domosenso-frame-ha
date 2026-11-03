@@ -12,6 +12,7 @@ from .assistant_selection import validate_policy, validate_change
 from .assistant_bindings import validate_selections, validate_new_selections
 from .timers import validate_mapping as validate_timers, eligible as timer_eligible
 from .radar import validate as validate_radar, eligible as radar_eligible
+from .control_profiles import validate_mapping as validate_controls
 
 GROUPS={'rooms','air','weather','calendars','media','lights','covers','status','mains','radar','assistant','timers'}
 CLASSES={'temperature':{'temperature'},'humidity':{'humidity'},'co2':{'carbon_dioxide'},'pm2_5':{'pm25','pm2_5'},'voc':{'volatile_organic_compounds','volatile_organic_compounds_parts'},'nox':{'nitrogen_dioxide'},'power':{'power'},'voltage':{'voltage'}}
@@ -94,7 +95,12 @@ def merge_patch(endpoint,patch,states=None):
         if key=='timers':
             out['timers']=validate_timers(value,states,endpoint)
         elif key=='assistant':
-            shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive','component_sources','source_policy'])
+            shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive','component_sources','source_policy','controls'])
+            if 'controls' in value:validate_controls(value['controls'])
+            # Controls-only changes preserve every existing read grant. Legacy read
+            # saves preserve independent actuator consent.
+            if set(value)=={'controls'}:value={**copy.deepcopy(out.get('assistant',{'subjects':[],'sensitive':False})),**value}
+            elif 'controls' not in value and 'controls' in out.get('assistant',{}):value={**value,'controls':copy.deepcopy(out['assistant']['controls'])}
             if 'source_policy' in value:validate_policy(value['source_policy'])
             elif 'source_policy' in out.get('assistant',{}):value={**value,'source_policy':copy.deepcopy(out['assistant']['source_policy'])}
             validate_selections(value.get('component_sources',[]))

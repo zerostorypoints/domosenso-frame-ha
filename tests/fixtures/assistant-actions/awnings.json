@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "component": {
+    "id": "awnings",
+    "version": "0.4.0",
+    "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "dev": false
+  },
+  "definitions": {
+    "actions": [
+      {
+        "id": "awnings.extend",
+        "revision": 1,
+        "operation": "write",
+        "action_type": "control-action.v1",
+        "result_type": "control-result.v1",
+        "effect": "extend",
+        "parameters": {},
+        "confirmation": "none",
+        "title_key": "meta.assistant.extend.title",
+        "description_key": "meta.assistant.extend.description",
+        "examples_key": "meta.assistant.extend.examples",
+        "required_facts": [
+          {
+            "role": "cover",
+            "type": "state",
+            "units": [],
+            "source": {
+              "relation": "provides",
+              "id": "cover.<awning>"
+            }
+          },
+          {
+            "role": "wind",
+            "type": "state",
+            "units": [],
+            "source": {
+              "relation": "provides",
+              "id": "binary_sensor.<wind>"
+            }
+          },
+          {
+            "role": "last_heard",
+            "type": "event",
+            "units": [],
+            "source": {
+              "relation": "provides",
+              "id": "input_datetime.<wind_last_heard.id>"
+            }
+          }
+        ],
+        "optional_facts": []
+      },
+      {
+        "id": "awnings.retract",
+        "revision": 1,
+        "operation": "write",
+        "action_type": "control-action.v1",
+        "result_type": "control-result.v1",
+        "effect": "retract",
+        "parameters": {},
+        "confirmation": "none",
+        "title_key": "meta.assistant.retract.title",
+        "description_key": "meta.assistant.retract.description",
+        "examples_key": "meta.assistant.retract.examples",
+        "required_facts": [
+          {
+            "role": "cover",
+            "type": "state",
+            "units": [],
+            "source": {
+              "relation": "provides",
+              "id": "cover.<awning>"
+            }
+          }
+        ],
+        "optional_facts": []
+      },
+      {
+        "id": "awnings.stop",
+        "revision": 1,
+        "operation": "write",
+        "action_type": "control-action.v1",
+        "result_type": "control-result.v1",
+        "effect": "stop",
+        "parameters": {},
+        "confirmation": "none",
+        "title_key": "meta.assistant.stop.title",
+        "description_key": "meta.assistant.stop.description",
+        "examples_key": "meta.assistant.stop.examples",
+        "required_facts": [
+          {
+            "role": "cover",
+            "type": "state",
+            "units": [],
+            "source": {
+              "relation": "provides",
+              "id": "cover.<awning>"
+            }
+          }
+        ],
+        "optional_facts": []
+      }
+    ]
+  },
+  "translations": {
+    "en": {
+      "meta": {
+        "assistant": {
+          "extend": {
+            "description": "Request extension only with explicit access and fresh, safe wind evidence; existing protection still applies.",
+            "examples": [
+              "Extend the terrace awning"
+            ],
+            "title": "Extend the awning"
+          },
+          "retract": {
+            "description": "Request retraction with explicit access, without a safe-wind assertion.",
+            "examples": [
+              "Retract the terrace awning"
+            ],
+            "title": "Retract the awning"
+          },
+          "stop": {
+            "description": "Request STOP with explicit access when the integration supports it; position may be estimated.",
+            "examples": [
+              "Stop the terrace awning"
+            ],
+            "title": "Stop the awning"
+          }
+        }
+      }
+    },
+    "de": {
+      "meta": {
+        "assistant": {
+          "extend": {
+            "description": "Fordert das Ausfahren nur mit Freigabe und einer aktuellen unbedenklichen Windmeldung an; der bestehende Schutz bleibt wirksam.",
+            "examples": [
+              "Fahre die Markise aus"
+            ],
+            "title": "Markise ausfahren"
+          },
+          "retract": {
+            "description": "Fordert das Einfahren mit Freigabe an, ohne eine unbedenkliche Windmeldung vorauszusetzen.",
+            "examples": [
+              "Fahre die Markise ein"
+            ],
+            "title": "Markise einfahren"
+          },
+          "stop": {
+            "description": "Fordert bei unterstützter STOP-Funktion und mit Freigabe das Anhalten an; die Position kann geschätzt sein.",
+            "examples": [
+              "Halte die Markise an"
+            ],
+            "title": "Markise anhalten"
+          }
+        }
+      }
+    },
+    "pl": {
+      "meta": {
+        "assistant": {
+          "extend": {
+            "description": "Wysunięcie wymaga uprawnienia i aktualnego potwierdzenia braku alarmu wiatru; dotychczasowe zabezpieczenia nadal działają.",
+            "examples": [
+              "Wysuń markizę na tarasie"
+            ],
+            "title": "Wysuń markizę"
+          },
+          "retract": {
+            "description": "Zwinięcie wymaga uprawnienia, ale nie wymaga potwierdzenia braku alarmu wiatru.",
+            "examples": [
+              "Zwiń markizę na tarasie"
+            ],
+            "title": "Zwiń markizę"
+          },
+          "stop": {
+            "description": "Zatrzymanie wymaga uprawnienia i obsługi STOP przez integrację; pozycja może być szacowana.",
+            "examples": [
+              "Zatrzymaj markizę na tarasie"
+            ],
+            "title": "Zatrzymaj markizę"
+          }
+        }
+      }
+    }
+  },
+  "bindings": {
+    "subjects": [
+      {
+        "key": "cover.terrace",
+        "kind": "awning",
+        "label": "Terrace",
+        "fields": {
+          "cover": {
+            "entity": "cover.terrace"
+          }
+        },
+        "roomKey": "terrace",
+        "guard": {
+          "wind": {
+            "entity": "binary_sensor.awnings_wind"
+          },
+          "last_heard": {
+            "entity": "input_datetime.wind_heard"
+          },
+          "max_age_seconds": 14400
+        }
+      }
+    ],
+    "policies": []
+  }
+}

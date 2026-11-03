@@ -26,6 +26,7 @@ from .studio_sources import validate_sources
 from .studio_api import setup as setup_studio
 from .assistant_api import setup as setup_assistant
 from .timer_api import setup as setup_timers
+from .control_api import setup as setup_controls
 from .timers import validate_mapping as validate_timers
 
 DOMAIN='domosenso_frame'
@@ -77,6 +78,7 @@ async def async_unload_entry(hass,entry):
     for unsubscribe in list(state.get('subscriptions',())):unsubscribe()
     if radar:=state.get('radar'):radar.close()
     if cancel:=state.get('radar_cancel'):cancel()
+    if controls:=state.get('controls'):controls.closed=True
     if close:=state.get('timers_close'):await close()
     if close:=state.get('assistant_refresh_close'):await close()
     hass.data.pop(DOMAIN)
@@ -130,6 +132,10 @@ async def _async_setup_bridge(hass,settings,source,entry_id=None):
         await setup_timers(hass,grant,register_command)
     except Exception:
         logging.getLogger(__name__).exception('Shared timers unavailable; existing bridge remains active')
+    try:
+        await setup_controls(hass,grant,register_command)
+    except Exception:
+        logging.getLogger(__name__).exception('Assistant controls unavailable; existing bridge remains active')
     state=hass.data[DOMAIN]
     def later(delay,fn):
         handle=hass.loop.call_later(delay,fn)
@@ -164,7 +170,7 @@ def grant(hass,connection):
 @callback
 def profile(hass,connection,msg):
     state=hass.data[DOMAIN]
-    connection.send_result(msg['id'],{'protocol':1,**({'assistantVersion':1} if state.get('assistant_ready') else {}),'installationId':state['saved']['installationId'],'name':hass.config.location_name,'timezone':hass.config.time_zone,'demo':state['settings']['demo'],
+    connection.send_result(msg['id'],{'protocol':1,**({'assistantVersion':1} if state.get('assistant_ready') else {}),**({'controlsVersion':1} if state.get('controls') else {}),'installationId':state['saved']['installationId'],'name':hass.config.location_name,'timezone':hass.config.time_zone,'demo':state['settings']['demo'],
       'endpoints':[{'id':e['id'],'name':e['name'],'dashboard':e['dashboard'],'rooms':[s['label'] for s in e['temperature']],
        **({'capabilitiesVersion':1} if state.get('studio_ready') else {}),'semanticVersion':e.get('semantic_version',0),'displayVersion':1 if 'display' in e else 0,'studioVersion':2 if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else 0,
        'topics':[t for t,key in [('temperature','temperature'),('air','air'),('calendar','calendars')] if e[key]]} for e in state['endpoints'].values()]})

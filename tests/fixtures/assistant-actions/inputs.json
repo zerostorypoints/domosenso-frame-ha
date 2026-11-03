@@ -1,0 +1,43 @@
+{
+  "lights": {
+    "rooms": [
+      {
+        "id": "office",
+        "group": "light.office_group",
+        "name": {
+          "en": "Office",
+          "de": "Büro",
+          "pl": "Gabinet"
+        }
+      }
+    ],
+    "lights": [
+      {
+        "entity": "light.desk",
+        "label": {
+          "en": "Desk",
+          "pl": "Biurko"
+        },
+        "room": "office"
+      }
+    ]
+  },
+  "awnings": {
+    "node_id": "demo",
+    "covers": [
+      {
+        "entity_id": "cover.terrace",
+        "name": "Terrace",
+        "shade_id": 1,
+        "room": "terrace"
+      }
+    ],
+    "wind_sensor": "binary_sensor.awnings_wind",
+    "notify": "notify.demo",
+    "wind_last_heard": {
+      "id": "wind_heard",
+      "name": "Wind heard"
+    },
+    "wind_silent_hours": 4
+  }
+}

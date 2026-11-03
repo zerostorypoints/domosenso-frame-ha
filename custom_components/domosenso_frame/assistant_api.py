@@ -223,15 +223,17 @@ async def setup(hass, grant, register_command, policy_read):
     def load_metadata():
         from .assistant_runtime_contract import load_directory as load_runtime
         from .timer_contract import load_directory as load_actions
+        from .control_profiles import load_directory as load_controls
         runtime,runtime_errors=load_runtime(hass.config.path())
         commands,command_errors=load_actions(hass.config.path())
+        controls,control_errors=load_controls(hass.config.path())
         loaded,errors=load_directory(hass.config.path())
-        return {'assistant_runtime_artifacts':runtime,'assistant_runtime_errors':runtime_errors,
+        return {'control_artifacts':controls,'control_errors':control_errors,'assistant_runtime_artifacts':runtime,'assistant_runtime_errors':runtime_errors,
                 'assistant_action_artifacts':commands,'assistant_action_errors':command_errors,
                 'assistant_artifacts':loaded,'assistant_errors':errors}
     def publish_metadata(snapshot):
         if hass.data.get(DOMAIN) is not state:return
-        state.update({key:snapshot.get(key,{}) for key in ('assistant_runtime_artifacts','assistant_runtime_errors',
+        state.update({key:snapshot.get(key,{}) for key in ('control_artifacts','control_errors','assistant_runtime_artifacts','assistant_runtime_errors',
             'assistant_action_artifacts','assistant_action_errors','assistant_artifacts','assistant_errors')})
         inventory=hass.states.get('sensor.domosenso_components') if hasattr(hass,'states') else None
         records=getattr(inventory,'attributes',{}).get('components') if inventory else None

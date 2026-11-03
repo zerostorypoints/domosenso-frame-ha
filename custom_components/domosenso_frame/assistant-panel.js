@@ -39,6 +39,68 @@ class AssistantPanel extends HTMLElement {
   scope.exclude=scope.exclude.filter(k=>k!==subject.key);if(!enabled)scope.exclude.push(subject.key);
   this.notice='';this.render();
  }
+ controlsDraft(){return this.draft.controls||={enabled:false,grants:[],mappings:[]};}
+ controlMapping(source,key,value){
+  const controls=this.controlsDraft();let row=controls.mappings.find(m=>m.source===source.source);
+  if(!row){row={source:source.source,entity:source.entity};controls.mappings.push(row);}
+  if(value===''||value==null)delete row[key];else row[key]=value;
+  controls.grants=controls.grants.filter(g=>g.source!==source.source);this.notice='';this.render();
+ }
+ renderControls(root){
+  const catalog=this.result?.controlCatalog;if(!catalog)return;
+  const pl=this.language==='pl',say=(en,polish)=>pl?polish:en;
+  const section=document.createElement('fieldset');section.append(text('legend',say('Assistant controls','Sterowanie asystentem')));
+  section.append(text('p',say('Review exact sources and actions. New or replaced sources never inherit consent. Save mapping changes first, then review and grant the current binding.','Sprawdź dokładne źródła i działania. Nowe lub wymienione źródła wymagają osobnej zgody. Najpierw zapisz mapowania, następnie sprawdź bieżące powiązanie i nadaj uprawnienia.')));
+  const current=this.draft.controls||{enabled:false,grants:[],mappings:[]};
+  const enabled=document.createElement('input');enabled.type='checkbox';enabled.dataset.controlsEnabled='';enabled.checked=current.enabled;enabled.disabled=this.busy;
+  enabled.onchange=()=>{this.controlsDraft().enabled=enabled.checked;this.render();};
+  const enableLabel=text('label',say('Enable explicitly granted controls','Włącz zatwierdzone sterowanie'));enableLabel.prepend(enabled);section.append(enableLabel);
+  for(const source of catalog.sources){
+   const row=document.createElement('fieldset');row.append(text('legend',this.label(source.label)),text('p',source.entity));
+   if(source.members?.length)row.append(text('p',say('Current members: ','Bieżące elementy: ')+source.members.join(', ')));
+   if(source.reason)row.append(text('p',source.reason));
+   const mapping=current.mappings.find(m=>m.source===source.source)||{};
+   const saved=(this.result.mappings.assistant?.controls?.mappings||[]).find(m=>m.source===source.source)||{};
+   const changed=JSON.stringify(mapping)!==JSON.stringify(saved);
+   const area=document.createElement('select');area.dataset.controlArea='';area.disabled=this.busy;area.setAttribute('aria-label',say('Explicit HA area','Jawny obszar HA'));
+   const automatic=text('option',say('Use source / HA area','Użyj obszaru źródła / HA'));automatic.value='';area.append(automatic);
+   for(const a of catalog.areas){const option=text('option',a.name);option.value=a.id;area.append(option);}area.value=mapping.area||'';
+   area.onchange=()=>this.controlMapping(source,'area',area.value);row.append(area);
+   if(source.kind!=='light'){
+    const type=document.createElement('select');type.dataset.controlClass='';type.disabled=this.busy;type.setAttribute('aria-label',say('Verified covering class','Potwierdzony typ osłony'));
+    for(const value of ['', 'blind','curtain','shade','shutter','awning']){const option=text('option',value||say('Use HA device class','Użyj typu urządzenia HA'));option.value=value;type.append(option);}
+    type.value=mapping.coverClass||'';type.onchange=()=>this.controlMapping(source,'coverClass',type.value);row.append(type);
+    if(source.kind==='awning'||mapping.coverClass==='awning'){
+     if(source.provenance&&source.guard)row.append(text('p',say('Wind policy supplied by installed component','Polityka wiatru z zainstalowanego komponentu')));
+     else{
+      const guard=mapping.guard||{wind:{entity:''},last_heard:{entity:''},max_age_seconds:3600};
+      for(const [role,domains] of [['wind',['binary_sensor']],['last_heard',['input_datetime','sensor']]]){
+       row.append(text('label',role==='wind'?say('Wind alarm (off = safe report)','Alarm wiatru (off = bezpieczny odczyt)'):say('Last report timestamp','Czas ostatniego raportu')));
+       const picker=document.createElement('ha-selector');picker.hass=this._hass;picker.selector={entity:{filter:{domain:domains}}};picker.value=guard[role].entity;picker.disabled=this.busy;
+       picker.addEventListener('value-changed',event=>{const next=copy(guard);next[role]={entity:event.detail.value};this.controlMapping(source,'guard',next);});row.append(picker);
+      }
+      const age=document.createElement('input');age.type='number';age.min='1';age.max='604800';age.value=guard.max_age_seconds;age.disabled=this.busy;age.setAttribute('aria-label',say('Maximum report age (seconds)','Maksymalny wiek raportu (sekundy)'));
+      age.onchange=()=>this.controlMapping(source,'guard',{...copy(guard),max_age_seconds:Number(age.value)});row.append(age);
+      row.append(this.button(say('Remove wind mapping','Usuń mapowanie wiatru'),()=>this.controlMapping(source,'guard',null)));
+     }
+    }
+   }
+   if(source.grant&&!changed){
+    const chosen=current.grants.find(g=>g.source===source.source),valid=chosen?.bindingRevision===source.grant.bindingRevision;
+    const all=document.createElement('input');all.type='checkbox';all.dataset.controlGrant='';all.disabled=this.busy;all.checked=!!valid;
+    all.onchange=()=>{const c=this.controlsDraft();c.grants=c.grants.filter(g=>g.source!==source.source);if(all.checked)c.grants.push(copy(source.grant));this.render();};
+    const label=text('label',say('Grant reviewed actions: ','Zatwierdź działania: ')+Object.keys(source.grant.capabilities).join(', '));label.prepend(all);row.append(label);
+    if(valid)for(const cap of Object.keys(source.grant.capabilities)){
+     const check=document.createElement('input');check.type='checkbox';check.disabled=this.busy;check.checked=!!chosen.capabilities[cap];
+     check.onchange=()=>{if(check.checked)chosen.capabilities[cap]=1;else delete chosen.capabilities[cap];if(!Object.keys(chosen.capabilities).length)this.controlsDraft().grants=this.controlsDraft().grants.filter(g=>g!==chosen);this.render();};
+     const label=text('label',cap);label.prepend(check);row.append(label);
+    }
+   }
+   section.append(row);
+  }
+  for(const grant of current.grants){const row=text('div',grant.source+' ');row.append(this.button(say('Remove control grant','Usuń zgodę na sterowanie'),()=>{this.controlsDraft().grants=this.controlsDraft().grants.filter(g=>g!==grant);this.render();}));section.append(row);}
+  root.append(section);
+ }
  render(){if(!this._hass)return;const t=words[this.language||'en'];this.style.cssText=(this.style.display?'display:'+this.style.display+';':'')+'padding:24px;max-width:900px;font:16px system-ui;line-height:1.5;color:var(--primary-text-color)';const root=document.createElement('section');root.append(text('h1',t.title),text('p',t.intro));
  const controls=document.createElement('div');controls.style.cssText='display:flex;gap:12px;flex-wrap:wrap;align-items:center';
  const selector=document.createElement('select');selector.setAttribute('aria-label',t.frame);selector.disabled=this.busy;for(const frame of this.endpoints||[]){const option=text('option',frame.name);option.value=frame.id;option.selected=frame.id===this.endpoint;selector.append(option);}selector.onchange=()=>void this.load(selector.value);controls.append(selector);
@@ -66,6 +128,7 @@ class AssistantPanel extends HTMLElement {
  }
  for(const scope of this.draft?.source_policy?.scopes||[]){const row=text('div',scope.component+' · '+scope.kind+' ');row.append(this.button(t.scopeRemove,()=>{this.draft.source_policy.scopes=this.draft.source_policy.scopes.filter(s=>s!==scope);this.render();}));root.append(row);}
  if(this.draft?.component_sources?.length){root.append(text('h2',t.stale));for(const selected of this.draft.component_sources){const row=text('div',selected.component+' · '+selected.subject+' ');const remove=this.button(t.remove,()=>this.selectSource(selected,false));remove.dataset.remove='';row.append(remove);root.append(row);}}
+ this.renderControls(root);
  if(this.result){const save=this.button(t.save,()=>void this.save());save.dataset.save='';save.disabled=this.busy||JSON.stringify(this.draft)===JSON.stringify(this.result.mappings.assistant);root.append(save,this.button(t.reload,()=>void this.load(this.endpoint)));}
  for(const control of root.querySelectorAll('button,select'))control.style.cssText='font:inherit;padding:10px 16px;margin:6px;border:1px solid #888;border-radius:8px;min-height:44px;max-width:100%;color:inherit;background:var(--card-background-color,#fff);cursor:pointer';this.replaceChildren(root);
  }

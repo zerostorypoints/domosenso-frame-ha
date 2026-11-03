@@ -36,3 +36,15 @@ semantics. Scope tuples (`component`, `kind`, `roles`, read `capabilities`, `exc
 server-side and cannot grant actions. Omitted policy fields on older editor saves are preserved.
 Dynamic subject identity follows the component key, not its translated label. Existing display v2
 and assistant v1 response formats remain unchanged; metadata refresh does not require new pairing.
+
+## Unreleased assistant controls protocol 1
+
+The bridge may advertise `controlsVersion: 1` and negotiate
+`control-action.v1` / `control-result.v1`; use these capability signals rather
+than inferring support from an app update. See [controls](controls.md) for exact
+proof, scope-choice and epoch rules. Older bridges/clients continue read and timer
+APIs unchanged. Unsupported control sidecars are ignored by timer consumers;
+timer validation remains strict. Controls need the reviewed framework action
+sidecar schema (fictional source revision and hashes are vendored in
+`tests/fixtures/assistant-actions/provenance.json`) or explicit vanilla mappings.
+No released bridge/native minimum version or hardware certification is claimed.

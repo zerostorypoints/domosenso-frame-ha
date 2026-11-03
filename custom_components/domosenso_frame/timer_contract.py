@@ -47,7 +47,10 @@ def identity_matches(bundle, record):
 
 
 def load_directory(config_dir):
-    return reads.load_directory(config_dir, 'assistant-actions', validate_bundle)
+    loaded, errors = reads.load_directory(config_dir, 'assistant-actions', validate_bundle)
+    # These separately versioned control owners are not timer artifacts. Their
+    # validity is handled by control_profiles; never relax timer validation.
+    return loaded, {k:v for k,v in errors.items() if k not in ('lights.yaml','awnings.yaml')}
 
 
 def active(artifacts, records):

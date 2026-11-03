@@ -45,6 +45,7 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
         result['candidates']['timers']=[r for r in result['candidates'].get('timers',[]) if state.get('timer_source_verified',lambda _:False)(r['entity'])]
         endpoint=state['endpoints'][result['endpoint']]
         result['widgets']=readiness(project(endpoint,verified,lambda _:True,endpoint.get('display',{}).get('locale','en')),hass.states)
+        if engine:=state.get('controls'):result['controlCatalog']=engine.profiles.catalog(endpoint)
         result['assistantCatalog']=assistant_catalog(verified,errors,records,state['endpoints'][result['endpoint']],hass.states)
         return result
     await lib.initialize({id:state['layouts'].get(id) for id,e in state['endpoints'].items() if 'display' in e},installed)
@@ -72,6 +73,10 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
         try:
             def authorize_mapping():
                 admin(c)
+                if 'controls' in msg['patch'].get('assistant',{}):
+                    engine=state.get('controls')
+                    if not engine:raise ValueError('Controls unavailable')
+                    engine.profiles.validate_change(state['endpoints'][msg['endpoint']],msg['patch']['assistant']['controls'])
                 if 'timers' in msg['patch']:
                     for row in msg['patch']['timers'].get('items',[]):
                         if not state.get('timer_source_verified',lambda _:False)(row.get('entity')): raise ValueError('Select a core timer helper')
