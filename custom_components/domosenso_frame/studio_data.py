@@ -83,16 +83,32 @@ class Data:
         for eid in entities:
             if not connection.user.permissions.check_entity(eid,POLICY_READ):raise ValueError('Source not permitted')
     async def snapshot(self,connection,endpoint,offset=0,context=None,capabilities_version=False):
-        from .assistant_projection import project
+        from .assistant_projection import project, still_current
         from .assistant_api import active_artifacts
         hass=self.hass;original=endpoint;self.check(connection,original)
         metadata_revision=hass.data[DOMAIN].get('assistant_metadata_revision',0)
         inventory=hass.states.get('sensor.domosenso_components')
         records=getattr(inventory,'attributes',{}).get('components') if inventory else None
         artifacts=active_artifacts(hass.data[DOMAIN].get('assistant_artifacts',{}),records)
-        endpoint=project(original,artifacts,lambda eid:connection.user.permissions.check_entity(eid,POLICY_READ),original.get('display',{}).get('locale','en'))
+        permitted=lambda eid:connection.user.permissions.check_entity(eid,POLICY_READ)
+        language=original.get('display',{}).get('locale','en')
+        source_get=hass.data[DOMAIN].get('assistant_state_get',hass.states.get)
+        endpoint=project(original,artifacts,permitted,language,source_get)
+        def check_projection():
+            inventory=hass.states.get('sensor.domosenso_components')
+            records=getattr(inventory,'attributes',{}).get('components') if inventory else None
+            current=active_artifacts(hass.data[DOMAIN].get('assistant_artifacts',{}),records)
+            if not still_current(endpoint,original,current,permitted,language,source_get):raise ValueError('Resolved sources changed during request')
         self.check(connection,endpoint,original)
         base=self.display_snapshot(hass,connection,endpoint);sources=endpoint.get('studio',{});now=dt_util.utcnow()
+        if endpoint.get('air'):
+            from .semantics import assess
+            for item,source in zip(base['air'],endpoint['air']):
+                sample=source_get(source['entity'])
+                if sample:item['unit']=sample.attributes.get('unit_of_measurement','')
+                if source.get('policy'):item['policy']=source['policy']
+            base['assessment']=assess(base['air']) if endpoint.get('semantic_version')==1 else base['assessment']
+            for item in base['air']:item.pop('policy',None)
         def state(eid):
             if not eid:return None
             if not connection.user.permissions.check_entity(eid,POLICY_READ):raise ValueError('Source not permitted')
@@ -217,6 +233,7 @@ class Data:
         results=await asyncio.gather(self.cached((uid,eid,generation,'forecast'),600,forecast),self.cached((uid,eid,generation,'calendar',offset,now.date().isoformat()),30,calendar),self.cached((uid,eid,generation,'history'),300,history),self.cached((uid,eid,generation,'art',media.get('title') if media else ''),30,artwork))
         self.check(connection,endpoint,original)
         if hass.data[DOMAIN].get('assistant_metadata_revision',0)!=metadata_revision:raise ValueError('Metadata changed during request')
+        check_projection()
         weather=base['weather']
         if weather:weather={**weather,'forecast':results[0] or [],'pressure':measure(sources.get('pressure'),'Pressure')}
         if media:media['artwork']=results[3]
@@ -233,6 +250,7 @@ class Data:
             photo=await self.cached((uid,eid,generation,'photo',exposure,index,count),60,loadphoto)
         self.check(connection,endpoint,original)
         if hass.data[DOMAIN].get('assistant_metadata_revision',0)!=metadata_revision:raise ValueError('Metadata changed during request')
+        check_projection()
         for sensor in plant_history:
             if sensor:state(sensor)
         return {'version':2,'config':config,'mode':active,'screen':screen,'connected':True,'fetchedAt':dt_util.utcnow().isoformat(),'timezone':hass.config.time_zone,'capabilities':list(set(capabilities)),'off':mode=='off','wind':plain(sources.get('wind')) in ('on','true'),'readOnly':False,'data':{'weather':weather,'rooms':rooms,'air':base['air'],'assessment':base['assessment'],'status':statuses,'plants':plants,'media':media,'mains':mains,'history':history_data,'calendar':results[1],'photos':photo,**controls,'runtime':{'shieldUntil':(now+timedelta(seconds=shield)).isoformat() if shield else None,'approachEnabled':plain(runtime.get('approach'))=='on' if runtime.get('approach') else None}}}

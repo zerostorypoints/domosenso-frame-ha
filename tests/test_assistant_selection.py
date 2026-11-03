@@ -86,3 +86,35 @@ def test_first_dynamic_save_preserves_pre_policy_backup(tmp_path,monkeypatch):
     assert backup.read_bytes()==old
     asyncio.run(mapping.save_mappings_verified(None,value,path,executor))
     assert backup.read_bytes()==old
+
+
+def test_exclusion_also_blocks_an_old_editor_explicit_component_grant():
+    bundle,scope,ep=setup();scope['exclude']=['plant.fern']
+    ep['assistant']['component_sources']=[{'component':'plants','subject':'plant.fern','fields':copy.deepcopy(bundle['bindings']['subjects'][0]['fields'])}]
+    assert bindings.selected_subjects(ep,{'plants':bundle})==[]
+
+
+def test_catalog_reports_unsupported_scope_and_selected_counts():
+    bundle,scope,ep=setup()
+    report=bindings.catalog({'plants':bundle},{},[{'id':'plants'}],ep,{})['components'][0]
+    assert report['coverage']=={'discovered':1,'selected':1,'excluded':0,'incomplete':1,'scopeChanged':False}
+    bundle['definitions']['capabilities'][0]['revision']=2
+    report=bindings.catalog({'plants':bundle},{},[{'id':'plants'}],ep,{})['components'][0]
+    assert report['coverage']['selected']==0 and report['coverage']['scopeChanged']
+
+
+def test_new_room_temperature_and_humidity_follow_same_scope():
+    import types
+    definitions=[{'id':cap,'revision':1,'operation':'read','required_facts':[{'role':role}],'optional_facts':[]} for cap,role in [('climate-air.temperature','temperature'),('climate-air.humidity','humidity')]]
+    room=lambda name:{'key':name,'kind':'room','label':name,'fields':{role:{'entity':f'sensor.{name}_{role}'} for role in ('temperature','humidity')}}
+    bundle={'definitions':{'capabilities':definitions},'bindings':{'subjects':[room('study')],'policies':[]}}
+    scope={'component':'climate-air','kind':'room','roles':['temperature','humidity'],'capabilities':{c['id']:1 for c in definitions},'exclude':[]}
+    endpoint={'id':'frame','assistant':{'subjects':[],'component_sources':[],'source_policy':{'version':1,'scopes':[scope]}}}
+    def get(eid):return types.SimpleNamespace(state='21' if eid.endswith('temperature') else '45',attributes={'unit_of_measurement':'°C' if eid.endswith('temperature') else '%'},last_reported=NOW)
+    r=runtime.ExtendedRuntime('0123456789abcdef0123456789abcdef',get,lambda _:True,lambda:NOW,verified_source=lambda _:True,artifacts={'climate-air':bundle})
+    bundle['bindings']['subjects'].append(room('bedroom'))
+    temp=r.query(endpoint,'climate-air.temperature',1,'temperature.v1',{})
+    humidity=r.query(endpoint,'climate-air.humidity',1,'environment.v1',{})
+    assert len(temp['facts'])==len(humidity['facts'])==2
+    scope['exclude']=['bedroom']
+    assert len(r.query(endpoint,'climate-air.temperature',1,'temperature.v1',{})['facts'])==1

@@ -9,7 +9,8 @@ from homeassistant.core import callback
 from .studio import Library,Conflict,validate_config
 from .studio_runtime import Runtime,installed_durations
 from .studio_data import Data
-from .studio_mappings import Mappings,save_mappings_verified,merge_patch
+from .studio_mappings import Mappings,save_mappings_verified,merge_patch,readiness
+from .assistant_projection import project
 from .timers import validate_targets
 from .studio_actions import validate_action,perform,takeover
 from .layouts import save_verified
@@ -42,6 +43,8 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
         verified,errors,records=assistant_context()
         result['timerDevices']=[{'deviceId':d['deviceId'],'name':d['name'], 'endpoint':d['endpoint']} for d in state['grants'].devices() if d['state']=='approved']
         result['candidates']['timers']=[r for r in result['candidates'].get('timers',[]) if state.get('timer_source_verified',lambda _:False)(r['entity'])]
+        endpoint=state['endpoints'][result['endpoint']]
+        result['widgets']=readiness(project(endpoint,verified,lambda _:True,endpoint.get('display',{}).get('locale','en')),hass.states)
         result['assistantCatalog']=assistant_catalog(verified,errors,records,state['endpoints'][result['endpoint']],hass.states)
         return result
     await lib.initialize({id:state['layouts'].get(id) for id,e in state['endpoints'].items() if 'display' in e},installed)

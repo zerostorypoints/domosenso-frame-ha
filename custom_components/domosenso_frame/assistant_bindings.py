@@ -46,6 +46,8 @@ def selected_subjects(endpoint, artifacts, capability=None):
         subject = next((row for row in bundle['bindings']['subjects'] if row['key'] == chosen['subject']), None)
         if not subject:
             continue
+        if any(scope['component']==chosen['component'] and scope['kind']==subject['kind'] and subject['key'] in scope['exclude'] for scope in endpoint.get('assistant',{}).get('source_policy',{}).get('scopes',[])):
+            continue
         fields = {role: copy.deepcopy(field) for role, field in subject['fields'].items()
                   if chosen['fields'].get(role) == source_identity(field)}
         if fields:
@@ -89,4 +91,14 @@ def catalog(artifacts, errors, inventory, endpoint, states):
     from .assistant_selection import proposals
     for row in result:
         row['scopes']=proposals(row['id'],artifacts[row['id']]) if row['id'] in artifacts else []
+    resolved=selected_subjects(endpoint,artifacts)
+    for row in result:
+        scopes=[s for s in endpoint.get('assistant',{}).get('source_policy',{}).get('scopes',[]) if s['component']==row['id']]
+        chosen={s['key'] for s in resolved if s['_component']==row['id']}
+        changed=False
+        for scope in scopes:
+            proposal=next((p for p in row['scopes'] if p['kind']==scope['kind']),{})
+            if not set(scope['roles'])<=set(proposal.get('roles',[])) or any(proposal.get('capabilities',{}).get(c)!=v for c,v in scope['capabilities'].items()):changed=True
+        row['coverage']={'discovered':len(row['subjects']),'selected':len(chosen),'excluded':len({k for s in scopes for k in s['exclude']}),
+                         'incomplete':sum(bool(s['missing']) for s in row['subjects'] if s['key'] in chosen),'scopeChanged':changed}
     return {'components':result}

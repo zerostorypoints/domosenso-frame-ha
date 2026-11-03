@@ -86,3 +86,13 @@ test('turning future mode off keeps currently selected subjects as exact referen
  el.result.assistantCatalog.components[0].scopes=[scope];el.render();el.querySelector('[data-future]').click();
  el.querySelector('[data-future]').click();assert.deepEqual(el.draft.source_policy.scopes,[]);assert.deepEqual(el.draft.component_sources,[selection]);el.remove();
 });
+test('disabling future mode freezes approved roles and keeps independent exact grants',async()=>{
+ const {el}=await panel();const scope={component:'plants',kind:'plant',roles:['moisture'],capabilities:{'plants.watering_need':1},exclude:[]};
+ const component=el.result.assistantCatalog.components[0];component.scopes=[scope];component.subjects[0].selection.fields.last_watered={entity:'sensor.last_watered'};
+ el.draft.source_policy={version:1,scopes:[structuredClone(scope)]};el.render();el.querySelector('[data-future]').click();
+ assert.deepEqual(el.draft.component_sources,[{component:'plants',subject:'plant.fern',fields:{moisture:{entity:'sensor.moisture'}}}]);
+ el.draft.source_policy={version:1,scopes:[structuredClone(scope)]};
+ el.draft.component_sources=[{component:'plants',subject:'plant.fern',fields:{plant:{entity:'plant.fern'}}}];
+ el.render();el.querySelector('[data-future]').click();
+ assert.deepEqual(el.draft.component_sources[0].fields,{plant:{entity:'plant.fern'},moisture:{entity:'sensor.moisture'}});el.remove();
+});

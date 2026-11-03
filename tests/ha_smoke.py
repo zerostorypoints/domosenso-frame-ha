@@ -147,12 +147,22 @@ async def main():
             assert three and len(three['facts'])==3, 'same-version automatic refresh failed'
             shown=await request(35,'studio_display',capabilitiesVersion=1)
             assert shown and len(shown['data']['plants'])==3, 'display/assistant source parity failed'
-            Path(hass.config.path('assistant-future-acceptance.json')).write_text(json.dumps({'answer':three,'displayPlants':shown['data']['plants']},ensure_ascii=False))
+            future_caps=await request(36,'assistant_capabilities',endpoint='frame',version=1,supported=[{'queryType':'plant-query.v1','answerType':'plant-watering.v1'}])
+            Path(hass.config.path('assistant-future-acceptance.json')).write_text(json.dumps({'capabilities':future_caps,'answers':{'plants.watering_need':three},'displayPlants':shown['data']['plants']},ensure_ascii=False))
+            # Vanilla mapping uses the same entities once, without an installed inventory.
+            offered=await request(37,'studio_mappings',version=1,endpoint='frame')
+            manual={'key':'manual_fern','kind':'plant','label':{'en':'Fern','pl':'Paproć'},'fields':copy.deepcopy(plant['fields']),'limits':copy.deepcopy(plant['limits'])}
+            assistant={'subjects':[manual],'sensitive':False,'component_sources':[],'source_policy':{'version':1,'scopes':[]}}
+            saved=await request(38,'studio_mappings_update',version=1,endpoint='frame',revision=offered['revision'],patch={'assistant':assistant})
+            assert saved, 'vanilla mapping save failed'
+            manual_answer=await request(39,'assistant_query',endpoint='frame',version=1,capability='plants.watering_need',revision=1,answerType='plant-watering.v1',arguments={})
+            manual_display=await request(40,'studio_display',capabilitiesVersion=1)
+            assert manual_answer and len(manual_answer['facts'])==1 and manual_display and len(manual_display['data']['plants'])==1, 'vanilla parity failed'
         state['grants'].revoke(pending['deviceId'])
         await request(6,'assistant_query',endpoint='frame',version=1,capability='climate-air.temperature',revision=1,answerType='temperature.v1',arguments={})
         assert 6 in connection.errors and 6 not in connection.results
         summary={'setup':'ok','studio':'ok','profile':'v1','pairing':'signed-and-approved','capabilities':'ok','query':'qualified unknown source','directTemperature':'ok','ruuviIndex':'ok','revocation':'denied'}
-        if compiler_fixtures:summary.update({'compilerArtifacts':'loaded','floorplan':'explanation-only','plants':'compiled-selected-and-queried','metadataRemoval':'disabled','futurePlants':'2-to-3-auto-refreshed-and-displayed'})
+        if compiler_fixtures:summary.update({'compilerArtifacts':'loaded','floorplan':'explanation-only','plants':'compiled-selected-and-queried','metadataRemoval':'disabled','futurePlants':'2-to-3-auto-refreshed-and-displayed','vanilla':'manual-source-shared-with-display'})
         print(json.dumps(summary))
     finally:
         await hass.async_stop(force=True)
