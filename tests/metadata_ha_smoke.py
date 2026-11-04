@@ -122,6 +122,10 @@ async def scenario(root):
             projected = await request('assistant_metadata', **(discover | {'supported': legacy_supported}))
             projected_caps = {cap['id']: cap for cap in projected['capabilities']}
             assert {'climate-air.temperature', 'ramka.current_time'} <= projected_caps.keys()
+            assert 'assistantMetadataVersions' not in (await request('profile'))['endpoints'][0]
+            state['assistant_metadata_verified_endpoints'] = {'frame'}
+            assert (await request('profile'))['endpoints'][0]['assistantMetadataVersions'] == [2]
+            state['assistant_metadata_verified_endpoints'].clear()
             projected_answers = {}
             for identifier in ('climate-air.temperature', 'ramka.current_time'):
                 projected_answers[identifier] = await request('assistant_metadata_query', endpoint='frame', version=2,

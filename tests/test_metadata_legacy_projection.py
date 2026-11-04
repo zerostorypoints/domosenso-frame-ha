@@ -53,3 +53,19 @@ def test_projection_counts_plants_and_preserves_report_evidence_and_status():
     assert output['facts'][0]['evidence'][0]['sourceRef'] == 'opaque-src'
     assert any(cell['kind'] == 'measurement' and cell['value'] == 22 for cell in output['facts'][0]['cells'])
     assert all(cell['kind'] != 'measurement' for cell in output['facts'][1]['cells'])
+
+
+def test_weather_forecast_and_presence_keep_typed_details_from_legacy_fixtures():
+    import json
+    from pathlib import Path
+    fixtures = Path(__file__).parent / 'fixtures'
+    forecast = json.loads((fixtures / 'assistant-extended.json').read_text())['weather.forecast']
+    result = projection.project(forecast['answer'], forecast['capability'])
+    assert any(cell['kind']=='measurement' and cell['value']==15 for fact in result['facts'] for cell in fact['cells'])
+    package = json.loads((fixtures / 'assistant-package.json').read_text())
+    capabilities = {entry['id']: entry for entry in package['capabilities']['capabilities']}
+    presence = projection.project(package['answers']['bermuda-presence.observations'],
+                                  capabilities['bermuda-presence.observations'])
+    assert any(cell['kind']=='boolean' and cell['value'] is True for cell in presence['facts'][0]['cells'])
+    audio = projection.project(package['answers']['audio-sensor.level'], capabilities['audio-sensor.level'])
+    assert any(cell['kind']=='measurement' and cell['unit']=='dBFS' for cell in audio['facts'][0]['cells'])

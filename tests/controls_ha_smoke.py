@@ -119,6 +119,13 @@ async def main():
                 controls={'enabled':True,'grants':grants,'mappings':[]}
                 m=await request(adm,'studio_mappings_update',version=1,endpoint='frame',revision=m['revision'],patch={'assistant':{'controls':controls}})
                 assert (await negotiate(reader,deviceId=reader_device))['targets']==[],'READ is not CONTROL'
+                binding={'actionType':'action-binding.v2','resultType':'action-binding.v2'}
+                projected=await negotiate(supported=supported+[binding])
+                assert projected['targets'] and projected['intent']['version']==2
+                assert {row['id'] for row in projected['intent']['targets']}=={row['id'] for row in projected['targets']}
+                assert (await negotiate(reader,deviceId=reader_device,supported=supported+[binding]))['intent']['targets']==[]
+                assert 'intent' not in await negotiate()
+
                 assert (await request(tablet,'control_targets',expect_error=True,**(common|{'deviceId':'wrong','supported':supported})))['code']=='frame_denied'
                 counter=0
                 async def command(cap,scope='subject',label=None,choice=None,prepare=None):

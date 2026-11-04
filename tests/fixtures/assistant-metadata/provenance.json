@@ -6,5 +6,6 @@
     "frame-assistant-metadata.schema.json": "f7795c5638586b0fa0ca3a2a9b48919b589d96810247a7fd9a7846bd8a8fbd7b"
   },
   "haVersion": "2026.9.2",
-  "wireSha256": "ed44e858b343866ab8c28e1c62ae390ae1447d21bd05165af884a3e09f055607"
+  "wireSha256": "ed44e858b343866ab8c28e1c62ae390ae1447d21bd05165af884a3e09f055607",
+  "projectedWireSha256": "e00ea52a645461fd48be1664b6f331c8f74f653c683ca269997bc30defb957a8"
 }

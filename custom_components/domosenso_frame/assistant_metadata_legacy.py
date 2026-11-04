@@ -65,6 +65,9 @@ TERMS = {
     'playing': ('Playing', 'Odtwarzanie'), 'paused': ('Paused', 'Wstrzymane'),
     'active': ('Active', 'Aktywny'), 'idle': ('Idle', 'Nieaktywny'),
     'extended': ('Extended', 'Wysunięta'), 'retracted': ('Retracted', 'Wsunięta'),
+    'sunny': ('Sunny', 'Słonecznie'), 'rainy': ('Rain', 'Deszcz'),
+    'cloudy': ('Cloudy', 'Pochmurno'), 'snowy': ('Snow', 'Śnieg'),
+    'low': ('Low', 'Niska wartość'), 'normal': ('Normal', 'W normie'),
     'unknown': ('Unknown', 'Nieznane'), 'reported': ('Reported by HA', 'Zgłoszone przez HA'),
     'forecast': ('Forecast', 'Prognoza'), 'estimated': ('Estimate', 'Szacunek'),
     'last_known': ('Last known', 'Ostatnio znane'), 'unavailable': ('Unavailable', 'Niedostępne'),
@@ -92,6 +95,8 @@ TEXT_FIELDS = {
     'alertCode': ('Alert', 'Alarm'), 'assessment': ('Assessment', 'Ocena'),
     'wateringAssessment': ('Watering', 'Podlewanie'), 'metadataStatus': ('Metadata', 'Metadane'),
     'positionBasis': ('Position evidence', 'Podstawa pozycji'), 'liveStatus': ('Live status', 'Bieżący stan'),
+    'physicalDisplayState': ('Physical display state', 'Stan fizyczny ekranu'),
+    'basis': ('Basis', 'Podstawa'), 'weighting': ('Weighting', 'Ważenie'),
     'observationKind': ('Observation type', 'Rodzaj obserwacji'), 'verification': ('Verification', 'Weryfikacja'),
 }
 NUMERIC_FIELDS = {
@@ -99,16 +104,34 @@ NUMERIC_FIELDS = {
     'volumePercent': ('Volume', 'Głośność', '%'), 'archiveCount': ('Archives', 'Archiwa', ''),
     'newestAgeHours': ('Age of newest archive', 'Wiek ostatniego archiwum', 'h'),
     'sizeMB': ('Size', 'Rozmiar', 'MB'), 'sizeMiB': ('Size', 'Rozmiar', 'MiB'),
-    'remainingSeconds': ('Remaining', 'Pozostało', 's'), 'durationSeconds': ('Duration', 'Czas trwania', 's'),
+    'checkDays': ('Assessment window', 'Okres oceny', 'd'),
 }
 TIME_FIELDS = {
     'instant': ('Time', 'Godzina'), 'start': ('Start', 'Początek'), 'end': ('End', 'Koniec'),
     'eventAt': ('Detected at', 'Wykryto o'), 'lastHeardAt': ('Last report', 'Ostatnie zgłoszenie'),
-    'deadline': ('Deadline', 'Termin'), 'forecastAt': ('Forecast for', 'Prognoza na'),
+    'deadline': ('Deadline', 'Termin'), 'validFrom': ('Forecast for', 'Prognoza na'),
+    'observedAt': ('Observed at', 'Czas obserwacji'),
 }
-UNITS = frozenset({'°C','°F','%','ppm','µg/m³','μg/m³','ug/m3','µg/m3','μg/m3','dB','dB(A)','W','V','lx',
+UNITS = frozenset({'°C','°F','%','ppm','µg/m³','μg/m³','ug/m3','µg/m3','μg/m3','dB','dB(A)','dBFS','W','V','lx',
                    'index','d','h','s','MB','MiB','hPa','mbar','mm','in','km/h','m/s','mph','°','µS/cm','mS/cm'})
 
+
+BOOL_FIELDS = {
+    'detected': ('Detected', 'Wykryto'), 'calibrated': ('Calibrated', 'Skalibrowany'),
+    'online': ('Online', 'Dostępny'), 'allDay': ('All day', 'Cały dzień'),
+    'ongoing': ('Ongoing', 'W toku'), 'radarWakeEnabled': ('Radar wake', 'Wybudzanie radarem'),
+}
+DURATIONS = {
+    'remainingSeconds': ('Remaining', 'Pozostało'), 'durationSeconds': ('Duration', 'Czas trwania'),
+    'integrationWindowSeconds': ('Integration window', 'Okno pomiaru'),
+}
+METRICS = {
+    'temperature': ('Temperature', 'Temperatura'), 'precipitation': ('Precipitation', 'Opady'),
+    'precipitation_probability': ('Rain probability', 'Prawdopodobieństwo opadów'),
+    'pressure': ('Pressure', 'Ciśnienie'), 'humidity': ('Humidity', 'Wilgotność'),
+    'wind_speed': ('Wind speed', 'Prędkość wiatru'), 'wind_gust': ('Wind gust', 'Porywy wiatru'),
+    'moisture': ('Soil moisture', 'Wilgotność podłoża'), 'brightness': ('Light level', 'Natężenie światła'),
+}
 
 def local(en, pl):
     return {'en': en, 'pl': pl}
@@ -240,7 +263,8 @@ def _cells(fact):
     for key, (en, pl) in TIME_FIELDS.items():
         value = fact.get(key)
         if isinstance(value, str) and (time := _time(value)):
-            cells.append({'kind': time[0], 'label': local(en, pl), 'value': time[1]})
+            cells.append({'kind': 'clock' if key == 'instant' and time[0] == 'timestamp' else time[0],
+                          'label': local(en, pl), 'value': time[1]})
     if fact.get('status') in (None, 'usable'):
         for key, (en, pl, unit) in {'value': ('Measurement', 'Pomiar', fact.get('unit')),
                                     'level': ('Level', 'Poziom', fact.get('unit')), **NUMERIC_FIELDS}.items():
@@ -250,6 +274,21 @@ def _cells(fact):
                               **({'unit': unit} if unit else {})})
     else:
         cells.append({'kind': 'text', 'label': local('Reading', 'Odczyt'), 'value': local(*TERMS['unavailable'])})
+    for key, (en, pl) in BOOL_FIELDS.items():
+        if type(value := fact.get(key)) is bool:
+            cells.append({'kind':'boolean','label':local(en, pl),'value':value})
+    for key, (en, pl) in DURATIONS.items():
+        if type(value := fact.get(key)) is int and 0 <= value <= 86400:
+            cells.append({'kind':'duration','label':local(en, pl),'value':value})
+    for measurement in fact.get('measurements', [])[:8]:
+        unit, value = measurement.get('unit'), measurement.get('value')
+        if unit in UNITS and type(value) in (int,float) and math.isfinite(value):
+            heading = METRICS.get(measurement.get('metric'), ('Measurement', 'Pomiar'))
+            cells.append({'kind':'measurement','label':local(*heading),'value':value,'unit':unit})
+    for problem in fact.get('problems', [])[:6]:
+        label = METRICS.get(problem.get('metric'), ('Assessment', 'Ocena'))
+        if problem.get('status') in TERMS:
+            cells.append({'kind':'text','label':local(*label),'value':local(*TERMS[problem['status']])})
     return cells[:16]
 
 
@@ -259,19 +298,30 @@ def project(result, capability):
     evidence = {item['id']: item for item in result['evidence'] if _identifier(item.get('id'))}
     subjects = {item['id']: item['label'] for item in capability['subjects']}
     rows = []
-    for row in result['facts'][:64]:
+    total_rows = 0
+    for row in result['facts']:
         label = row.get('label') or row.get('name') or subjects.get(row.get('subjectId'))
         refs = [evidence[ref] for ref in row.get('evidenceRefs', []) if ref in evidence][:8]
-        rows.append({'id': row['id'], 'label': _localized(label, 'Home Assistant'), 'cells': _cells(row),
-                     'evidence': [{key: item.get(key) for key in ('sourceRef','observedAt','reportedAt','freshness','freshnessBasis')}
-                                  for item in refs if _identifier(item.get('sourceRef'))]})
+        proof = [{key: item.get(key) for key in ('sourceRef','observedAt','reportedAt','freshness','freshnessBasis')}
+                 for item in refs if _identifier(item.get('sourceRef'))]
+        periods = row.get('periods') or ()
+        total_rows += max(1, len(periods))
+        if len(rows) >= 64:
+            continue
+        if periods:
+            for index, period in enumerate(periods[:64-len(rows)]):
+                rows.append({'id': f"{row['id']}.{index}", 'label': _localized(label, 'Home Assistant'),
+                             'cells': _cells(period), 'evidence': proof})
+        else:
+            rows.append({'id': row['id'], 'label': _localized(label, 'Home Assistant'), 'cells': _cells(row),
+                         'evidence': proof})
     coverage = result['coverage']
     unit = 'plant' if capability['id'] in PLANT else coverage.get('unit', 'subject')
     reasons = [local(*LIMITATIONS.get(key, ('The data has limitations.', 'Dane mają ograniczenia.')))
                for key in dict.fromkeys(result['limitations'])][:8]
-    if len(result['facts']) > len(rows) and local(*LIMITATIONS['truncated']) not in reasons:
+    if total_rows > len(rows) and local(*LIMITATIONS['truncated']) not in reasons:
         reasons.append(local(*LIMITATIONS['truncated']))
     return {'facts': rows, 'coverage': {'eligible': coverage['eligible'], 'evaluated': coverage['evaluated'],
-                                         'omitted': len(result['facts']) - len(rows), 'unit': unit},
+                                         'omitted': total_rows - len(rows), 'unit': unit},
             'assessment': {'status': status, 'headline': local(*TERMS[code]) if code in TERMS else
                            _localized(capability['title'], 'Home Assistant'), 'limitations': reasons}}

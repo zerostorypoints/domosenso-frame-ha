@@ -172,6 +172,8 @@ def profile(hass,connection,msg):
     state=hass.data[DOMAIN]
     connection.send_result(msg['id'],{'protocol':1,**({'assistantVersion':1} if state.get('assistant_ready') else {}),**({'controlsVersion':1} if state.get('controls') else {}),'installationId':state['saved']['installationId'],'name':hass.config.location_name,'timezone':hass.config.time_zone,'demo':state['settings']['demo'],
       'endpoints':[{'id':e['id'],'name':e['name'],'dashboard':e['dashboard'],'rooms':[s['label'] for s in e['temperature']],
+       **({'assistantMetadataVersions':[2]} if state.get('assistant_metadata_read_enabled') and state.get('assistant_metadata_legacy_enabled') and e['id'] in state.get('assistant_metadata_verified_endpoints', ()) else {}),
+       **({'assistantActionMetadataVersions':[2]} if e['id'] in state.get('assistant_action_metadata_verified_endpoints', ()) else {}),
        **({'capabilitiesVersion':1} if state.get('studio_ready') else {}),'semanticVersion':e.get('semantic_version',0),'displayVersion':1 if 'display' in e else 0,'studioVersion':2 if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else 0,
        'topics':[t for t,key in [('temperature','temperature'),('air','air'),('calendar','calendars')] if e[key]]} for e in state['endpoints'].values()]})
 

@@ -1,8 +1,8 @@
 {
   "catalog": {
     "version": 2,
-    "catalogRevision": "en.579621dca3b8503fcdad197b167f9c3dde1d0c30f1e67a96b433291813d9056b",
-    "asOf": "2026-11-04T11:20:45.212211+00:00",
+    "catalogRevision": "en.b81348e772c31655e7a253e37abf307aa4bdf5d36ae8c197144b6279a68a942b",
+    "asOf": "2026-11-04T11:29:15.292272+00:00",
     "capabilities": [
       {
         "id": "climate-air.temperature",
@@ -50,7 +50,7 @@
         },
         "selectors": [
           {
-            "id": "d010b860-d32d-5633-af05-7fffc6502d38",
+            "id": "1cf4b5f6-de7e-536d-b952-d3163ff0c0bf",
             "type": "area",
             "label": {
               "en": "Studio"
@@ -112,14 +112,14 @@
   "answers": {
     "climate-air.temperature": {
       "version": 2,
-      "catalogRevision": "en.579621dca3b8503fcdad197b167f9c3dde1d0c30f1e67a96b433291813d9056b",
+      "catalogRevision": "en.b81348e772c31655e7a253e37abf307aa4bdf5d36ae8c197144b6279a68a942b",
       "capability": "climate-air.temperature",
       "revision": 1,
-      "asOf": "2026-11-04T11:20:45.212525+00:00",
+      "asOf": "2026-11-04T11:29:15.292798+00:00",
       "timezone": "Europe/Zurich",
       "facts": [
         {
-          "id": "5d02a029-66b5-5dd8-9b25-c0521c524b11",
+          "id": "6e1ea341-8a48-546c-b23d-911d5df683d9",
           "label": {
             "en": "Studio"
           },
@@ -136,9 +136,9 @@
           ],
           "evidence": [
             {
-              "sourceRef": "43a3cee7-1c16-55ac-a403-545fa289cd1a",
+              "sourceRef": "d93e3386-fdba-58ef-b031-914340c75c2a",
               "observedAt": null,
-              "reportedAt": "2026-11-04T11:20:45.204392+00:00",
+              "reportedAt": "2026-11-04T11:29:15.283859+00:00",
               "freshness": "current",
               "freshnessBasis": "source_report"
             }
@@ -162,30 +162,30 @@
     },
     "ramka.current_time": {
       "version": 2,
-      "catalogRevision": "en.579621dca3b8503fcdad197b167f9c3dde1d0c30f1e67a96b433291813d9056b",
+      "catalogRevision": "en.b81348e772c31655e7a253e37abf307aa4bdf5d36ae8c197144b6279a68a942b",
       "capability": "ramka.current_time",
       "revision": 1,
-      "asOf": "2026-11-04T11:20:45.213001+00:00",
+      "asOf": "2026-11-04T11:29:15.293325+00:00",
       "timezone": "Europe/Zurich",
       "facts": [
         {
-          "id": "2a8f6a18-4e3b-584e-ba80-600a690bfbba",
+          "id": "83451236-f85a-5528-b9d9-a368bab8298a",
           "label": {
             "en": "Fictional frame"
           },
           "cells": [
             {
-              "kind": "timestamp",
+              "kind": "clock",
               "label": {
                 "en": "Time",
                 "pl": "Godzina"
               },
-              "value": "2026-11-04T11:20:45.213001+00:00"
+              "value": "2026-11-04T11:29:15.293325+00:00"
             }
           ],
           "evidence": [
             {
-              "sourceRef": "2a8f6a18-4e3b-584e-ba80-600a690bfbba",
+              "sourceRef": "83451236-f85a-5528-b9d9-a368bab8298a",
               "observedAt": null,
               "reportedAt": null,
               "freshness": "current",
