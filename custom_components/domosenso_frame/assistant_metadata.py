@@ -93,6 +93,17 @@ def active_metadata(artifacts, records):
     return verified
 
 
+@lru_cache(maxsize=256)
+def _entity_pattern(source_id):
+    return re.compile(re.sub(r'<[^>]+>', '[a-z0-9_]+', re.escape(source_id)))
+
+
+def _declared_field(cap, subject):
+    source = cap['source']
+    field = subject['fields'].get(source['role'])
+    return field if field and _entity_pattern(source['id']).fullmatch(field['entity']) else None
+
+
 def resolve(artifacts, grants, permitted, registry_id, secret, scope):
     """Use an explicit capability revision, source binding, registry identity and HA READ."""
     if not isinstance(grants, list) or len(grants) > 512:
@@ -105,11 +116,12 @@ def resolve(artifacts, grants, permitted, registry_id, secret, scope):
             rows = {}
             for grant in grants:
                 if (not isinstance(grant, dict) or grant.get('capability') != cap_id
-                        or type(grant.get('revision')) is not int or grant['revision'] != cap['revision']):
+                        or type(grant.get('revision')) is not int or grant['revision'] != cap['revision']
+                        or grant.get('role') != cap['source']['role']):
                     continue
                 subject_key = grant.get('subject')
                 subject = subjects.get(subject_key) if isinstance(subject_key, str) else None
-                field = subject['fields'].get(cap['source']['role']) if subject else None
+                field = _declared_field(cap, subject) if subject else None
                 if not field or field != {k: grant[k] for k in ('entity', 'attribute') if k in grant}:
                     continue
                 eid = field['entity']
@@ -199,3 +211,47 @@ def evaluate(cap, rows, arguments, state_get, verified, now):
     return {'facts': facts[:64], 'coverage': {'eligible': len(rows), 'evaluated': len(current),
                                             'omitted': max(0, len(facts) - 64)},
             'assessment': {'status': status, 'summary': summary}}
+
+
+def source_candidates(artifacts, registry_id):
+    """Admin-only proposals for exact existing sources. Discovery never grants access."""
+    candidates = []
+    for bundle in artifacts.values():
+        for cap in bundle['definitions']:
+            for subject in bundle['bindings']['subjects']:
+                field = _declared_field(cap, subject)
+                identity = registry_id(field['entity']) if field else None
+                if identity:
+                    candidates.append({
+                        'title': cap['title'], 'label': subject['label'],
+                        'grant': {'capability': cap['id'], 'revision': cap['revision'],
+                                  'subject': subject['key'], 'role': cap['source']['role'], 'registryId': identity, **field},
+                    })
+                if len(candidates) > 512:
+                    return []
+    return candidates
+
+
+def validate_sources(rows):
+    required = {'capability', 'revision', 'subject', 'entity', 'role', 'registryId'}
+    if not isinstance(rows, list) or len(rows) > 512:
+        raise ValueError('Invalid metadata read selections')
+    seen = set()
+    for row in rows:
+        if (not isinstance(row, dict) or not required <= set(row) or set(row) - required - {'attribute'}
+                or type(row['revision']) is not int or not 1 <= row['revision'] <= 65535
+                or any(not isinstance(row[key], str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,160}', row[key])
+                       for key in set(row) - {'revision'})
+                or not re.fullmatch(r'[a-z_]+\.[a-z0-9_]+', row['entity'])):
+            raise ValueError('Invalid metadata read selection')
+        identity = (row['capability'], row['subject'])
+        if identity in seen:
+            raise ValueError('Duplicate metadata read selection')
+        seen.add(identity)
+
+
+def validate_source_change(previous, proposed, candidates):
+    validate_sources(proposed)
+    allowed = {encoded(item['grant']) for item in candidates} | {encoded(item) for item in previous}
+    if any(encoded(item) not in allowed for item in proposed):
+        raise ValueError('Metadata sources changed. Reload before granting access.')

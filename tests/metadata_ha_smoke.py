@@ -62,7 +62,7 @@ async def scenario(root):
             hass.states.async_set(entity, 20 + index, {'unit_of_measurement': '°C', 'restored': index == 1})
             for cap in bundle['definitions']:
                 grants.append({'capability': cap['id'], 'revision': cap['revision'], 'subject': subject['key'],
-                               'entity': entity, 'registryId': entry.id})
+                               'entity': entity, 'role': cap['source']['role'], 'registryId': entry.id})
         await hass.async_block_till_done()
         state['endpoints']['frame']['assistant'] = {'metadata_sources': grants}
         user = await hass.auth.async_create_user('Fictional tablet', group_ids=['system-users'])
@@ -114,6 +114,21 @@ async def scenario(root):
             state['endpoints']['frame']['assistant']['metadata_sources'] = []
             await request('assistant_metadata_query', error='frame_metadata_stale', arguments={}, **fields)
             assert (await request('assistant_metadata', **discover))['capabilities'] == []
+            state['assistant_metadata_legacy_enabled'] = True
+            state['endpoints']['frame']['temperature'] = [
+                {'entity': 'sensor.workbench_north', 'label': 'Studio', 'roomKey': 'studio'}
+            ]
+            legacy_supported = SUPPORTED + ['records.v1', 'options.v1']
+            projected = await request('assistant_metadata', **(discover | {'supported': legacy_supported}))
+            projected_caps = {cap['id']: cap for cap in projected['capabilities']}
+            assert {'climate-air.temperature', 'ramka.current_time'} <= projected_caps.keys()
+            projected_answers = {}
+            for identifier in ('climate-air.temperature', 'ramka.current_time'):
+                projected_answers[identifier] = await request('assistant_metadata_query', endpoint='frame', version=2,
+                    catalogRevision=projected['catalogRevision'], capability=identifier, revision=1, arguments={})
+                assert projected_answers[identifier]['assessment']['status'] == 'complete'
+            if dest := os.environ.get('FRAME_METADATA_PROJECTED_OUT'):
+                Path(dest).write_text(json.dumps({'catalog': projected, 'answers': projected_answers}, ensure_ascii=False, indent=2) + '\n')
             print('PASS HA 2026.9.2 paired WebSocket, gated v2, two metadata capabilities, partial facts and revocation')
     finally:
         await hass.async_stop()

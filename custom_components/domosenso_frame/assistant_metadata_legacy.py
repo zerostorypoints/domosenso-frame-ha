@@ -1,0 +1,277 @@
+"""Translate authorized v1 evaluators to generic v2 rows during migration."""
+
+from datetime import date, datetime
+import math
+import re
+
+from .assistant_contract import ROUTES
+
+SUPPORTED_PAIRS = tuple({'queryType': query, 'answerType': answer}
+                        for query, answer in sorted(set(ROUTES.values()) | {
+                            ('component-query.v1', 'component-description.v1')}))
+
+# Existing v1 argument contracts are owned by the bridge. No Android dispatch table is needed.
+AREA = frozenset({
+    'climate-air.temperature', 'climate-air.humidity', 'climate-air.status', 'climate-air.air_readings',
+    'climate-air.air_assessment', 'plants.watering_need', 'plants.status', 'media.now_playing', 'media.status',
+    'lights.status', 'bermuda-presence.observations', 'awnings.status', 'audio-sensor.level',
+})
+PLANT = frozenset({'plants.watering_need', 'plants.status', 'plants.last_watered', 'plants.water_in'})
+SUBJECT = PLANT | frozenset({
+    'media.now_playing', 'media.status', 'media.mains', 'lights.status', 'calendar.agenda', 'weather.current',
+    'weather.forecast', 'bermuda-presence.observations', 'awnings.status', 'awnings.wind', 'audio-sensor.level',
+    'backup.status', 'ramka.status', 'timers.status',
+})
+REQUIRE_SUBJECT = frozenset({'plants.last_watered', 'plants.water_in'})
+
+ANCHORS = {
+    'climate-air.temperature': ('temperature|how warm|how cold', 'temperatura|temperaturę|ile stopni'),
+    'climate-air.humidity': ('humidity', 'wilgotność powietrza|wilgotność'),
+    'climate-air.status': ('humidity alert|temperature difference', 'alarm wilgotności|różnica temperatur'),
+    'climate-air.air_readings': ('air readings|co2|particulates|voc|nox|pm2', 'pomiary powietrza|co2|pył|voc|nox|pm2'),
+    'climate-air.air_assessment': ('air quality|is the air good', 'jakość powietrza|jakie mamy powietrze'),
+    'plants.watering_need': ('need water|need watering|water the plants', 'podlać|wymaga podlewania|potrzebuje wody|potrzebują wody'),
+    'plants.status': ('plant condition|plants reporting problems|plants', 'stan roślin|rośliny|roślinom'),
+    'plants.last_watered': ('last watered|watering detected|was watered', 'ostatnio podlano|wykryto podlewanie|była podlewana'),
+    'plants.water_in': ('when might|how soon|when will this plant', 'za ile|kiedy może wymagać|kiedy będzie potrzebować'),
+    'media.now_playing': ('now playing|what is playing|what music|song', 'co gra|co leci|jaki utwór|odtwarzana muzyka'),
+    'media.status': ('player status|playback status', 'stan odtwarzacza|status odtwarzacza'),
+    'media.mains': ('player power|player voltage|power does the player', 'moc odtwarzacza|napięcie odtwarzacza|moc zgłasza odtwarzacz'),
+    'lights.status': ('lights|lamps', 'światła|światło|lampy'),
+    'calendar.agenda': ('calendar|agenda|appointments|events', 'kalendarz|kalendarzu|wydarzenia|spotkania'),
+    'weather.current': ('weather now|current weather|weather', 'pogoda teraz|obecna pogoda|pogoda'),
+    'weather.forecast': ('forecast|will it rain|weather tomorrow', 'prognoza|będzie padać|pogoda jutro'),
+    'bermuda-presence.observations': ('presence|presence sensor', 'obecność|czujnik obecności'),
+    'awnings.status': ('awning status|awning|awnings', 'markizy|markiza|stan markizy'),
+    'awnings.wind': ('awning wind|wind alarm', 'alarm wiatrowy|alarm wiatru|markizie grozi wiatr'),
+    'audio-sensor.level': ('sound level|noise level', 'poziom dźwięku|poziom hałasu|jaki poziom'),
+    'backup.status': ('backup|backups', 'kopia zapasowa|kopie zapasowe|backup'),
+    'ramka.status': ('frame mode|frame status|mode is the frame', 'tryb ramki|stan ramki|status ramki'),
+    'ramka.current_time': ('what time|current time|time is it', 'która godzina|jaka jest godzina|która jest'),
+    'timers.status': ('timer status|time left|time remaining|how much time', 'stan minutnika|ile zostało|ile czasu|pozostało'),
+}
+TERMS = {
+    'measured': ('HA reports measurements', 'HA podaje pomiary'),
+    'good': ('Good under the configured policy', 'Dobra według ustawionej reguły'),
+    'raised': ('Elevated under the configured policy', 'Podwyższona według ustawionej reguły'),
+    'high': ('High under the configured policy', 'Wysoka według ustawionej reguły'),
+    'needs_water': ('Watering needed', 'Potrzebne podlewanie'),
+    'within_band': ('Within the configured range', 'W ustawionym zakresie'),
+    'too_wet': ('Excess moisture', 'Zbyt duża wilgotność'),
+    'no_reported_alarm': ('No alarm reported by HA', 'HA nie zgłasza alarmu'),
+    'wind_alarm': ('Wind alarm reported', 'Zgłoszono alarm wiatru'),
+    'none': ('No events in the selected period', 'Brak wydarzeń w wybranym okresie'),
+    'on': ('On', 'Włączone'), 'off': ('Off', 'Wyłączone'),
+    'playing': ('Playing', 'Odtwarzanie'), 'paused': ('Paused', 'Wstrzymane'),
+    'active': ('Active', 'Aktywny'), 'idle': ('Idle', 'Nieaktywny'),
+    'extended': ('Extended', 'Wysunięta'), 'retracted': ('Retracted', 'Wsunięta'),
+    'unknown': ('Unknown', 'Nieznane'), 'reported': ('Reported by HA', 'Zgłoszone przez HA'),
+    'forecast': ('Forecast', 'Prognoza'), 'estimated': ('Estimate', 'Szacunek'),
+    'last_known': ('Last known', 'Ostatnio znane'), 'unavailable': ('Unavailable', 'Niedostępne'),
+}
+LIMITATIONS = {
+    'stale': ('Some readings are stale.', 'Część odczytów jest nieaktualna.'),
+    'missing_source': ('Some data is missing.', 'Brakuje części danych.'),
+    'unknown_freshness': ('Freshness has not been verified.', 'Aktualność danych jest niepotwierdzona.'),
+    'invalid_unit': ('A measurement unit is unsupported.', 'Jednostka pomiaru jest nieobsługiwana.'),
+    'missing_policy': ('Assessment rules are missing.', 'Brakuje reguł oceny.'),
+    'conflicting_policy': ('Assessment rules conflict.', 'Reguły oceny są sprzeczne.'),
+    'provider_sync_unknown': ('Provider synchronization time is unknown.', 'Czas synchronizacji dostawcy jest nieznany.'),
+    'reported_state_only': ('This is the state reported by HA, without physical confirmation.', 'To stan zgłoszony przez HA bez potwierdzenia fizycznego.'),
+    'history_coverage_unknown': ('History coverage is unverified.', 'Kompletność historii jest niepotwierdzona.'),
+    'provider_history_unknown': ('Provider history coverage is unknown.', 'Kompletność historii dostawcy jest nieznana.'),
+    'watering_history_unknown': ('Watering history is unknown.', 'Historia podlewania jest nieznana.'),
+    'truncated': ('The results are truncated.', 'Wyniki zostały ucięte.'),
+    'no_live_status_provider': ('Live status was not assessed.', 'Nie sprawdzono bieżącego stanu.'),
+}
+TEXT_FIELDS = {
+    'purpose': ('Description', 'Opis'), 'title': ('Title', 'Tytuł'), 'artist': ('Artist', 'Wykonawca'),
+    'album': ('Album', 'Album'), 'source': ('Source', 'Źródło'), 'condition': ('Conditions', 'Warunki'),
+    'state': ('State', 'Stan'), 'alarm': ('Alarm', 'Alarm'), 'mode': ('Mode', 'Tryb'),
+    'page': ('View', 'Widok'), 'theme': ('Theme', 'Motyw'), 'reachability': ('Reachability', 'Dostępność'),
+    'alertCode': ('Alert', 'Alarm'), 'assessment': ('Assessment', 'Ocena'),
+    'wateringAssessment': ('Watering', 'Podlewanie'), 'metadataStatus': ('Metadata', 'Metadane'),
+    'positionBasis': ('Position evidence', 'Podstawa pozycji'), 'liveStatus': ('Live status', 'Bieżący stan'),
+    'observationKind': ('Observation type', 'Rodzaj obserwacji'), 'verification': ('Verification', 'Weryfikacja'),
+}
+NUMERIC_FIELDS = {
+    'brightnessPercent': ('Brightness', 'Jasność', '%'), 'positionPercent': ('Position', 'Pozycja', '%'),
+    'volumePercent': ('Volume', 'Głośność', '%'), 'archiveCount': ('Archives', 'Archiwa', ''),
+    'newestAgeHours': ('Age of newest archive', 'Wiek ostatniego archiwum', 'h'),
+    'sizeMB': ('Size', 'Rozmiar', 'MB'), 'sizeMiB': ('Size', 'Rozmiar', 'MiB'),
+    'remainingSeconds': ('Remaining', 'Pozostało', 's'), 'durationSeconds': ('Duration', 'Czas trwania', 's'),
+}
+TIME_FIELDS = {
+    'instant': ('Time', 'Godzina'), 'start': ('Start', 'Początek'), 'end': ('End', 'Koniec'),
+    'eventAt': ('Detected at', 'Wykryto o'), 'lastHeardAt': ('Last report', 'Ostatnie zgłoszenie'),
+    'deadline': ('Deadline', 'Termin'), 'forecastAt': ('Forecast for', 'Prognoza na'),
+}
+UNITS = frozenset({'°C','°F','%','ppm','µg/m³','μg/m³','ug/m3','µg/m3','μg/m3','dB','dB(A)','W','V','lx',
+                   'index','d','h','s','MB','MiB','hPa','mbar','mm','in','km/h','m/s','mph','°','µS/cm','mS/cm'})
+
+
+def local(en, pl):
+    return {'en': en, 'pl': pl}
+
+
+def _clean(value, length=120):
+    return re.sub(r'[\x00-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069]', ' ', value).strip()[:length]
+
+
+def _localized(value, fallback, length=120):
+    if isinstance(value, str):
+        value = {'en': value}
+    safe = {lang: cleaned for lang in ('en', 'de', 'pl')
+            if isinstance(value, dict) and isinstance(item := value.get(lang), str) and (cleaned := _clean(item, length))}
+    return {'en': fallback, **safe}
+
+
+def _identifier(value):
+    return isinstance(value, str) and re.fullmatch(r'[A-Za-z0-9._-]{1,160}', value)
+
+
+OPTION_VALUES = {
+    'period': {'today': ('today', 'dzisiaj|dziś'), 'tomorrow': ('tomorrow', 'jutro'),
+               'next_7_days': ('this week|next seven days|next 7 days', 'w tym tygodniu|najbliższe siedem dni')},
+    'filter': {'on': ('on', 'włączone'), 'off': ('off', 'wyłączone'), 'unknown': ('unknown', 'nieznane')},
+    'metric': {'score': ('score', 'wskaźnik'), 'co2': ('co2|carbon dioxide', 'co2|dwutlenek węgla'),
+               'pm2_5': ('pm2 5|particulates', 'pm2 5|pył'), 'voc': ('voc', 'voc'), 'nox': ('nox', 'nox'),
+               'power': ('power|watts', 'moc|waty'), 'voltage': ('voltage|volts', 'napięcie|wolty')},
+    'nextOnly': {'yes': ('next event|next appointment', 'następne wydarzenie|następne spotkanie')},
+}
+
+
+def _options(identifier):
+    keys = {}
+    if identifier in ('calendar.agenda', 'weather.forecast'):
+        keys['period'] = tuple(OPTION_VALUES['period'])
+    if identifier == 'calendar.agenda':
+        keys['nextOnly'] = ('yes',)
+    if identifier in ('climate-air.air_readings', 'climate-air.air_assessment'):
+        keys['metric'] = ('score', 'co2', 'pm2_5', 'voc', 'nox')
+    if identifier == 'media.mains':
+        keys['metric'] = ('power', 'voltage')
+    if identifier == 'lights.status':
+        keys['filter'] = tuple(OPTION_VALUES['filter'])
+    options = [{'key': key, 'kind': 'choice', 'values': [
+        {'value': value, 'aliases': {lang: phrases.split('|') for lang, phrases in
+                                   zip(('en', 'pl'), OPTION_VALUES[key][value])}} for value in values
+    ]} for key, values in keys.items()]
+    if 'period' in keys:
+        options.append({'key': 'date', 'kind': 'date'})
+    return options
+
+
+def describe(cap):
+    identifier = cap['id']
+    pair = (cap['queryType'], cap['answerType'])
+    expected = ('component-query.v1', 'component-description.v1') if identifier.endswith('.explain') else ROUTES.get(identifier)
+    if pair != expected:
+        raise ValueError('Unsupported v1 route')
+    title = _localized(cap['title'], 'Home Assistant')
+    phrases = ANCHORS.get(identifier, (title['en'].lower(), title.get('pl', title['en']).lower()))
+    anchors = {'en': phrases[0].split('|'), 'pl': phrases[1].split('|')}
+    selectors = {}
+    for subject in cap['subjects']:
+        if identifier in AREA and _identifier(subject.get('roomId')):
+            selectors.setdefault(subject['roomId'], {'id': subject['roomId'], 'type': 'area',
+                                 'label': _localized(subject.get('roomLabel') or subject['label'], 'Area'), 'aliases': {}})
+        if identifier in SUBJECT and _identifier(subject.get('id')):
+            selectors.setdefault(subject['id'], {'id': subject['id'], 'type': 'subject',
+                                 'label': _localized(subject['label'], 'Source'), 'aliases': {}})
+    examples = {lang: [_clean(item, 240).replace('{', '').replace('}', '') for item in values[:8]
+                       if isinstance(item, str) and _clean(item)] for lang, values in cap['examples'].items()
+                if lang in ('en', 'de', 'pl') and isinstance(values, list)}
+    examples = {lang: values for lang, values in examples.items() if values}
+    return {'id': identifier, 'revision': cap['revision'], 'operation': 'read', 'availability': cap['availability'],
+            'title': title, 'description': _localized(cap['description'], title['en']),
+            'anchors': anchors, 'examples': {'en': [title['en']], **examples},
+            'arguments': sorted({row['type'] for row in selectors.values()}), 'answer': {'kind': 'records.v1'},
+            'selectors': list(selectors.values()), 'requireSubject': identifier in REQUIRE_SUBJECT,
+            'options': _options(identifier)}
+
+
+def make_arguments(cap, descriptor, values):
+    options = {row['key']: row for row in descriptor['options']}
+    if not isinstance(values, dict) or set(values) - set(descriptor['arguments']) - set(options):
+        raise ValueError('Invalid projected read arguments')
+    if descriptor['requireSubject'] and 'subject' not in values:
+        raise ValueError('Select a source')
+    if {'area', 'subject'} <= values.keys() or {'date', 'period'} <= values.keys():
+        raise ValueError('Select one scope and period')
+    arguments = {}
+    for key, value in values.items():
+        if key in descriptor['arguments']:
+            if not any(item['type'] == key and item['id'] == value for item in descriptor['selectors']):
+                raise ValueError('Unknown projected selector')
+            argument = 'roomId' if key == 'area' else 'plantId' if cap['id'] in PLANT else 'subjectId'
+            arguments[argument] = value
+        elif options[key]['kind'] == 'date':
+            if not isinstance(value, str) or len(value) != 10 or date.fromisoformat(value).isoformat() != value:
+                raise ValueError('Invalid projected date')
+            arguments[key] = value
+        elif any(item['value'] == value for item in options[key]['values']):
+            arguments[key] = True if key == 'nextOnly' else value
+        else:
+            raise ValueError('Invalid projected option')
+    return arguments
+
+
+def _time(value):
+    try:
+        if len(value) == 10:
+            return ('date', date.fromisoformat(value).isoformat())
+        time = datetime.fromisoformat(value)
+        if time.utcoffset() is not None:
+            return ('timestamp', time.isoformat())
+    except (ValueError, TypeError):
+        pass
+    return None
+
+
+def _cells(fact):
+    cells = []
+    for key, (en, pl) in TEXT_FIELDS.items():
+        value = fact.get(key)
+        if isinstance(value, (str, dict)) and value:
+            translated = local(*TERMS[value]) if isinstance(value, str) and value in TERMS else _localized(value, '', 240)
+            if translated['en']:
+                cells.append({'kind': 'text', 'label': local(en, pl), 'value': translated})
+    for key, (en, pl) in TIME_FIELDS.items():
+        value = fact.get(key)
+        if isinstance(value, str) and (time := _time(value)):
+            cells.append({'kind': time[0], 'label': local(en, pl), 'value': time[1]})
+    if fact.get('status') in (None, 'usable'):
+        for key, (en, pl, unit) in {'value': ('Measurement', 'Pomiar', fact.get('unit')),
+                                    'level': ('Level', 'Poziom', fact.get('unit')), **NUMERIC_FIELDS}.items():
+            value = fact.get(key)
+            if type(value) in (int, float) and math.isfinite(value) and (unit == '' or unit in UNITS):
+                cells.append({'kind': 'measurement' if unit else 'number', 'label': local(en, pl), 'value': value,
+                              **({'unit': unit} if unit else {})})
+    else:
+        cells.append({'kind': 'text', 'label': local('Reading', 'Odczyt'), 'value': local(*TERMS['unavailable'])})
+    return cells[:16]
+
+
+def project(result, capability):
+    status = {'ready': 'complete', 'partial': 'partial', 'unavailable': 'unknown'}[result['availability']]
+    code = result['summary']['status'] if status != 'unknown' else 'unavailable'
+    evidence = {item['id']: item for item in result['evidence'] if _identifier(item.get('id'))}
+    subjects = {item['id']: item['label'] for item in capability['subjects']}
+    rows = []
+    for row in result['facts'][:64]:
+        label = row.get('label') or row.get('name') or subjects.get(row.get('subjectId'))
+        refs = [evidence[ref] for ref in row.get('evidenceRefs', []) if ref in evidence][:8]
+        rows.append({'id': row['id'], 'label': _localized(label, 'Home Assistant'), 'cells': _cells(row),
+                     'evidence': [{key: item.get(key) for key in ('sourceRef','observedAt','reportedAt','freshness','freshnessBasis')}
+                                  for item in refs if _identifier(item.get('sourceRef'))]})
+    coverage = result['coverage']
+    unit = 'plant' if capability['id'] in PLANT else coverage.get('unit', 'subject')
+    reasons = [local(*LIMITATIONS.get(key, ('The data has limitations.', 'Dane mają ograniczenia.')))
+               for key in dict.fromkeys(result['limitations'])][:8]
+    if len(result['facts']) > len(rows) and local(*LIMITATIONS['truncated']) not in reasons:
+        reasons.append(local(*LIMITATIONS['truncated']))
+    return {'facts': rows, 'coverage': {'eligible': coverage['eligible'], 'evaluated': coverage['evaluated'],
+                                         'omitted': len(result['facts']) - len(rows), 'unit': unit},
+            'assessment': {'status': status, 'headline': local(*TERMS[code]) if code in TERMS else
+                           _localized(capability['title'], 'Home Assistant'), 'limitations': reasons}}

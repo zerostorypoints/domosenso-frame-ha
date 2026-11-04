@@ -144,3 +144,14 @@ old bindings. Metadata revisions invalidate display caches. Asynchronous answers
 sources and permissions before delivery. The framework fixture smoke proves two plants becoming
 three via a same-version file update, a real 30-second refresh, and matching display/answer counts.
 This is isolated HA acceptance, not a claim of deployment to a physical tablet.
+
+### Frame assistant metadata v2 development
+
+The bridge loads private catalog sidecars from `domosenso/assistant-metadata/`. An installed
+inventory match permits a sidecar to be considered. The Assistant sources panel proposes exact
+capability, role, entity and entity-registry selections for administrator review. Existing grants
+keep their prior scope and no write permission is created by metadata. Retain the
+`domosenso_frame_mappings.pre-assistant-metadata-v2` backup for downgrade after using these fields.
+
+The pinned HA smoke exercises paired discovery and both read forms under test-only enablement.
+The production profile remains gated while compatibility and field parity are being verified.

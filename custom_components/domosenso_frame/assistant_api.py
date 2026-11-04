@@ -236,6 +236,7 @@ async def setup(hass, grant, register_command, policy_read):
                 'assistant_metadata_artifacts':metadata,'assistant_metadata_errors':metadata_errors}
     def publish_metadata(snapshot):
         if hass.data.get(DOMAIN) is not state:return
+        changed=state.get('assistant_metadata_artifacts',{})!=snapshot.get('assistant_metadata_artifacts',{})
         state.update({key:snapshot.get(key,{}) for key in ('control_artifacts','control_errors','assistant_runtime_artifacts','assistant_runtime_errors',
             'assistant_action_artifacts','assistant_action_errors','assistant_artifacts','assistant_errors',
             'assistant_metadata_artifacts','assistant_metadata_errors')})
@@ -246,6 +247,9 @@ async def setup(hass, grant, register_command, policy_read):
         state['assistant_errors']={**state['assistant_errors'],**mismatches}
         state['assistant_metadata_revision']=state.get('assistant_metadata_revision',0)+1
         if data:=state.get('studio_data'):data.cache.clear()
+        if changed and hasattr(hass,'bus'):
+            for endpoint_id in state.get('endpoints',{}):
+                hass.bus.async_fire(DOMAIN+'_event',{'endpoint':endpoint_id,'kind':'assistant_metadata'})
     refresh=MetadataRefresh(lambda:fingerprint(hass.config.path()),load_metadata,publish_metadata,hass.async_add_executor_job)
     state['assistant_refresh_close']=refresh.close
     async def reload_metadata():await refresh.check(force=True)

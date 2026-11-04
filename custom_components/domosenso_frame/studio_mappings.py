@@ -10,6 +10,7 @@ import uuid
 from .layouts import Conflict,save_verified
 from .assistant_selection import validate_policy, validate_change
 from .assistant_bindings import validate_selections, validate_new_selections
+from .assistant_metadata import validate_sources, validate_source_change
 from .timers import validate_mapping as validate_timers, eligible as timer_eligible
 from .radar import validate as validate_radar, eligible as radar_eligible
 from .control_profiles import validate_mapping as validate_controls
@@ -95,14 +96,16 @@ def merge_patch(endpoint,patch,states=None):
         if key=='timers':
             out['timers']=validate_timers(value,states,endpoint)
         elif key=='assistant':
-            shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive','component_sources','source_policy','controls'])
+            shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive','component_sources','source_policy','controls','metadata_sources'])
             if 'controls' in value:validate_controls(value['controls'])
             # Controls-only changes preserve every existing read grant. Legacy read
             # saves preserve independent actuator consent.
-            if set(value)=={'controls'}:value={**copy.deepcopy(out.get('assistant',{'subjects':[],'sensitive':False})),**value}
+            if set(value) in ({'controls'}, {'metadata_sources'}):value={**copy.deepcopy(out.get('assistant',{'subjects':[],'sensitive':False})),**value}
             elif 'controls' not in value and 'controls' in out.get('assistant',{}):value={**value,'controls':copy.deepcopy(out['assistant']['controls'])}
             if 'source_policy' in value:validate_policy(value['source_policy'])
             elif 'source_policy' in out.get('assistant',{}):value={**value,'source_policy':copy.deepcopy(out['assistant']['source_policy'])}
+            if 'metadata_sources' in value:validate_sources(value['metadata_sources'])
+            elif 'metadata_sources' in out.get('assistant',{}):value={**value,'metadata_sources':copy.deepcopy(out['assistant']['metadata_sources'])}
             validate_selections(value.get('component_sources',[]))
             if not {'subjects','sensitive'}<=set(value) or type(value['sensitive']) is not bool or not isinstance(value['subjects'],list) or len(value['subjects'])>100:raise ValueError('Invalid assistant mapping')
             if any(k in value and type(value[k]) is not bool for k in ('calendar_sensitive','presence_sensitive')):raise ValueError('Invalid sensitive exposure')
@@ -193,8 +196,9 @@ def merge_patch(endpoint,patch,states=None):
     return out
 
 class Mappings:
-    def __init__(self,endpoints,saved,persist,assistant_artifacts=None):
+    def __init__(self,endpoints,saved,persist,assistant_artifacts=None,metadata_candidates=None):
         self.assistant_artifacts=assistant_artifacts
+        self.metadata_candidates=metadata_candidates
         self.endpoints=endpoints;self.defaults=copy.deepcopy(endpoints);self.saved=copy.deepcopy(saved);self.persist=persist;self.lock=asyncio.Lock()
         if not isinstance(saved,dict):raise ValueError('Invalid saved mappings')
         for eid,entry in saved.items():
@@ -211,6 +215,10 @@ class Mappings:
             authorize()
             if revision!=self.get(eid,states)['revision']:raise Conflict('Source mappings changed. Reload mappings; your template draft is retained.')
             def validate_component_change():
+                proposed=patch.get('assistant',{})
+                if 'metadata_sources' in proposed:
+                    previous=self.endpoints[eid].get('assistant',{}).get('metadata_sources',[])
+                    validate_source_change(previous,proposed['metadata_sources'],self.metadata_candidates() if self.metadata_candidates else [])
                 if self.assistant_artifacts is not None and 'assistant' in patch:
                     if 'source_policy' in patch['assistant']:validate_change(self.endpoints[eid].get('assistant',{}).get('source_policy'),patch['assistant']['source_policy'],self.assistant_artifacts())
                     validate_new_selections(self.endpoints[eid].get('assistant',{}).get('component_sources',[]), patch['assistant'].get('component_sources',[]), self.assistant_artifacts())
@@ -239,19 +247,20 @@ async def save_mappings_verified(store,value,path,executor):
     """Retain the previous envelope even when Store writes bytes but verification fails."""
     def backup():return path.read_bytes() if path.exists() else None
     previous=await executor(backup)
-    if any('source_policy' in entry.get('patch',{}).get('assistant',{}) for entry in value.values()):
-        def retain_pre_policy():
-            destination=path.with_name(path.name+'.pre-source-policy-v1')
-            if destination.is_symlink():raise OSError('Invalid source policy backup')
-            try:fd=os.open(destination,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
-            except FileExistsError:return
-            try:
-                with os.fdopen(fd,'wb') as file:
-                    file.write(previous if previous is not None else json.dumps({'version':1,'minor_version':1,'key':'domosenso_frame_mappings','data':{}}).encode())
-                    file.flush();os.fsync(file.fileno())
-            except Exception:
-                destination.unlink(missing_ok=True);raise
-        await executor(retain_pre_policy)
+    def retain_before(suffix):
+        destination=path.with_name(path.name+suffix)
+        if destination.is_symlink():raise OSError('Invalid mapping backup')
+        try:fd=os.open(destination,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        except FileExistsError:return
+        try:
+            with os.fdopen(fd,'wb') as file:
+                file.write(previous if previous is not None else json.dumps({'version':1,'minor_version':1,'key':'domosenso_frame_mappings','data':{}}).encode())
+                file.flush();os.fsync(file.fileno())
+        except Exception:
+            destination.unlink(missing_ok=True);raise
+    for field,suffix in (('source_policy','.pre-source-policy-v1'),('metadata_sources','.pre-assistant-metadata-v2')):
+        if any(field in entry.get('patch',{}).get('assistant',{}) for entry in value.values()):
+            await executor(retain_before,suffix)
     try:await save_verified(store,value,path,'domosenso_frame_mappings',executor)
     except Exception:
         def restore():

@@ -129,3 +129,20 @@ test('changed wind binding is reviewed separately while keeping safe direction g
  el.querySelector('[data-save]').click();await tick();
  assert.deepEqual(calls.find(x=>x.type.endsWith('_update')).patch.assistant.controls.grants,[updated]);el.remove();
 });
+
+test('v2 metadata read consent saves only after review and keeps legacy selections',async()=>{
+ const {el,calls}=await panel('pl');
+ const grant={capability:'workbench.station_temperature',revision:1,subject:'north-probe',role:'temperature',entity:'sensor.workbench_north',registryId:'fixture'};
+ el.result.metadataCatalog=[{title:{en:'Temperature',pl:'Temperatura'},label:{en:'Probe',pl:'Sonda'},grant}];
+ el.render();
+ el.querySelector('[data-metadata-source]').click();
+ assert.equal(calls.filter(call=>call.type.endsWith('_update')).length,0);
+ el.querySelector('[data-save]').click();
+ await tick();
+ assert.deepEqual(calls.find(call=>call.type.endsWith('_update')).patch.assistant,{...original,metadata_sources:[grant]});
+ el.result.metadataCatalog=[];
+ el.render();
+ el.querySelector('[data-remove-metadata-source]').click();
+ assert.deepEqual(el.draft.metadata_sources,[]);
+ el.remove();
+});

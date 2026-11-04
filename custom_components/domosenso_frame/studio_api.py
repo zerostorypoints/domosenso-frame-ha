@@ -38,7 +38,12 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
         records=getattr(inventory,'attributes',{}).get('components',[]) if inventory else []
         verified,errors=inventory_diagnostics(state.get('assistant_artifacts',{}),records)
         return verified,{**state.get('assistant_errors',{}),**errors},records
-    mappings=state['studio_mappings']=Mappings(state['endpoints'],mapping_saved,persist_mappings,lambda:assistant_context()[0])
+    from .assistant_metadata import active_metadata, source_candidates
+    def metadata_candidates():
+        records=assistant_context()[2]
+        verified=active_metadata(state.get('assistant_metadata_artifacts',{}),records)
+        return source_candidates(verified,lambda eid:getattr(registry.async_get(eid),'id',None))
+    mappings=state['studio_mappings']=Mappings(state['endpoints'],mapping_saved,persist_mappings,lambda:assistant_context()[0],metadata_candidates)
     def with_assistant_catalog(result):
         verified,errors,records=assistant_context()
         result['timerDevices']=[{'deviceId':d['deviceId'],'name':d['name'], 'endpoint':d['endpoint']} for d in state['grants'].devices() if d['state']=='approved']
@@ -46,6 +51,7 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
         endpoint=state['endpoints'][result['endpoint']]
         result['widgets']=readiness(project(endpoint,verified,lambda _:True,endpoint.get('display',{}).get('locale','en')),hass.states)
         if engine:=state.get('controls'):result['controlCatalog']=engine.profiles.catalog(endpoint)
+        if candidates:=metadata_candidates():result['metadataCatalog']=candidates
         result['assistantCatalog']=assistant_catalog(verified,errors,records,state['endpoints'][result['endpoint']],hass.states)
         return result
     await lib.initialize({id:state['layouts'].get(id) for id,e in state['endpoints'].items() if 'display' in e},installed)
@@ -88,6 +94,8 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
                     validate_targets(effective,state['grants'].records,previous=state['endpoints'])
             result=await mappings.update(msg['endpoint'],msg['revision'],msg['patch'],h.states,authorize_mapping)
             data.cache.clear();runtime.reset(msg['endpoint'])
+            if state.get('assistant_metadata_read_enabled'):
+                h.bus.async_fire('domosenso_frame_event',{'endpoint':msg['endpoint'],'kind':'assistant_metadata'})
             if 'timers' in msg['patch'] and state.get('timers'):await state['timers'].mapping_changed()
             if 'radar' in msg['patch'] and state.get('radar'):state['radar'].reset(msg['endpoint'])
             admin(c);c.send_result(msg['id'],with_assistant_catalog(result))

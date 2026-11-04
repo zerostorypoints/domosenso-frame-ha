@@ -37,7 +37,7 @@ def env():
                                         last_reported=NOW - timedelta(seconds=index * 301))
         for definition in bundle['definitions']:
             grants.append({'capability': definition['id'], 'revision': 1, 'subject': subject['key'],
-                           'entity': eid, 'registryId': f'fixture-{eid}'})
+                           'entity': eid, 'role': 'temperature', 'registryId': f'fixture-{eid}'})
     endpoint = {'id': ENDPOINT, 'assistant': {'metadata_sources': grants}}
     permissions = set(readings)
     entries = {eid: f'fixture-{eid}' for eid in readings}
@@ -128,3 +128,46 @@ def test_refresh_detects_the_private_directory(tmp_path):
     directory.mkdir(parents=True)
     (directory / 'workbench.yaml').write_text('invalid: fixture\n')
     assert fingerprint(tmp_path) != before
+
+
+def test_metadata_grants_are_exact_and_independent_of_legacy_saves(env):
+    _, _, _, endpoint, _, entries, bundle = env
+    mappings = importlib.import_module(pkg.__name__ + '.studio_mappings')
+    grants = endpoint['assistant']['metadata_sources']
+    candidates = metadata.source_candidates({'workbench': bundle}, entries.get)
+    assert {metadata.encoded(item['grant']) for item in candidates} == {metadata.encoded(item) for item in grants}
+    metadata.validate_source_change([], grants, candidates)
+    with pytest.raises(ValueError):
+        metadata.validate_source_change([], [grants[0] | {'registryId': 'replacement'}], candidates)
+    metadata.validate_source_change(grants, grants, [])
+    metadata.validate_source_change(grants, [], [])
+    valid_endpoint = endpoint | {'temperature': [], 'air': [], 'calendars': []}
+    old = {'subjects': [], 'sensitive': False}
+    updated = mappings.merge_patch(valid_endpoint, {'assistant': old})
+    assert updated['assistant']['metadata_sources'] == grants
+    removed = mappings.merge_patch(updated, {'assistant': {'metadata_sources': []}})
+    assert removed['assistant']['metadata_sources'] == []
+    assert removed['assistant']['subjects'] == []
+
+
+def test_source_change_cannot_persist_a_new_grant_when_metadata_changes(env):
+    import asyncio
+    _, _, _, endpoint, _, entries, bundle = env
+    mappings = importlib.import_module(pkg.__name__ + '.studio_mappings')
+    endpoint = endpoint | {'temperature': [], 'air': [], 'calendars': [], 'display': {},
+                           'assistant': {'subjects': [], 'sensitive': False}}
+    candidates = metadata.source_candidates({'workbench': bundle}, entries.get)
+    state = {ENDPOINT: endpoint}
+    stored = []
+
+    async def persist(data):
+        stored.append(data)
+        candidates.clear()
+
+    mappings = mappings.Mappings(state, {}, persist, metadata_candidates=lambda: candidates)
+    before = mappings.get(ENDPOINT, {})['revision']
+    grant = env[3]['assistant']['metadata_sources'][0]
+    with pytest.raises(ValueError):
+        asyncio.run(mappings.update(ENDPOINT, before, {'assistant': {'metadata_sources': [grant]}}, {}, lambda: None))
+    assert state[ENDPOINT] == endpoint
+    assert stored[-1] == {}

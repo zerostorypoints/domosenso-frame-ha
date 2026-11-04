@@ -300,8 +300,8 @@ def subscribe(hass,connection,msg):
         except ValueError:return
         if event.data.get('endpoint')!=current['endpoint']:return
         if event.data.get('radar') and not can_read(endpoint):return
-        if event.data.get('kind')=='timers':
-            connection.send_event(msg['id'],{'kind':'timers'});return
+        if event.data.get('kind') in ('timers','assistant_metadata'):
+            connection.send_event(msg['id'],{'kind':event.data['kind']});return
         payload={'kind':'screen','action':event.data['action']}
         if event.data.get('radar'):
             if endpoint.get('radar'):

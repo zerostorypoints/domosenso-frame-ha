@@ -107,6 +107,34 @@ class AssistantPanel extends HTMLElement {
   for(const grant of current.grants){const row=text('div',grant.source+' ');row.append(this.button(say('Remove control grant','Usuń zgodę na sterowanie'),()=>{this.controlsDraft().grants=this.controlsDraft().grants.filter(g=>g!==grant);this.render();}));section.append(row);}
   root.append(section);
  }
+ renderMetadataSources(root){
+  const rows=this.result?.metadataCatalog||[],selected=this.draft?.metadata_sources||[];
+  if(!rows.length&&!selected.length)return;
+  const say=(en,pl)=>this.language==='pl'?pl:en;
+  const matches=(a,b)=>a.capability===b.capability&&a.subject===b.subject;
+  const exact=(a,b)=>matches(a,b)&&a.revision===b.revision&&a.role===b.role&&a.entity===b.entity&&a.attribute===b.attribute&&a.registryId===b.registryId;
+  const section=document.createElement('fieldset');
+  section.append(text('legend',say('Frame metadata reads','Odczyty Frame z metadanych')));
+  for(const {title,label,grant} of rows){
+   const description=text('label',this.label(title)+' · '+this.label(label)+' · '+grant.entity);
+   const box=document.createElement('input');box.type='checkbox';box.dataset.metadataSource='';box.disabled=this.busy;
+   box.checked=selected.some(item=>exact(item,grant));
+   box.onchange=()=>{
+    this.draft.metadata_sources=selected.filter(item=>!matches(item,grant));
+    if(box.checked)this.draft.metadata_sources.push(copy(grant));
+    this.notice='';this.render();
+   };
+   description.prepend(box);const row=document.createElement('div');row.append(description);section.append(row);
+  }
+  for(const grant of selected.filter(item=>!rows.some(row=>exact(item,row.grant)))){
+   const row=text('div',grant.capability+' · '+grant.subject+' ');
+   const remove=this.button(say('Remove unavailable read grant','Usuń nieaktualną zgodę na odczyt'),()=>{
+    this.draft.metadata_sources=selected.filter(item=>!exact(item,grant));this.render();
+   });
+   remove.dataset.removeMetadataSource='';remove.disabled=this.busy;row.append(remove);section.append(row);
+  }
+  root.append(section);
+ }
  render(){if(!this._hass)return;const t=words[this.language||'en'];this.style.cssText=(this.style.display?'display:'+this.style.display+';':'')+'padding:24px;max-width:900px;font:16px system-ui;line-height:1.5;color:var(--primary-text-color)';const root=document.createElement('section');root.append(text('h1',t.title),text('p',t.intro));
  const controls=document.createElement('div');controls.style.cssText='display:flex;gap:12px;flex-wrap:wrap;align-items:center';
  const selector=document.createElement('select');selector.setAttribute('aria-label',t.frame);selector.disabled=this.busy;for(const frame of this.endpoints||[]){const option=text('option',frame.name);option.value=frame.id;option.selected=frame.id===this.endpoint;selector.append(option);}selector.onchange=()=>void this.load(selector.value);controls.append(selector);
@@ -134,6 +162,7 @@ class AssistantPanel extends HTMLElement {
  }
  for(const scope of this.draft?.source_policy?.scopes||[]){const row=text('div',scope.component+' · '+scope.kind+' ');row.append(this.button(t.scopeRemove,()=>{this.draft.source_policy.scopes=this.draft.source_policy.scopes.filter(s=>s!==scope);this.render();}));root.append(row);}
  if(this.draft?.component_sources?.length){root.append(text('h2',t.stale));for(const selected of this.draft.component_sources){const row=text('div',selected.component+' · '+selected.subject+' ');const remove=this.button(t.remove,()=>this.selectSource(selected,false));remove.dataset.remove='';row.append(remove);root.append(row);}}
+ this.renderMetadataSources(root);
  this.renderControls(root);
  if(this.result){const save=this.button(t.save,()=>void this.save());save.dataset.save='';save.disabled=this.busy||JSON.stringify(this.draft)===JSON.stringify(this.result.mappings.assistant);root.append(save,this.button(t.reload,()=>void this.load(this.endpoint)));}
  for(const control of root.querySelectorAll('button,select'))control.style.cssText='font:inherit;padding:10px 16px;margin:6px;border:1px solid #888;border-radius:8px;min-height:44px;max-width:100%;color:inherit;background:var(--card-background-color,#fff);cursor:pointer';this.replaceChildren(root);
