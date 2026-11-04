@@ -210,6 +210,7 @@ async def setup(hass, grant, register_command, policy_read):
     from homeassistant.core import callback
 
     state = hass.data[DOMAIN]
+    from . import assistant_metadata, assistant_metadata_api
     from homeassistant.helpers import entity_registry as er
     registry = er.async_get(hass)
     def source_verified(eid):
@@ -228,13 +229,16 @@ async def setup(hass, grant, register_command, policy_read):
         commands,command_errors=load_actions(hass.config.path())
         controls,control_errors=load_controls(hass.config.path())
         loaded,errors=load_directory(hass.config.path())
+        metadata,metadata_errors=assistant_metadata.load_metadata(hass.config.path())
         return {'control_artifacts':controls,'control_errors':control_errors,'assistant_runtime_artifacts':runtime,'assistant_runtime_errors':runtime_errors,
                 'assistant_action_artifacts':commands,'assistant_action_errors':command_errors,
-                'assistant_artifacts':loaded,'assistant_errors':errors}
+                'assistant_artifacts':loaded,'assistant_errors':errors,
+                'assistant_metadata_artifacts':metadata,'assistant_metadata_errors':metadata_errors}
     def publish_metadata(snapshot):
         if hass.data.get(DOMAIN) is not state:return
         state.update({key:snapshot.get(key,{}) for key in ('control_artifacts','control_errors','assistant_runtime_artifacts','assistant_runtime_errors',
-            'assistant_action_artifacts','assistant_action_errors','assistant_artifacts','assistant_errors')})
+            'assistant_action_artifacts','assistant_action_errors','assistant_artifacts','assistant_errors',
+            'assistant_metadata_artifacts','assistant_metadata_errors')})
         inventory=hass.states.get('sensor.domosenso_components') if hasattr(hass,'states') else None
         records=getattr(inventory,'attributes',{}).get('components') if inventory else None
         verified,mismatches=inventory_diagnostics(state['assistant_artifacts'],records)
@@ -275,5 +279,6 @@ async def setup(hass, grant, register_command, policy_read):
             c.send_error(msg['id'], 'frame_denied', 'Administrator access required')
             return
         c.send_result(msg['id'], {'loaded': len(state['assistant_artifacts']), 'errors': state['assistant_errors']})
+    assistant_metadata_api.setup(hass, grant, register_command, policy_read)
     for handler in (cap, ask, reload):
         register_command(hass, handler)

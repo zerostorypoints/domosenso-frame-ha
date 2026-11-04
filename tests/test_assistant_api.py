@@ -69,7 +69,7 @@ def test_setup_registers_routes_loads_metadata_and_admin_reload(tmp_path, monkey
     hass = types.SimpleNamespace(data={'domosenso_frame': state}, config=types.SimpleNamespace(path=lambda: str(tmp_path)), async_add_executor_job=executor)
     registered = []
     asyncio.run(api.setup(hass, lambda *_: None, lambda h, f: registered.append(f), 'read'))
-    assert {f.__name__ for f in registered} == {'cap', 'ask', 'reload'}
+    assert {f.__name__ for f in registered} == {'cap', 'ask', 'reload', 'discover_command', 'query_command'}
     assert state['assistant_artifacts'] == {}
     assert state['assistant_source_verified']('sensor.xiaomi_ble')
     assert state['assistant_source_verified']('sensor.esphome')
