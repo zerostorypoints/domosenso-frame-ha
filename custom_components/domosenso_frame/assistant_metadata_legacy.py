@@ -26,7 +26,7 @@ REQUIRE_SUBJECT = frozenset({'plants.last_watered', 'plants.water_in'})
 
 ANCHORS = {
     'climate-air.temperature': (
-        'temperature|how warm|how cold|degrees|warm|cold|heat',
+        'temperature|how warm|how cold|how hot|degrees|warm|cold|heat',
         'temperatura|temperaturę|temperatury|temperaturze|ile stopni|stopni|ciepło|zimno'),
     'climate-air.humidity': (
         'humidity|humid|moisture in the air',
@@ -43,34 +43,34 @@ ANCHORS = {
         'need water|need watering|water the plants|needs watering|needs water|watering|thirsty|should water|water|need a drink|due for water|time to give',
         'podlać|wymaga podlewania|wymagają podlewania|potrzebuje wody|potrzebują wody|podlewania|podlania|wody|brakuje wody|podlanie|potrzebują'),
     'plants.status': (
-        'plant condition|plants reporting problems|plants|plant|houseplants|houseplant|plant health|condition of|doing',
-        'stan roślin|rośliny|roślinom|roślina|roślin|roślinie|roślinami|kwiaty|kwiatów|dolega|stan|w jakim stanie|w jakiej kondycji|jak się ma'),
+        'plant condition|plants reporting problems|plants|plant|houseplants|houseplant|plant health|condition of|doing|wrong with|what condition',
+        'stan roślin|rośliny|roślinom|roślina|roślin|roślinie|roślinami|kwiaty|kwiatów|dolega|stan|w jakim stanie|w jakiej kondycji|jak się ma|w porządku'),
     'plants.last_watered': (
-        'last watered|watering detected|was watered|watered|last watering|previous watering|last water|watered last|register watering|detected watering|last detect watering',
-        'ostatnio podlano|wykryto podlewanie|była podlewana|podlano|podlewano|podlana|podlanie|podlewanie|podlewana|ostatnio podlana|ostatnie podlewanie|po raz ostatni|ostatniego podlewania|wykrył podlewanie'),
+        'last watered|watering detected|last had water|last record watering|was watered|watered|last watering|previous watering|last water|watered last|register watering|detected watering|last detect watering',
+        'ostatnio podlano|wykryto podlewanie|była podlewana|podlano|podlewano|podlana|podlanie|podlewanie|podlewana|ostatnio podlana|ostatnie podlewanie|po raz ostatni|ostatniego podlewania|ostatni raz|podlał'),
     'plants.water_in': (
-        'when might|how soon|when will this plant|when will|next watering|for its next watering|need watering again|until watering|wait for water|how long until|when do you expect|next water',
-        'za ile|kiedy może wymagać|kiedy będzie potrzebować|kiedy podlać|kiedy podlewać|następne podlewanie|kiedy znów|poczekać na podlewanie|ile dni|termin podlewania|bez podlewania|znów trzeba|znowu potrzebować'),
+        'when might|how soon|when will this plant|when will|how long before|another watering|next watering|for its next watering|need watering again|until watering|wait for water|how long until|when do you expect|next water',
+        'za ile|kiedy może wymagać|kiedy będzie potrzebować|kiedy podlać|kiedy podlewać|następne podlewanie|kiedy znów|poczekać na podlewanie|ile dni|termin podlewania|bez podlewania|znów trzeba|kolejnego podlewania|szacunkowy termin|znowu potrzebować'),
     'media.now_playing': ('now playing|what is playing|what music|song', 'co gra|co leci|jaki utwór|odtwarzana muzyka'),
     'media.status': ('player status|playback status', 'stan odtwarzacza|status odtwarzacza'),
     'media.mains': ('player power|player voltage|power does the player', 'moc odtwarzacza|napięcie odtwarzacza|moc zgłasza odtwarzacz'),
     'lights.status': ('lights|lamps', 'światła|światło|lampy'),
-    'calendar.agenda': ('calendar|agenda|appointments|appointment|events|event|meeting|meetings|schedule|scheduled|plans',
+    'calendar.agenda': ('calendar|agenda|appointments|appointment|events|event|meeting|meetings|schedule|scheduled|plans|booked',
                         'kalendarz|kalendarzu|kalendarza|wydarzenia|wydarzenie|wydarzeń|spotkania|spotkanie|spotkań|planie|plany|terminy|zaplanowano|zaplanowanego|zaplanowane'),
-    'weather.current': ('weather now|current weather|weather|conditions outside|conditions outdoors|outside|raining',
-                        'pogoda teraz|obecna pogoda|pogoda|pogodę|pogody|na dworze|na zewnątrz|pada|raport pogodowy|pogodowy|warunki pogodowe'),
-    'weather.forecast': ('forecast|will it rain|when will it rain|weather tomorrow|tomorrow weather|weather this week|rain|outlook|forecasted|supposed to be',
-                         'prognoza|prognozę|prognozy|będzie padać|pogoda jutro|jutro pogoda|pogody na jutro|deszcz|padać|zapowiada'),
+    'weather.current': ('weather now|current weather|weather|conditions outside|conditions outdoors|outside|raining|outdoor weather',
+                        'pogoda teraz|obecna pogoda|pogoda|pogodę|pogody|na dworze|na zewnątrz|pada|raport pogodowy|pogodowy|warunki pogodowe|za oknem'),
+    'weather.forecast': ('forecast|will it rain|when will it rain|weather tomorrow|tomorrow weather|weather this week|rain|outlook|forecasted|supposed to be|outdoor weather forecast',
+                         'prognoza|prognozę|prognozy|będzie padać|pogoda jutro|jutro pogoda|pogody na jutro|deszcz|padać|zapowiada|zapowiadają'),
     'bermuda-presence.observations': ('presence|presence sensor', 'obecność|czujnik obecności'),
     'awnings.status': ('awning status|awning|awnings', 'markizy|markiza|stan markizy'),
     'awnings.wind': ('awning wind|wind alarm', 'alarm wiatrowy|alarm wiatru|markizie grozi wiatr'),
     'audio-sensor.level': ('sound level|noise level', 'poziom dźwięku|poziom hałasu|jaki poziom'),
     'backup.status': ('backup|backups', 'kopia zapasowa|kopie zapasowe|backup'),
     'ramka.status': ('frame mode|frame status|mode is the frame', 'tryb ramki|stan ramki|status ramki'),
-    'ramka.current_time': ('what time|current time|time is it|clock|local time|hour|the time',
+    'ramka.current_time': ('what time|current time|time is it|clock|local time|hour|the time|time check',
                             'która godzina|jaka jest godzina|która jest|godzina|godzinę|godzinę mamy|zegar|zegarze|zegara|aktualny czas|bieżący czas'),
-    'timers.status': ('timer status|time left|time remaining|how much time|timer|countdown|remaining time|how long until|counting down',
-                      'stan minutnika|ile zostało|ile czasu|pozostało|minutnik|minutnika|minutniku|odliczanie|odliczania'),
+    'timers.status': ('timer status|time left|time remaining|how much time|timer|countdown|remaining time|how long until|counting down|timers',
+                      'stan minutnika|ile zostało|ile czasu|pozostało|minutnik|minutnika|minutniku|odliczanie|odliczania|ile jeszcze czasu|będzie odliczał'),
 }
 TERMS = {
     'measured': ('HA reports measurements', 'HA podaje pomiary'),
