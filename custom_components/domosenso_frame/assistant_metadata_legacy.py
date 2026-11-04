@@ -41,16 +41,16 @@ ANCHORS = {
         'jakość powietrza|jakie mamy powietrze|powietrze|powietrza|powietrzem|duszno|wietrzyć|oddycha|oddychać'),
     'plants.watering_need': (
         'need water|need watering|water the plants|needs watering|needs water|watering|thirsty|should water|water|need a drink|due for water|time to give',
-        'podlać|wymaga podlewania|wymagają podlewania|potrzebuje wody|potrzebują wody|podlewania|podlania|wody|brakuje wody'),
+        'podlać|wymaga podlewania|wymagają podlewania|potrzebuje wody|potrzebują wody|podlewania|podlania|wody|brakuje wody|podlanie|potrzebują'),
     'plants.status': (
         'plant condition|plants reporting problems|plants|plant|houseplants|houseplant|plant health|condition of|doing',
-        'stan roślin|rośliny|roślinom|roślina|roślin|roślinie|roślinami|kwiaty|kwiatów|dolega|stan|w jakim stanie|w jakiej kondycji'),
+        'stan roślin|rośliny|roślinom|roślina|roślin|roślinie|roślinami|kwiaty|kwiatów|dolega|stan|w jakim stanie|w jakiej kondycji|jak się ma'),
     'plants.last_watered': (
-        'last watered|watering detected|was watered|watered|last watering|previous watering|last water|watered last|register watering|detected watering|last water',
+        'last watered|watering detected|was watered|watered|last watering|previous watering|last water|watered last|register watering|detected watering|last detect watering',
         'ostatnio podlano|wykryto podlewanie|była podlewana|podlano|podlewano|podlana|podlanie|podlewanie|podlewana|ostatnio podlana|ostatnie podlewanie|po raz ostatni|ostatniego podlewania|wykrył podlewanie'),
     'plants.water_in': (
-        'when might|how soon|when will this plant|when will|next watering|for its next watering|need watering again|until watering|time until|wait for water|how long until|next need water',
-        'za ile|kiedy może wymagać|kiedy będzie potrzebować|kiedy podlać|kiedy podlewać|następne podlewanie|kiedy znów|poczekać na podlewanie|ile dni|termin podlewania|przewidywany termin|bez podlewania|znów trzeba'),
+        'when might|how soon|when will this plant|when will|next watering|for its next watering|need watering again|until watering|wait for water|how long until|when do you expect|next water',
+        'za ile|kiedy może wymagać|kiedy będzie potrzebować|kiedy podlać|kiedy podlewać|następne podlewanie|kiedy znów|poczekać na podlewanie|ile dni|termin podlewania|bez podlewania|znów trzeba|znowu potrzebować'),
     'media.now_playing': ('now playing|what is playing|what music|song', 'co gra|co leci|jaki utwór|odtwarzana muzyka'),
     'media.status': ('player status|playback status', 'stan odtwarzacza|status odtwarzacza'),
     'media.mains': ('player power|player voltage|power does the player', 'moc odtwarzacza|napięcie odtwarzacza|moc zgłasza odtwarzacz'),
@@ -59,8 +59,8 @@ ANCHORS = {
                         'kalendarz|kalendarzu|kalendarza|wydarzenia|wydarzenie|wydarzeń|spotkania|spotkanie|spotkań|planie|plany|terminy|zaplanowano|zaplanowanego|zaplanowane'),
     'weather.current': ('weather now|current weather|weather|conditions outside|conditions outdoors|outside|raining',
                         'pogoda teraz|obecna pogoda|pogoda|pogodę|pogody|na dworze|na zewnątrz|pada|raport pogodowy|pogodowy|warunki pogodowe'),
-    'weather.forecast': ('forecast|will it rain|when will it rain|weather tomorrow|tomorrow weather|weather this week|rain|outlook|forecasted',
-                         'prognoza|prognozę|prognozy|będzie padać|pogoda jutro|jutro pogoda|pogody na jutro|deszcz|padać'),
+    'weather.forecast': ('forecast|will it rain|when will it rain|weather tomorrow|tomorrow weather|weather this week|rain|outlook|forecasted|supposed to be',
+                         'prognoza|prognozę|prognozy|będzie padać|pogoda jutro|jutro pogoda|pogody na jutro|deszcz|padać|zapowiada'),
     'bermuda-presence.observations': ('presence|presence sensor', 'obecność|czujnik obecności'),
     'awnings.status': ('awning status|awning|awnings', 'markizy|markiza|stan markizy'),
     'awnings.wind': ('awning wind|wind alarm', 'alarm wiatrowy|alarm wiatru|markizie grozi wiatr'),
