@@ -153,5 +153,8 @@ capability, role, entity and entity-registry selections for administrator review
 keep their prior scope and no write permission is created by metadata. Retain the
 `domosenso_frame_mappings.pre-assistant-metadata-v2` backup for downgrade after using these fields.
 
-The pinned HA smoke exercises paired discovery and both read forms under test-only enablement.
+The measurement evaluator accepts entity state bindings. A declared area key must match
+the current HA entity or device area ID. Moving a source out of its declared area invalidates
+the old query snapshot. The pinned HA smoke exercises paired discovery and both read forms
+under test-only enablement, including room moves and low and high plant-moisture assessments.
 The production profile remains gated while compatibility and field parity are being verified.

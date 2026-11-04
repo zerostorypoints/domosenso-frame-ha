@@ -69,3 +69,13 @@ def test_weather_forecast_and_presence_keep_typed_details_from_legacy_fixtures()
     assert any(cell['kind']=='boolean' and cell['value'] is True for cell in presence['facts'][0]['cells'])
     audio = projection.project(package['answers']['audio-sensor.level'], capabilities['audio-sensor.level'])
     assert any(cell['kind']=='measurement' and cell['unit']=='dBFS' for cell in audio['facts'][0]['cells'])
+
+
+@pytest.mark.parametrize(('code', 'expected'), [
+    ('moisture_low', 'Watering needed'),
+    ('moisture_high', 'Excess moisture'),
+    ({'metric': 'co2', 'status': 'too_wet'}, 'Excess moisture'),
+])
+def test_legacy_problem_shapes_keep_their_assessments(code, expected):
+    cells = projection._cells({'problems': [code]})
+    assert cells[0]['value']['en'] == expected

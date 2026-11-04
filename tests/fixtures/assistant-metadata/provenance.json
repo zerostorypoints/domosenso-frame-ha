@@ -1,11 +1,12 @@
 {
-  "frameworkRevision": "7f6e2e25bee03ecb318d821b6aeb127a2316d57d",
+  "frameworkRevision": "0937551c95a198864d7162448a8f5d1bbc2d8ad4",
   "frameworkSha256": {
     "bindings.yaml": "ff3cba5b3dbc61643b631d9e73a6ab1220b4fd593c69782908608904c8f1090f",
     "workbench.yaml": "25c8685012d8d990d8fae377b0d562cb0ea2fc96b8c0c6c8baeb651bc8269234",
-    "frame-assistant-metadata.schema.json": "f7795c5638586b0fa0ca3a2a9b48919b589d96810247a7fd9a7846bd8a8fbd7b"
+    "frame-assistant-metadata.schema.json": "abbccaf5803a155f24456f2a087f524c35975e1ada4339aa3c17eff85133d59c"
   },
   "haVersion": "2026.9.2",
-  "wireSha256": "ed44e858b343866ab8c28e1c62ae390ae1447d21bd05165af884a3e09f055607",
-  "projectedWireSha256": "e00ea52a645461fd48be1664b6f331c8f74f653c683ca269997bc30defb957a8"
+  "wireSha256": "1dd91bfabe7f084764b37a99d28e73f205bfdfa32ae43ee6a252639b38f81cad",
+  "projectedWireSha256": "39e49d64cb4cf795ec3d53e1d03e56a0e01a394b802a5bd6be184bd003326ec0",
+  "actionBindingsSha256": "d6dc0ae1ebcc8ce979cf2e40287fe6edf09a1128675b94a956e824c37152e201"
 }

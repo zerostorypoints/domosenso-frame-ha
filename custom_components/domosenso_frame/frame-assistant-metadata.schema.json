@@ -93,8 +93,7 @@
           "additionalProperties": {
             "type": "object", "additionalProperties": false, "required": ["entity"],
             "properties": {
-              "entity": {"type": "string", "maxLength": 160, "pattern": "^[a-z_]+\\.[a-z0-9_]+$"},
-              "attribute": {"$ref": "#/$defs/key"}
+              "entity": {"type": "string", "maxLength": 160, "pattern": "^[a-z_]+\\.[a-z0-9_]+$"}
             }
           }
         }

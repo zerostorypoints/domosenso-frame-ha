@@ -44,7 +44,7 @@ def env():
     readings['sensor.domosenso_components'] = SimpleNamespace(attributes={'components': records})
     state = {'assistant_metadata_artifacts': {'workbench': bundle}, 'assistant_metadata_read_enabled': True,
              'assistant_metadata_key': b'demo-only-fixture', 'assistant_state_get': readings.get,
-             'assistant_registry_id': entries.get, 'assistant_source_verified': lambda eid: eid in entries}
+             'assistant_registry_id': entries.get, 'assistant_area_id': lambda _eid: 'studio', 'assistant_source_verified': lambda eid: eid in entries}
     hass = SimpleNamespace(data={'domosenso_frame': state}, states=SimpleNamespace(get=readings.get),
                            config=SimpleNamespace(time_zone='UTC'))
     connection = SimpleNamespace(user=SimpleNamespace(id='demo-user', permissions=SimpleNamespace(
@@ -171,3 +171,29 @@ def test_source_change_cannot_persist_a_new_grant_when_metadata_changes(env):
         asyncio.run(mappings.update(ENDPOINT, before, {'assistant': {'metadata_sources': [grant]}}, {}, lambda: None))
     assert state[ENDPOINT] == endpoint
     assert stored[-1] == {}
+
+
+def test_current_ha_area_controls_area_scope(env):
+    hass, _, _, _, _, _, _ = env
+    state = hass.data['domosenso_frame']
+    areas = {'sensor.workbench_north': 'studio', 'sensor.workbench_south': 'studio'}
+    state['assistant_area_id'] = areas.get
+    initial, _ = discover(env)
+    cap = next(cap for cap in initial['capabilities'] if cap['id'].endswith('station_temperature'))
+    areas['sensor.workbench_north'] = 'storage'
+    args = {'area': cap['selectors'][0]['id']}
+    assert query(env, initial, cap, args) == (None, 'frame_metadata_stale')
+    current, _ = discover(env)
+    answer, error = query(env, current, cap, args)
+    assert not error and answer['coverage']['eligible'] == 1
+    assert answer['facts'][0]['label']['en'] == 'South probe'
+
+
+def test_measurement_rejects_an_unevaluated_attribute_binding_or_grant(env):
+    _, _, _, endpoint, _, _, bundle = env
+    bundle['bindings']['subjects'][0]['fields']['temperature']['attribute'] = 'temperature'
+    with pytest.raises(ValueError):
+        metadata.validate_bundle(bundle)
+    source = endpoint['assistant']['metadata_sources'][0]
+    with pytest.raises(ValueError):
+        metadata.validate_sources([{**source, 'attribute': 'temperature'}])

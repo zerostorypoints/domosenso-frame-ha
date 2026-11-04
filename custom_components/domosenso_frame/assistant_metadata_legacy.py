@@ -206,6 +206,9 @@ def describe(cap):
                        if isinstance(item, str) and _clean(item)] for lang, values in cap['examples'].items()
                 if lang in ('en', 'de', 'pl') and isinstance(values, list)}
     examples = {lang: values for lang, values in examples.items() if values}
+    if identifier == 'ramka.current_time':
+        examples.update(en=['Which hour is it?', 'What time is it?', 'What is the time?'],
+                        pl=['Która godzina?', 'Która jest godzina?', 'Jaka jest godzina?'])
     return {'id': identifier, 'revision': cap['revision'], 'operation': 'read', 'availability': cap['availability'],
             'title': title, 'description': _localized(cap['description'], title['en']),
             'anchors': anchors, 'examples': {'en': [title['en']], **examples},
@@ -286,8 +289,10 @@ def _cells(fact):
             heading = METRICS.get(measurement.get('metric'), ('Measurement', 'Pomiar'))
             cells.append({'kind':'measurement','label':local(*heading),'value':value,'unit':unit})
     for problem in fact.get('problems', [])[:6]:
-        label = METRICS.get(problem.get('metric'), ('Assessment', 'Ocena'))
-        if problem.get('status') in TERMS:
+        if isinstance(problem, str):
+            problem = {'status': {'moisture_low': 'needs_water', 'moisture_high': 'too_wet'}.get(problem)}
+        if isinstance(problem, dict) and problem.get('status') in TERMS:
+            label = METRICS.get(problem.get('metric'), ('Assessment', 'Ocena'))
             cells.append({'kind':'text','label':local(*label),'value':local(*TERMS[problem['status']])})
     return cells[:16]
 

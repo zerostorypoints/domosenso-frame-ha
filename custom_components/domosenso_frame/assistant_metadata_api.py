@@ -38,7 +38,7 @@ def _catalog(hass, connection, endpoint_id, locale, grant, policy_read):
     scope = (id(connection), connection.user.id, endpoint_id)
     secret = state['assistant_metadata_key']
     catalog = metadata.resolve(artifacts, endpoint.get('assistant', {}).get('metadata_sources', []), permitted,
-                               state['assistant_registry_id'], secret, scope)
+                               state['assistant_registry_id'], secret, scope, state['assistant_area_id'])
     projected = {}
     legacy_scope = None
     if state.get('assistant_metadata_legacy_enabled'):

@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from homeassistant import bootstrap, loader
 from homeassistant.const import __version__
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry
+from homeassistant.helpers import area_registry, entity_registry
 import yaml
 
 
@@ -53,12 +53,17 @@ async def scenario(root):
             {**bundle['component'], 'package': '', 'installed': True}
         ]})
         registry = entity_registry.async_get(hass)
+        areas = area_registry.async_get(hass)
+        studio = areas.async_create('Studio')
+        storage = areas.async_create('Storage')
+        assert studio.id == 'studio'
         grants = []
         for index, subject in enumerate(bundle['bindings']['subjects']):
             entity = subject['fields']['temperature']['entity']
             object_id = entity.split('.')[1]
             entry = registry.async_get_or_create('sensor', 'esphome', object_id, suggested_object_id=object_id)
             assert entry.entity_id == entity
+            registry.async_update_entity(entity, area_id=studio.id)
             hass.states.async_set(entity, 20 + index, {'unit_of_measurement': '°C', 'restored': index == 1})
             for cap in bundle['definitions']:
                 grants.append({'capability': cap['id'], 'revision': cap['revision'], 'subject': subject['key'],
@@ -111,6 +116,16 @@ async def scenario(root):
                 answers[cap['id']] = answer
             if dest := os.environ.get('FRAME_METADATA_FIXTURE_OUT'):
                 Path(dest).write_text(json.dumps({'catalog': catalog, 'answers': answers}, ensure_ascii=False, indent=2) + '\n')
+            registry.async_update_entity('sensor.workbench_north', area_id=storage.id)
+            station = next(cap for cap in catalog['capabilities'] if cap['id'].endswith('station_temperature'))
+            station_query = {'endpoint': 'frame', 'version': 2, 'catalogRevision': catalog['catalogRevision'],
+                             'capability': station['id'], 'revision': station['revision'],
+                             'arguments': {'area': station['selectors'][0]['id']}}
+            await request('assistant_metadata_query', error='frame_metadata_stale', **station_query)
+            after_move = await request('assistant_metadata', **discover)
+            station_query['catalogRevision'] = after_move['catalogRevision']
+            moved = await request('assistant_metadata_query', **station_query)
+            assert [fact['label']['en'] for fact in moved['facts']] == ['South probe']
             state['endpoints']['frame']['assistant']['metadata_sources'] = []
             await request('assistant_metadata_query', error='frame_metadata_stale', arguments={}, **fields)
             assert (await request('assistant_metadata', **discover))['capabilities'] == []
@@ -133,7 +148,22 @@ async def scenario(root):
                 assert projected_answers[identifier]['assessment']['status'] == 'complete'
             if dest := os.environ.get('FRAME_METADATA_PROJECTED_OUT'):
                 Path(dest).write_text(json.dumps({'catalog': projected, 'answers': projected_answers}, ensure_ascii=False, indent=2) + '\n')
-            print('PASS HA 2026.9.2 paired WebSocket, gated v2, two metadata capabilities, partial facts and revocation')
+            moisture = registry.async_get_or_create('sensor', 'esphome', 'fixture_moisture',
+                                                    suggested_object_id='fixture_moisture').entity_id
+            state['endpoints']['frame']['assistant']['subjects'] = [{
+                'key': 'fern', 'kind': 'plant', 'label': 'Fern', 'fields': {'moisture': {'entity': moisture}},
+                'limits': {'min_moisture': 15, 'max_moisture': 60},
+            }]
+            for value, expected in [(10, 'Watering needed'), (80, 'Excess moisture')]:
+                hass.states.async_set(moisture, value, {'unit_of_measurement': '%'})
+                await hass.async_block_till_done()
+                plant_catalog = await request('assistant_metadata', **(discover | {'supported': legacy_supported}))
+                result = await request('assistant_metadata_query', endpoint='frame', version=2,
+                    catalogRevision=plant_catalog['catalogRevision'], capability='plants.watering_need',
+                    revision=1, arguments={})
+                assert any(cell['kind'] == 'text' and cell['value']['en'] == expected
+                           for fact in result['facts'] for cell in fact['cells']), result
+            print('PASS HA 2026.9.2 paired WebSocket, gated v2, metadata, area move, revocation, and plant assessments')
     finally:
         await hass.async_stop()
 

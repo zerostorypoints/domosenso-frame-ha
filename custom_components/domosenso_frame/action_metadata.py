@@ -7,10 +7,10 @@ CONTROL_VERBS = {
     'awnings.extend': 'open', 'awnings.retract': 'close', 'awnings.stop': 'stop',
 }
 NOUNS = {
-    'light': {'en': ['light', 'lights', 'lamp', 'lamps'], 'pl': ['światło', 'światła', 'świateł', 'lampa', 'lampę', 'lampy', 'lampie']},
+    'light': {'en': ['light', 'lights', 'lamp', 'lamps'], 'pl': ['światło', 'światła', 'świateł', 'lampa', 'lampę', 'lampy']},
     'cover': {'en': ['blind', 'blinds', 'curtain', 'curtains', 'shade', 'shades', 'shutter', 'shutters'],
               'pl': ['roleta', 'roletę', 'rolety', 'zasłona', 'zasłonę', 'zasłony', 'żaluzja', 'żaluzje', 'żaluzji']},
-    'awning': {'en': ['awning', 'awnings'], 'pl': ['markiza', 'markizę', 'markizy', 'markizie']},
+    'awning': {'en': ['awning', 'awnings'], 'pl': ['markiza', 'markizę', 'markizy']},
 }
 TIMER_VERBS = {'timers.start': 'start', 'timers.pause': 'pause', 'timers.resume': 'resume', 'timers.cancel': 'cancel'}
 

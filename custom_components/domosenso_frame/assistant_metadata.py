@@ -104,7 +104,7 @@ def _declared_field(cap, subject):
     return field if field and _entity_pattern(source['id']).fullmatch(field['entity']) else None
 
 
-def resolve(artifacts, grants, permitted, registry_id, secret, scope):
+def resolve(artifacts, grants, permitted, registry_id, secret, scope, area_id_for):
     """Use an explicit capability revision, source binding, registry identity and HA READ."""
     if not isinstance(grants, list) or len(grants) > 512:
         return {}
@@ -122,7 +122,7 @@ def resolve(artifacts, grants, permitted, registry_id, secret, scope):
                 subject_key = grant.get('subject')
                 subject = subjects.get(subject_key) if isinstance(subject_key, str) else None
                 field = _declared_field(cap, subject) if subject else None
-                if not field or field != {k: grant[k] for k in ('entity', 'attribute') if k in grant}:
+                if not field or 'attribute' in grant or field != {'entity': grant.get('entity')}:
                     continue
                 eid = field['entity']
                 identity = registry_id(eid)
@@ -130,6 +130,8 @@ def resolve(artifacts, grants, permitted, registry_id, secret, scope):
                     continue
                 subject_id = token(secret, scope, owner, 'subject', subject_key)
                 area = subject.get('area')
+                if 'area' in cap['selectors'] and area and area_id_for(eid) != area['key']:
+                    continue
                 area_id = token(secret, scope, owner, 'area', area['key']) if area else None
                 rows[subject_id] = (subject, field, identity, area_id)
             if rows:
@@ -188,7 +190,7 @@ def evaluate(cap, rows, arguments, state_get, verified, now):
                 status = 'unverified'
             elif (now - report).total_seconds() > policy['maxAgeSeconds']:
                 status = 'stale'
-            elif field.get('attribute') or attrs.get('unit_of_measurement') != policy['unit']:
+            elif attrs.get('unit_of_measurement') != policy['unit']:
                 status = 'invalid_unit'
             else:
                 try:
@@ -238,7 +240,7 @@ def validate_sources(rows):
         raise ValueError('Invalid metadata read selections')
     seen = set()
     for row in rows:
-        if (not isinstance(row, dict) or not required <= set(row) or set(row) - required - {'attribute'}
+        if (not isinstance(row, dict) or set(row) != required
                 or type(row['revision']) is not int or not 1 <= row['revision'] <= 65535
                 or any(not isinstance(row[key], str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,160}', row[key])
                        for key in set(row) - {'revision'})

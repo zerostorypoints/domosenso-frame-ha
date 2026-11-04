@@ -1,8 +1,8 @@
 {
   "catalog": {
     "version": 2,
-    "catalogRevision": "en.f1770c838fd0ec468e9cb55ccb9c78296bb0ee0ca8811df8db0f709c6c4d93e6",
-    "asOf": "2026-11-04T11:09:47.620909+00:00",
+    "catalogRevision": "en.993a3978cc882a3a7735488f6c121f0d39ee9da94825cec32a20c3aa4b6aabe2",
+    "asOf": "2026-11-04T11:37:05.436451+00:00",
     "capabilities": [
       {
         "id": "workbench.station_temperature",
@@ -52,7 +52,7 @@
         },
         "selectors": [
           {
-            "id": "c015659059c4e8641bb9cdefaf940d426209bba0b4c18da5f9e12c16bc10d7c8",
+            "id": "3e7bc8798a36ce97a47e086dbbfcc9f78f1726c834a7b98d71be26dc514c7095",
             "type": "area",
             "label": {
               "en": "Studio",
@@ -115,7 +115,7 @@
         },
         "selectors": [
           {
-            "id": "6b474a30d7822ab5c06cad72ddd9f0a34ec3e0fdebe7b7d622f6bafc9aeecfb8",
+            "id": "7a0eac4512fbb7b67f543bf2a7b9828608da1dc48ae9cb878e076c6250c03a84",
             "type": "subject",
             "label": {
               "en": "North probe",
@@ -132,7 +132,7 @@
             }
           },
           {
-            "id": "1bd3094939ba7b77d255b16adeec2c340e88c08a216801f0dba17c0367a97ab5",
+            "id": "b4f8cac17ffbce8117b64848e4840f51fad817d0e2feaaa710a69e73cb177580",
             "type": "subject",
             "label": {
               "en": "South probe",
@@ -148,14 +148,14 @@
   "answers": {
     "workbench.station_temperature": {
       "version": 2,
-      "catalogRevision": "en.f1770c838fd0ec468e9cb55ccb9c78296bb0ee0ca8811df8db0f709c6c4d93e6",
+      "catalogRevision": "en.993a3978cc882a3a7735488f6c121f0d39ee9da94825cec32a20c3aa4b6aabe2",
       "capability": "workbench.station_temperature",
       "revision": 1,
-      "asOf": "2026-11-04T11:09:47.621141+00:00",
+      "asOf": "2026-11-04T11:37:05.437026+00:00",
       "timezone": "Europe/Zurich",
       "facts": [
         {
-          "subjectId": "6b474a30d7822ab5c06cad72ddd9f0a34ec3e0fdebe7b7d622f6bafc9aeecfb8",
+          "subjectId": "7a0eac4512fbb7b67f543bf2a7b9828608da1dc48ae9cb878e076c6250c03a84",
           "label": {
             "en": "North probe",
             "de": "Nordsonde",
@@ -164,12 +164,12 @@
           "unit": "°C",
           "status": "current",
           "value": 20.0,
-          "sourceRef": "6b474a30d7822ab5c06cad72ddd9f0a34ec3e0fdebe7b7d622f6bafc9aeecfb8",
-          "reportedAt": "2026-11-04T11:09:47.610265+00:00",
+          "sourceRef": "7a0eac4512fbb7b67f543bf2a7b9828608da1dc48ae9cb878e076c6250c03a84",
+          "reportedAt": "2026-11-04T11:37:05.421980+00:00",
           "freshnessBasis": "source_report"
         },
         {
-          "subjectId": "1bd3094939ba7b77d255b16adeec2c340e88c08a216801f0dba17c0367a97ab5",
+          "subjectId": "b4f8cac17ffbce8117b64848e4840f51fad817d0e2feaaa710a69e73cb177580",
           "label": {
             "en": "South probe",
             "de": "Südsonde",
@@ -178,8 +178,8 @@
           "unit": "°C",
           "status": "unavailable",
           "value": null,
-          "sourceRef": "1bd3094939ba7b77d255b16adeec2c340e88c08a216801f0dba17c0367a97ab5",
-          "reportedAt": "2026-11-04T11:09:47.610303+00:00",
+          "sourceRef": "b4f8cac17ffbce8117b64848e4840f51fad817d0e2feaaa710a69e73cb177580",
+          "reportedAt": "2026-11-04T11:37:05.422197+00:00",
           "freshnessBasis": "unknown"
         }
       ],
@@ -195,14 +195,14 @@
     },
     "workbench.probe_temperature": {
       "version": 2,
-      "catalogRevision": "en.f1770c838fd0ec468e9cb55ccb9c78296bb0ee0ca8811df8db0f709c6c4d93e6",
+      "catalogRevision": "en.993a3978cc882a3a7735488f6c121f0d39ee9da94825cec32a20c3aa4b6aabe2",
       "capability": "workbench.probe_temperature",
       "revision": 1,
-      "asOf": "2026-11-04T11:09:47.621343+00:00",
+      "asOf": "2026-11-04T11:37:05.437803+00:00",
       "timezone": "Europe/Zurich",
       "facts": [
         {
-          "subjectId": "6b474a30d7822ab5c06cad72ddd9f0a34ec3e0fdebe7b7d622f6bafc9aeecfb8",
+          "subjectId": "7a0eac4512fbb7b67f543bf2a7b9828608da1dc48ae9cb878e076c6250c03a84",
           "label": {
             "en": "North probe",
             "de": "Nordsonde",
@@ -211,8 +211,8 @@
           "unit": "°C",
           "status": "current",
           "value": 20.0,
-          "sourceRef": "6b474a30d7822ab5c06cad72ddd9f0a34ec3e0fdebe7b7d622f6bafc9aeecfb8",
-          "reportedAt": "2026-11-04T11:09:47.610265+00:00",
+          "sourceRef": "7a0eac4512fbb7b67f543bf2a7b9828608da1dc48ae9cb878e076c6250c03a84",
+          "reportedAt": "2026-11-04T11:37:05.421980+00:00",
           "freshnessBasis": "source_report"
         }
       ],

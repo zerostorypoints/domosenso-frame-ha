@@ -220,6 +220,15 @@ async def setup(hass, grant, register_command, policy_read):
     state['assistant_source_verified'] = source_verified
     state['assistant_state_get'] = lambda eid: state_for_assistant(hass.states.get(eid), registry.async_get(eid))
     state['assistant_registry_id'] = lambda eid: getattr(registry.async_get(eid), 'id', None)
+    def area_id_for(eid):
+        from homeassistant.helpers import area_registry as ar, device_registry as dr
+        entry = registry.async_get(eid)
+        if not entry:
+            return None
+        device = dr.async_get(hass).async_get(entry.device_id) if entry.device_id else None
+        area_id = entry.area_id or (device.area_id if device else None)
+        return area_id if area_id and ar.async_get(hass).async_get_area(area_id) else None
+    state['assistant_area_id'] = area_id_for
     from .assistant_refresh import MetadataRefresh, fingerprint
     def load_metadata():
         from .assistant_runtime_contract import load_directory as load_runtime
