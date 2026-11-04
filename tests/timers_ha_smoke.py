@@ -106,9 +106,11 @@ async def main():
             await request(admin,'studio_mappings_update',endpoint='frame',version=1,revision=mapping['revision'],patch={'timers':{'writeEnabled':True,'items':items}})
             await request(ordinary,'subscribe')
             caps=await request(ordinary,'assistant_actions',endpoint='frame',version=1,supported=[{'actionType':'timer-action.v1','resultType':'timer-result.v1'}])
-            projected=await request(ordinary,'assistant_actions',endpoint='frame',version=1,supported=[
-                {'actionType':'timer-action.v1','resultType':'timer-result.v1'},
-                {'actionType':'action-binding.v2','resultType':'action-binding.v2'}])
+            supported=[{'actionType':'timer-action.v1','resultType':'timer-result.v1'},
+                       {'actionType':'action-binding.v2','resultType':'action-binding.v2'}]
+            assert 'intent' not in await request(ordinary,'assistant_actions',endpoint='frame',version=1,supported=supported)
+            hass.data['domosenso_frame']['assistant_action_metadata_verified_endpoints'] = {'frame'}
+            projected=await request(ordinary,'assistant_actions',endpoint='frame',version=1,supported=supported)
             assert 'intent' not in caps and projected['intent']['version']==2
             assert {item['key'] for item in projected['intent']['bindings']}=={item['id'] for item in caps['actions']}
 

@@ -15,6 +15,10 @@ NOUNS = {
 TIMER_VERBS = {'timers.start': 'start', 'timers.pause': 'pause', 'timers.resume': 'resume', 'timers.cancel': 'cancel'}
 
 
+def projection_enabled(state, endpoint):
+    return endpoint in state.get('assistant_action_metadata_verified_endpoints', ())
+
+
 def project_controls(result):
     targets = []
     for target in result['targets']:
