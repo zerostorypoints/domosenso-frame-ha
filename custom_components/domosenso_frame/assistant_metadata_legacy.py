@@ -30,34 +30,35 @@ ANCHORS = {
         'temperatura|temperaturę|temperatury|temperaturze|ile stopni|stopni|ciepło|zimno'),
     'climate-air.humidity': (
         'humidity|humid|moisture in the air',
-        'wilgotność powietrza|wilgotność|wilgotności|wilgotno'),
-    'climate-air.status': ('humidity alert|temperature difference', 'alarm wilgotności|różnica temperatur'),
+        'wilgotność powietrza|wilgotność|wilgotności|wilgotno|wilgotne'),
+    'climate-air.status': ('humidity alert|humidity warning|temperature difference',
+                           'alarm wilgotności|ostrzeżenie o wilgotności|różnica temperatur'),
     'climate-air.air_readings': (
-        'air readings|air measurements|co2|carbon dioxide|particulates|particulate matter|voc|nox|pm2|pm2 5|pm 2 5',
+        'air readings|air measurements|air sensor readings|co2|carbon dioxide|particulates|particulate matter|voc|nox|pm2|pm2 5|pm 2 5',
         'pomiary powietrza|odczyty powietrza|co2|dwutlenek węgla|dwutlenku węgla|pył|pyłu|cząstki|cząstek|voc|nox|pm2|pm2 5|pm 2 5'),
     'climate-air.air_assessment': (
         'air quality|is the air good|air|stuffy|ventilation|breathing',
         'jakość powietrza|jakie mamy powietrze|powietrze|powietrza|powietrzem|duszno|wietrzyć|oddycha|oddychać'),
     'plants.watering_need': (
-        'need water|need watering|water the plants|needs watering|needs water|watering|thirsty|should water|water|need a drink|due for water',
+        'need water|need watering|water the plants|needs watering|needs water|watering|thirsty|should water|water|need a drink|due for water|time to give',
         'podlać|wymaga podlewania|wymagają podlewania|potrzebuje wody|potrzebują wody|podlewania|podlania|wody|brakuje wody'),
     'plants.status': (
-        'plant condition|plants reporting problems|plants|plant|houseplants|houseplant|plant health|condition of',
-        'stan roślin|rośliny|roślinom|roślina|roślin|roślinie|roślinami|kwiaty|kwiatów|dolega|stan|w jakim stanie'),
+        'plant condition|plants reporting problems|plants|plant|houseplants|houseplant|plant health|condition of|doing',
+        'stan roślin|rośliny|roślinom|roślina|roślin|roślinie|roślinami|kwiaty|kwiatów|dolega|stan|w jakim stanie|w jakiej kondycji'),
     'plants.last_watered': (
-        'last watered|watering detected|was watered|watered|last watering|previous watering|last water|watered last|register watering',
-        'ostatnio podlano|wykryto podlewanie|była podlewana|podlano|podlewano|podlana|podlanie|podlewanie|podlewana|ostatnio podlana|ostatnie podlewanie|po raz ostatni'),
+        'last watered|watering detected|was watered|watered|last watering|previous watering|last water|watered last|register watering|detected watering|last water',
+        'ostatnio podlano|wykryto podlewanie|była podlewana|podlano|podlewano|podlana|podlanie|podlewanie|podlewana|ostatnio podlana|ostatnie podlewanie|po raz ostatni|ostatniego podlewania|wykrył podlewanie'),
     'plants.water_in': (
-        'when might|how soon|when will this plant|when will|next watering|for its next watering|need watering again|until watering|time until|wait for water|how long',
-        'za ile|kiedy może wymagać|kiedy będzie potrzebować|kiedy podlać|kiedy podlewać|następne podlewanie|kiedy znów|poczekać na podlewanie|ile dni|termin podlewania|przewidywany termin'),
+        'when might|how soon|when will this plant|when will|next watering|for its next watering|need watering again|until watering|time until|wait for water|how long until|next need water',
+        'za ile|kiedy może wymagać|kiedy będzie potrzebować|kiedy podlać|kiedy podlewać|następne podlewanie|kiedy znów|poczekać na podlewanie|ile dni|termin podlewania|przewidywany termin|bez podlewania|znów trzeba'),
     'media.now_playing': ('now playing|what is playing|what music|song', 'co gra|co leci|jaki utwór|odtwarzana muzyka'),
     'media.status': ('player status|playback status', 'stan odtwarzacza|status odtwarzacza'),
     'media.mains': ('player power|player voltage|power does the player', 'moc odtwarzacza|napięcie odtwarzacza|moc zgłasza odtwarzacz'),
     'lights.status': ('lights|lamps', 'światła|światło|lampy'),
     'calendar.agenda': ('calendar|agenda|appointments|appointment|events|event|meeting|meetings|schedule|scheduled|plans',
                         'kalendarz|kalendarzu|kalendarza|wydarzenia|wydarzenie|wydarzeń|spotkania|spotkanie|spotkań|planie|plany|terminy|zaplanowano|zaplanowanego|zaplanowane'),
-    'weather.current': ('weather now|current weather|weather|conditions outside|outside|raining',
-                        'pogoda teraz|obecna pogoda|pogoda|pogodę|pogody|na dworze|na zewnątrz|pada|raport pogodowy|pogodowy'),
+    'weather.current': ('weather now|current weather|weather|conditions outside|conditions outdoors|outside|raining',
+                        'pogoda teraz|obecna pogoda|pogoda|pogodę|pogody|na dworze|na zewnątrz|pada|raport pogodowy|pogodowy|warunki pogodowe'),
     'weather.forecast': ('forecast|will it rain|when will it rain|weather tomorrow|tomorrow weather|weather this week|rain|outlook|forecasted',
                          'prognoza|prognozę|prognozy|będzie padać|pogoda jutro|jutro pogoda|pogody na jutro|deszcz|padać'),
     'bermuda-presence.observations': ('presence|presence sensor', 'obecność|czujnik obecności'),
@@ -66,9 +67,9 @@ ANCHORS = {
     'audio-sensor.level': ('sound level|noise level', 'poziom dźwięku|poziom hałasu|jaki poziom'),
     'backup.status': ('backup|backups', 'kopia zapasowa|kopie zapasowe|backup'),
     'ramka.status': ('frame mode|frame status|mode is the frame', 'tryb ramki|stan ramki|status ramki'),
-    'ramka.current_time': ('what time|current time|time is it|clock|local time|hour',
+    'ramka.current_time': ('what time|current time|time is it|clock|local time|hour|the time',
                             'która godzina|jaka jest godzina|która jest|godzina|godzinę|godzinę mamy|zegar|zegarze|zegara|aktualny czas|bieżący czas'),
-    'timers.status': ('timer status|time left|time remaining|how much time|timer|countdown|remaining time',
+    'timers.status': ('timer status|time left|time remaining|how much time|timer|countdown|remaining time|how long until|counting down',
                       'stan minutnika|ile zostało|ile czasu|pozostało|minutnik|minutnika|minutniku|odliczanie|odliczania'),
 }
 TERMS = {
@@ -175,14 +176,14 @@ def _identifier(value):
 
 
 OPTION_VALUES = {
-    'period': {'today': ('today', 'dzisiaj|dziś'), 'tomorrow': ('tomorrow', 'jutro'),
+    'period': {'today': ('today', 'dzisiaj|dziś|dzisiejsze|dzisiejszego'), 'tomorrow': ('tomorrow', 'jutro'),
                'next_7_days': ('this week|next seven days|next 7 days|coming seven days|seven days ahead',
                                'w tym tygodniu|najbliższe siedem dni|najbliższych siedem dni|najbliższych siedmiu dni|najbliższych siedmiu dniach|kolejne siedem dni|następne siedem dni|najbliższy tydzień')},
     'filter': {'on': ('on', 'włączone'), 'off': ('off', 'wyłączone'), 'unknown': ('unknown', 'nieznane')},
     'metric': {'score': ('score', 'wskaźnik'), 'co2': ('co2|carbon dioxide', 'co2|dwutlenek węgla|dwutlenku węgla'),
                'pm2_5': ('pm2 5|pm 2 5|particulates|particulate matter', 'pm2 5|pm 2 5|pył|pyłu'), 'voc': ('voc', 'voc'), 'nox': ('nox', 'nox'),
                'power': ('power|watts', 'moc|waty'), 'voltage': ('voltage|volts', 'napięcie|wolty')},
-    'nextOnly': {'yes': ('next event|next appointment|next meeting', 'następne wydarzenie|następne spotkanie|najbliższe wydarzenie|najbliższe spotkanie')},
+    'nextOnly': {'yes': ('next event|next appointment|next meeting|appointment comes next|meeting comes next', 'następne wydarzenie|następne spotkanie|najbliższe wydarzenie|najbliższe spotkanie|spotkanie jest następne')},
 }
 
 
