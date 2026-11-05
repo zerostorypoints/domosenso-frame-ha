@@ -2,6 +2,7 @@
 from pathlib import Path
 from .control_actions import Controls, Denied
 from .control_profiles import Profiles, active, ACTIONS
+from .action_metadata import PROJECT, project_controls, projection_enabled
 
 DOMAIN='domosenso_frame'
 
@@ -27,6 +28,8 @@ def targets(hass,connection,msg,grant,read,control):
             target['capabilities']=[c for c in target['capabilities'] if hass.services.has_service(*ACTIONS[c['id']][:2])]
         result['targets']=[t for t in result['targets'] if t['capabilities']]
         if {'actionType':'control-action.v1','resultType':'control-result.v1'} not in msg['supported']:result['targets']=[]
+        if PROJECT in msg['supported'] and projection_enabled(state, endpoint['id']):
+            result = project_controls(result)
         connection.send_result(msg['id'],result)
     except Exception:connection.send_error(msg['id'],'frame_denied','Controls unavailable or access denied')
 

@@ -1,0 +1,222 @@
+{
+ "$comment": "Decision D5 of docs/2026-11-05-shared-home-decisions.md: whether a control acts on an entity and whether its state is a value to show. state null means no such entity. Whether the entity supports the action (supported_features) is checked separately by each control.",
+ "version": 1,
+ "cases": [
+  {
+   "name": "cover unknown is operable, no value shown",
+   "domain": "cover",
+   "state": "unknown",
+   "expected": {
+    "operable": true,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "cover unavailable is blocked",
+   "domain": "cover",
+   "state": "unavailable",
+   "expected": {
+    "operable": false,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "cover missing is blocked",
+   "domain": "cover",
+   "state": null,
+   "expected": {
+    "operable": false,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "lock unknown is operable, no value shown",
+   "domain": "lock",
+   "state": "unknown",
+   "expected": {
+    "operable": true,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "lock unavailable is blocked",
+   "domain": "lock",
+   "state": "unavailable",
+   "expected": {
+    "operable": false,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "lock missing is blocked",
+   "domain": "lock",
+   "state": null,
+   "expected": {
+    "operable": false,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "light unknown is operable, no value shown",
+   "domain": "light",
+   "state": "unknown",
+   "expected": {
+    "operable": true,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "light unavailable is blocked",
+   "domain": "light",
+   "state": "unavailable",
+   "expected": {
+    "operable": false,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "light missing is blocked",
+   "domain": "light",
+   "state": null,
+   "expected": {
+    "operable": false,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "media_player unknown is operable, no value shown",
+   "domain": "media_player",
+   "state": "unknown",
+   "expected": {
+    "operable": true,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "media_player unavailable is blocked",
+   "domain": "media_player",
+   "state": "unavailable",
+   "expected": {
+    "operable": false,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "media_player missing is blocked",
+   "domain": "media_player",
+   "state": null,
+   "expected": {
+    "operable": false,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "scene unknown is operable, no value shown",
+   "domain": "scene",
+   "state": "unknown",
+   "expected": {
+    "operable": true,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "scene unavailable is blocked",
+   "domain": "scene",
+   "state": "unavailable",
+   "expected": {
+    "operable": false,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "scene missing is blocked",
+   "domain": "scene",
+   "state": null,
+   "expected": {
+    "operable": false,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "timer unknown is operable, no value shown",
+   "domain": "timer",
+   "state": "unknown",
+   "expected": {
+    "operable": true,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "timer unavailable is blocked",
+   "domain": "timer",
+   "state": "unavailable",
+   "expected": {
+    "operable": false,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "timer missing is blocked",
+   "domain": "timer",
+   "state": null,
+   "expected": {
+    "operable": false,
+    "shown": "none"
+   }
+  },
+  {
+   "name": "cover closed",
+   "domain": "cover",
+   "state": "closed",
+   "expected": {
+    "operable": true,
+    "shown": "value"
+   }
+  },
+  {
+   "name": "lock locked",
+   "domain": "lock",
+   "state": "locked",
+   "expected": {
+    "operable": true,
+    "shown": "value"
+   }
+  },
+  {
+   "name": "light off",
+   "domain": "light",
+   "state": "off",
+   "expected": {
+    "operable": true,
+    "shown": "value"
+   }
+  },
+  {
+   "name": "media_player off",
+   "domain": "media_player",
+   "state": "off",
+   "expected": {
+    "operable": true,
+    "shown": "value"
+   }
+  },
+  {
+   "name": "scene with a time",
+   "domain": "scene",
+   "state": "2026-11-05T17:00:00+00:00",
+   "expected": {
+    "operable": true,
+    "shown": "value"
+   }
+  },
+  {
+   "name": "timer idle",
+   "domain": "timer",
+   "state": "idle",
+   "expected": {
+    "operable": true,
+    "shown": "value"
+   }
+  }
+ ]
+}

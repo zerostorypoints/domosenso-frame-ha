@@ -1,0 +1,230 @@
+{
+  "catalog": {
+    "version": 2,
+    "catalogRevision": "en.993a3978cc882a3a7735488f6c121f0d39ee9da94825cec32a20c3aa4b6aabe2",
+    "asOf": "2026-11-04T11:37:05.436451+00:00",
+    "capabilities": [
+      {
+        "id": "workbench.station_temperature",
+        "revision": 1,
+        "title": {
+          "en": "Workbench temperature",
+          "de": "Werkbanktemperatur",
+          "pl": "Temperatura przy stole roboczym"
+        },
+        "description": {
+          "en": "Read the temperature at the workbench",
+          "de": "Temperatur an der Werkbank",
+          "pl": "Sprawdź temperaturę przy stole roboczym"
+        },
+        "anchors": {
+          "en": [
+            "workbench"
+          ],
+          "de": [
+            "Werkbank"
+          ],
+          "pl": [
+            "stół roboczy",
+            "stole roboczym"
+          ]
+        },
+        "examples": {
+          "en": [
+            "How warm is the workbench in {area}?"
+          ],
+          "de": [
+            "Wie warm ist die Werkbank in {area}?"
+          ],
+          "pl": [
+            "Jaka jest temperatura przy stole roboczym w {area}?"
+          ]
+        },
+        "operation": "read",
+        "availability": "configured",
+        "arguments": [
+          "area"
+        ],
+        "answer": {
+          "kind": "measurement.v1",
+          "unit": "°C",
+          "aggregate": "mean"
+        },
+        "selectors": [
+          {
+            "id": "3e7bc8798a36ce97a47e086dbbfcc9f78f1726c834a7b98d71be26dc514c7095",
+            "type": "area",
+            "label": {
+              "en": "Studio",
+              "de": "Atelier",
+              "pl": "Pracownia"
+            },
+            "aliases": {
+              "pl": [
+                "pracowni"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "workbench.probe_temperature",
+        "revision": 1,
+        "title": {
+          "en": "Probe temperature",
+          "de": "Sondentemperatur",
+          "pl": "Temperatura sondy"
+        },
+        "description": {
+          "en": "Read the temperature at a probe",
+          "de": "Temperatur einer Sonde",
+          "pl": "Sprawdź temperaturę sondy"
+        },
+        "anchors": {
+          "en": [
+            "probe"
+          ],
+          "de": [
+            "Sonde"
+          ],
+          "pl": [
+            "sonda",
+            "sondy"
+          ]
+        },
+        "examples": {
+          "en": [
+            "What is the temperature at {subject}?"
+          ],
+          "de": [
+            "Wie warm ist {subject}?"
+          ],
+          "pl": [
+            "Jaka jest temperatura sondy {subject}?"
+          ]
+        },
+        "operation": "read",
+        "availability": "configured",
+        "arguments": [
+          "subject"
+        ],
+        "answer": {
+          "kind": "measurement.v1",
+          "unit": "°C",
+          "aggregate": "none"
+        },
+        "selectors": [
+          {
+            "id": "7a0eac4512fbb7b67f543bf2a7b9828608da1dc48ae9cb878e076c6250c03a84",
+            "type": "subject",
+            "label": {
+              "en": "North probe",
+              "de": "Nordsonde",
+              "pl": "Sonda północna"
+            },
+            "aliases": {
+              "en": [
+                "north probe"
+              ],
+              "pl": [
+                "północnej"
+              ]
+            }
+          },
+          {
+            "id": "b4f8cac17ffbce8117b64848e4840f51fad817d0e2feaaa710a69e73cb177580",
+            "type": "subject",
+            "label": {
+              "en": "South probe",
+              "de": "Südsonde",
+              "pl": "Sonda południowa"
+            },
+            "aliases": {}
+          }
+        ]
+      }
+    ]
+  },
+  "answers": {
+    "workbench.station_temperature": {
+      "version": 2,
+      "catalogRevision": "en.993a3978cc882a3a7735488f6c121f0d39ee9da94825cec32a20c3aa4b6aabe2",
+      "capability": "workbench.station_temperature",
+      "revision": 1,
+      "asOf": "2026-11-04T11:37:05.437026+00:00",
+      "timezone": "Europe/Zurich",
+      "facts": [
+        {
+          "subjectId": "7a0eac4512fbb7b67f543bf2a7b9828608da1dc48ae9cb878e076c6250c03a84",
+          "label": {
+            "en": "North probe",
+            "de": "Nordsonde",
+            "pl": "Sonda północna"
+          },
+          "unit": "°C",
+          "status": "current",
+          "value": 20.0,
+          "sourceRef": "7a0eac4512fbb7b67f543bf2a7b9828608da1dc48ae9cb878e076c6250c03a84",
+          "reportedAt": "2026-11-04T11:37:05.421980+00:00",
+          "freshnessBasis": "source_report"
+        },
+        {
+          "subjectId": "b4f8cac17ffbce8117b64848e4840f51fad817d0e2feaaa710a69e73cb177580",
+          "label": {
+            "en": "South probe",
+            "de": "Südsonde",
+            "pl": "Sonda południowa"
+          },
+          "unit": "°C",
+          "status": "unavailable",
+          "value": null,
+          "sourceRef": "b4f8cac17ffbce8117b64848e4840f51fad817d0e2feaaa710a69e73cb177580",
+          "reportedAt": "2026-11-04T11:37:05.422197+00:00",
+          "freshnessBasis": "unknown"
+        }
+      ],
+      "coverage": {
+        "eligible": 2,
+        "evaluated": 1,
+        "omitted": 0
+      },
+      "assessment": {
+        "status": "partial",
+        "summary": null
+      }
+    },
+    "workbench.probe_temperature": {
+      "version": 2,
+      "catalogRevision": "en.993a3978cc882a3a7735488f6c121f0d39ee9da94825cec32a20c3aa4b6aabe2",
+      "capability": "workbench.probe_temperature",
+      "revision": 1,
+      "asOf": "2026-11-04T11:37:05.437803+00:00",
+      "timezone": "Europe/Zurich",
+      "facts": [
+        {
+          "subjectId": "7a0eac4512fbb7b67f543bf2a7b9828608da1dc48ae9cb878e076c6250c03a84",
+          "label": {
+            "en": "North probe",
+            "de": "Nordsonde",
+            "pl": "Sonda północna"
+          },
+          "unit": "°C",
+          "status": "current",
+          "value": 20.0,
+          "sourceRef": "7a0eac4512fbb7b67f543bf2a7b9828608da1dc48ae9cb878e076c6250c03a84",
+          "reportedAt": "2026-11-04T11:37:05.421980+00:00",
+          "freshnessBasis": "source_report"
+        }
+      ],
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "omitted": 0
+      },
+      "assessment": {
+        "status": "complete",
+        "summary": null
+      }
+    }
+  }
+}

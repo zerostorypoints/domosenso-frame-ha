@@ -1,0 +1,217 @@
+{
+  "catalog": {
+    "version": 2,
+    "catalogRevision": "en.db967dfde8f9a0a472c4baba6362dbb562bb6241b3efa98bd226704f1ad482b7",
+    "asOf": "2026-11-04T11:37:05.441899+00:00",
+    "capabilities": [
+      {
+        "id": "climate-air.temperature",
+        "revision": 1,
+        "operation": "read",
+        "availability": "ready",
+        "title": {
+          "en": "Temperature",
+          "de": "Temperatur",
+          "pl": "Temperatura"
+        },
+        "description": {
+          "en": "Read mapped room temperatures.",
+          "de": "Zugeordnete Raumtemperaturen lesen.",
+          "pl": "Odczyt temperatury przypisanych pomieszczeń."
+        },
+        "anchors": {
+          "en": [
+            "temperature",
+            "how warm",
+            "how cold"
+          ],
+          "pl": [
+            "temperatura",
+            "temperaturę",
+            "ile stopni"
+          ]
+        },
+        "examples": {
+          "en": [
+            "What is the temperature?"
+          ],
+          "de": [
+            "Wie ist die Temperatur?"
+          ],
+          "pl": [
+            "Jaka jest temperatura?"
+          ]
+        },
+        "arguments": [
+          "area"
+        ],
+        "answer": {
+          "kind": "records.v1"
+        },
+        "selectors": [
+          {
+            "id": "dfee0fbc-2a2e-59f5-8776-f2befbd736de",
+            "type": "area",
+            "label": {
+              "en": "Studio"
+            },
+            "aliases": {}
+          }
+        ],
+        "requireSubject": false,
+        "options": []
+      },
+      {
+        "id": "ramka.current_time",
+        "revision": 1,
+        "operation": "read",
+        "availability": "ready",
+        "title": {
+          "en": "Current time",
+          "de": "Aktuelle Uhrzeit",
+          "pl": "Aktualny czas"
+        },
+        "description": {
+          "en": "Current time",
+          "de": "Aktuelle Uhrzeit",
+          "pl": "Aktualny czas"
+        },
+        "anchors": {
+          "en": [
+            "what time",
+            "current time",
+            "time is it"
+          ],
+          "pl": [
+            "która godzina",
+            "jaka jest godzina",
+            "która jest"
+          ]
+        },
+        "examples": {
+          "en": [
+            "Which hour is it?",
+            "What time is it?",
+            "What is the time?"
+          ],
+          "de": [
+            "Wie spät ist es?"
+          ],
+          "pl": [
+            "Która godzina?",
+            "Która jest godzina?",
+            "Jaka jest godzina?"
+          ]
+        },
+        "arguments": [],
+        "answer": {
+          "kind": "records.v1"
+        },
+        "selectors": [],
+        "requireSubject": false,
+        "options": []
+      }
+    ]
+  },
+  "answers": {
+    "climate-air.temperature": {
+      "version": 2,
+      "catalogRevision": "en.db967dfde8f9a0a472c4baba6362dbb562bb6241b3efa98bd226704f1ad482b7",
+      "capability": "climate-air.temperature",
+      "revision": 1,
+      "asOf": "2026-11-04T11:37:05.442702+00:00",
+      "timezone": "Europe/Zurich",
+      "facts": [
+        {
+          "id": "856c737b-acbc-523a-a832-cd1a7e15910b",
+          "label": {
+            "en": "Studio"
+          },
+          "cells": [
+            {
+              "kind": "measurement",
+              "label": {
+                "en": "Measurement",
+                "pl": "Pomiar"
+              },
+              "value": 20.0,
+              "unit": "°C"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceRef": "9df1844e-fe55-5bf4-9204-175b6344cba8",
+              "observedAt": null,
+              "reportedAt": "2026-11-04T11:37:05.421980+00:00",
+              "freshness": "current",
+              "freshnessBasis": "source_report"
+            }
+          ]
+        }
+      ],
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "omitted": 0,
+        "unit": "subject"
+      },
+      "assessment": {
+        "status": "complete",
+        "headline": {
+          "en": "HA reports measurements",
+          "pl": "HA podaje pomiary"
+        },
+        "limitations": []
+      }
+    },
+    "ramka.current_time": {
+      "version": 2,
+      "catalogRevision": "en.db967dfde8f9a0a472c4baba6362dbb562bb6241b3efa98bd226704f1ad482b7",
+      "capability": "ramka.current_time",
+      "revision": 1,
+      "asOf": "2026-11-04T11:37:05.443908+00:00",
+      "timezone": "Europe/Zurich",
+      "facts": [
+        {
+          "id": "c5cef022-e002-5702-8a5a-2c6fb96f0614",
+          "label": {
+            "en": "Fictional frame"
+          },
+          "cells": [
+            {
+              "kind": "clock",
+              "label": {
+                "en": "Time",
+                "pl": "Godzina"
+              },
+              "value": "2026-11-04T11:37:05.443908+00:00"
+            }
+          ],
+          "evidence": [
+            {
+              "sourceRef": "c5cef022-e002-5702-8a5a-2c6fb96f0614",
+              "observedAt": null,
+              "reportedAt": null,
+              "freshness": "current",
+              "freshnessBasis": "provider_response"
+            }
+          ]
+        }
+      ],
+      "coverage": {
+        "eligible": 1,
+        "evaluated": 1,
+        "omitted": 0,
+        "unit": "frame"
+      },
+      "assessment": {
+        "status": "complete",
+        "headline": {
+          "en": "Reported by HA",
+          "pl": "Zgłoszone przez HA"
+        },
+        "limitations": []
+      }
+    }
+  }
+}

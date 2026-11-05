@@ -1,0 +1,604 @@
+{
+  "targets": {
+    "version": 2,
+    "targets": [
+      {
+        "id": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+        "actions": [
+          {
+            "key": "lights.turn_off",
+            "verb": "off",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          },
+          {
+            "key": "lights.turn_on",
+            "verb": "on",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+        "actions": [
+          {
+            "key": "lights.turn_off",
+            "verb": "off",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          },
+          {
+            "key": "lights.turn_on",
+            "verb": "on",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "coverTargets": {
+    "version": 2,
+    "targets": [
+      {
+        "id": "7825f6c6-9471-5754-8e9d-77ea0652b322",
+        "actions": [
+          {
+            "key": "lights.turn_off",
+            "verb": "off",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          },
+          {
+            "key": "lights.turn_on",
+            "verb": "on",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "fb985b0b-d0ec-5596-9c0a-8e940f257bef",
+        "actions": [
+          {
+            "key": "covers.close",
+            "verb": "close",
+            "nouns": {
+              "en": [
+                "blind",
+                "blinds",
+                "curtain",
+                "curtains",
+                "shade",
+                "shades",
+                "shutter",
+                "shutters"
+              ],
+              "pl": [
+                "roleta",
+                "roletę",
+                "rolety",
+                "zasłona",
+                "zasłonę",
+                "zasłony",
+                "żaluzja",
+                "żaluzje",
+                "żaluzji"
+              ]
+            }
+          },
+          {
+            "key": "covers.open",
+            "verb": "open",
+            "nouns": {
+              "en": [
+                "blind",
+                "blinds",
+                "curtain",
+                "curtains",
+                "shade",
+                "shades",
+                "shutter",
+                "shutters"
+              ],
+              "pl": [
+                "roleta",
+                "roletę",
+                "rolety",
+                "zasłona",
+                "zasłonę",
+                "zasłony",
+                "żaluzja",
+                "żaluzje",
+                "żaluzji"
+              ]
+            }
+          },
+          {
+            "key": "covers.stop",
+            "verb": "stop",
+            "nouns": {
+              "en": [
+                "blind",
+                "blinds",
+                "curtain",
+                "curtains",
+                "shade",
+                "shades",
+                "shutter",
+                "shutters"
+              ],
+              "pl": [
+                "roleta",
+                "roletę",
+                "rolety",
+                "zasłona",
+                "zasłonę",
+                "zasłony",
+                "żaluzja",
+                "żaluzje",
+                "żaluzji"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "906e99ce-15b7-509c-8d45-6c9be0a969ff",
+        "actions": [
+          {
+            "key": "covers.close",
+            "verb": "close",
+            "nouns": {
+              "en": [
+                "blind",
+                "blinds",
+                "curtain",
+                "curtains",
+                "shade",
+                "shades",
+                "shutter",
+                "shutters"
+              ],
+              "pl": [
+                "roleta",
+                "roletę",
+                "rolety",
+                "zasłona",
+                "zasłonę",
+                "zasłony",
+                "żaluzja",
+                "żaluzje",
+                "żaluzji"
+              ]
+            }
+          },
+          {
+            "key": "covers.open",
+            "verb": "open",
+            "nouns": {
+              "en": [
+                "blind",
+                "blinds",
+                "curtain",
+                "curtains",
+                "shade",
+                "shades",
+                "shutter",
+                "shutters"
+              ],
+              "pl": [
+                "roleta",
+                "roletę",
+                "rolety",
+                "zasłona",
+                "zasłonę",
+                "zasłony",
+                "żaluzja",
+                "żaluzje",
+                "żaluzji"
+              ]
+            }
+          },
+          {
+            "key": "covers.stop",
+            "verb": "stop",
+            "nouns": {
+              "en": [
+                "blind",
+                "blinds",
+                "curtain",
+                "curtains",
+                "shade",
+                "shades",
+                "shutter",
+                "shutters"
+              ],
+              "pl": [
+                "roleta",
+                "roletę",
+                "rolety",
+                "zasłona",
+                "zasłonę",
+                "zasłony",
+                "żaluzja",
+                "żaluzje",
+                "żaluzji"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+        "actions": [
+          {
+            "key": "lights.turn_off",
+            "verb": "off",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          },
+          {
+            "key": "lights.turn_on",
+            "verb": "on",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "awningTargets": {
+    "version": 2,
+    "targets": [
+      {
+        "id": "6f70b2a1-a42d-5dcd-ab24-73ab3a82fbdd",
+        "actions": [
+          {
+            "key": "awnings.extend",
+            "verb": "open",
+            "nouns": {
+              "en": [
+                "awning",
+                "awnings"
+              ],
+              "pl": [
+                "markiza",
+                "markizę",
+                "markizy"
+              ]
+            }
+          },
+          {
+            "key": "awnings.retract",
+            "verb": "close",
+            "nouns": {
+              "en": [
+                "awning",
+                "awnings"
+              ],
+              "pl": [
+                "markiza",
+                "markizę",
+                "markizy"
+              ]
+            }
+          },
+          {
+            "key": "awnings.stop",
+            "verb": "stop",
+            "nouns": {
+              "en": [
+                "awning",
+                "awnings"
+              ],
+              "pl": [
+                "markiza",
+                "markizę",
+                "markizy"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "196af91a-22c4-539c-af65-c674b7266f99",
+        "actions": [
+          {
+            "key": "lights.turn_off",
+            "verb": "off",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          },
+          {
+            "key": "lights.turn_on",
+            "verb": "on",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "26740a73-dd72-535a-8b38-6546b1d6efe2",
+        "actions": [
+          {
+            "key": "lights.turn_off",
+            "verb": "off",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          },
+          {
+            "key": "lights.turn_on",
+            "verb": "on",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "786b024d-f7da-51dd-a4d7-e5a6ac9a7932",
+        "actions": [
+          {
+            "key": "lights.turn_off",
+            "verb": "off",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          },
+          {
+            "key": "lights.turn_on",
+            "verb": "on",
+            "nouns": {
+              "en": [
+                "light",
+                "lights",
+                "lamp",
+                "lamps"
+              ],
+              "pl": [
+                "światło",
+                "światła",
+                "świateł",
+                "lampa",
+                "lampę",
+                "lampy"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "2084c3d3-f725-59eb-b7bf-65ef90873a0b",
+        "actions": [
+          {
+            "key": "awnings.extend",
+            "verb": "open",
+            "nouns": {
+              "en": [
+                "awning",
+                "awnings"
+              ],
+              "pl": [
+                "markiza",
+                "markizę",
+                "markizy"
+              ]
+            }
+          },
+          {
+            "key": "awnings.retract",
+            "verb": "close",
+            "nouns": {
+              "en": [
+                "awning",
+                "awnings"
+              ],
+              "pl": [
+                "markiza",
+                "markizę",
+                "markizy"
+              ]
+            }
+          },
+          {
+            "key": "awnings.stop",
+            "verb": "stop",
+            "nouns": {
+              "en": [
+                "awning",
+                "awnings"
+              ],
+              "pl": [
+                "markiza",
+                "markizę",
+                "markizy"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

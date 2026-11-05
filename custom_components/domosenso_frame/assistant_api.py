@@ -210,6 +210,7 @@ async def setup(hass, grant, register_command, policy_read):
     from homeassistant.core import callback
 
     state = hass.data[DOMAIN]
+    from . import assistant_metadata, assistant_metadata_api
     from homeassistant.helpers import entity_registry as er
     registry = er.async_get(hass)
     def source_verified(eid):
@@ -219,6 +220,15 @@ async def setup(hass, grant, register_command, policy_read):
     state['assistant_source_verified'] = source_verified
     state['assistant_state_get'] = lambda eid: state_for_assistant(hass.states.get(eid), registry.async_get(eid))
     state['assistant_registry_id'] = lambda eid: getattr(registry.async_get(eid), 'id', None)
+    def area_id_for(eid):
+        from homeassistant.helpers import area_registry as ar, device_registry as dr
+        entry = registry.async_get(eid)
+        if not entry:
+            return None
+        device = dr.async_get(hass).async_get(entry.device_id) if entry.device_id else None
+        area_id = entry.area_id or (device.area_id if device else None)
+        return area_id if area_id and ar.async_get(hass).async_get_area(area_id) else None
+    state['assistant_area_id'] = area_id_for
     from .assistant_refresh import MetadataRefresh, fingerprint
     def load_metadata():
         from .assistant_runtime_contract import load_directory as load_runtime
@@ -228,13 +238,17 @@ async def setup(hass, grant, register_command, policy_read):
         commands,command_errors=load_actions(hass.config.path())
         controls,control_errors=load_controls(hass.config.path())
         loaded,errors=load_directory(hass.config.path())
+        metadata,metadata_errors=assistant_metadata.load_metadata(hass.config.path())
         return {'control_artifacts':controls,'control_errors':control_errors,'assistant_runtime_artifacts':runtime,'assistant_runtime_errors':runtime_errors,
                 'assistant_action_artifacts':commands,'assistant_action_errors':command_errors,
-                'assistant_artifacts':loaded,'assistant_errors':errors}
+                'assistant_artifacts':loaded,'assistant_errors':errors,
+                'assistant_metadata_artifacts':metadata,'assistant_metadata_errors':metadata_errors}
     def publish_metadata(snapshot):
         if hass.data.get(DOMAIN) is not state:return
+        changed=state.get('assistant_metadata_artifacts',{})!=snapshot.get('assistant_metadata_artifacts',{})
         state.update({key:snapshot.get(key,{}) for key in ('control_artifacts','control_errors','assistant_runtime_artifacts','assistant_runtime_errors',
-            'assistant_action_artifacts','assistant_action_errors','assistant_artifacts','assistant_errors')})
+            'assistant_action_artifacts','assistant_action_errors','assistant_artifacts','assistant_errors',
+            'assistant_metadata_artifacts','assistant_metadata_errors')})
         inventory=hass.states.get('sensor.domosenso_components') if hasattr(hass,'states') else None
         records=getattr(inventory,'attributes',{}).get('components') if inventory else None
         verified,mismatches=inventory_diagnostics(state['assistant_artifacts'],records)
@@ -242,6 +256,9 @@ async def setup(hass, grant, register_command, policy_read):
         state['assistant_errors']={**state['assistant_errors'],**mismatches}
         state['assistant_metadata_revision']=state.get('assistant_metadata_revision',0)+1
         if data:=state.get('studio_data'):data.cache.clear()
+        if changed and hasattr(hass,'bus'):
+            for endpoint_id in state.get('endpoints',{}):
+                hass.bus.async_fire(DOMAIN+'_event',{'endpoint':endpoint_id,'kind':'assistant_metadata'})
     refresh=MetadataRefresh(lambda:fingerprint(hass.config.path()),load_metadata,publish_metadata,hass.async_add_executor_job)
     state['assistant_refresh_close']=refresh.close
     async def reload_metadata():await refresh.check(force=True)
@@ -275,5 +292,6 @@ async def setup(hass, grant, register_command, policy_read):
             c.send_error(msg['id'], 'frame_denied', 'Administrator access required')
             return
         c.send_result(msg['id'], {'loaded': len(state['assistant_artifacts']), 'errors': state['assistant_errors']})
+    assistant_metadata_api.setup(hass, grant, register_command, policy_read)
     for handler in (cap, ask, reload):
         register_command(hass, handler)

@@ -48,3 +48,33 @@ timer validation remains strict. Controls need the reviewed framework action
 sidecar schema (fictional source revision and hashes are vendored in
 `tests/fixtures/assistant-actions/provenance.json`) or explicit vanilla mappings.
 No released bridge/native minimum version or hardware certification is claimed.
+
+## Unreleased canonical native metadata
+
+Framework SPEC-037 / PR #237's canonical private artifact is pinned with SHA-256
+checks in `tests/fixtures/assistant-metadata-canonical/provenance.json`. Its dictionary
+`definitions.capabilities` and selected translations normalize into the existing
+runtime resolver; the old experimental list shape retains its separate strict
+`frame-assistant-metadata-experimental.schema.json` migration reader. Invalid canonical
+input cannot fall back to that reader. Only the canonical form is current authoring.
+
+Generic `measurement.v1` needs no capability-ID table, but every source still requires
+verified inventory, exact capability/role/revision/entity/registry grant, HA READ and
+current area association. New metadata is a proposal, not permission. Unsupported
+attribute-backed generic measurements are omitted. Source age overrides can tighten,
+never extend, the declared maximum. Missing/restored/wrong-unit data never become a
+current reading. The private canonical file is never served to Android.
+
+Existing authorized specialized v1 evaluators supply typed records. Canonical client
+vocabulary can decorate their authorized descriptor but cannot add a selector or
+relax execution. Native descriptions allow up to 300 characters; title/alias/anchor
+limits remain 120. Candidate Frame supports this bound. Existing deployed v1 shapes
+and raised/high air result keys are unchanged. Canonical fair/poor helper references
+are read live; contradictory aliases fail as a policy conflict rather than choosing
+one silently. Shared semantic fixtures cover good/fair/poor and operability separately
+from permissions and action support.
+
+Metadata profile advertising remains behind the existing explicit parity gates;
+normal startup does not enable it. This integration candidate is not F2 language,
+all-version or physical-device release acceptance. The prerequisite v1 branch is
+still a separate review/merge decision. No production/tablet configuration is changed.

@@ -111,7 +111,7 @@ def identity_matches(bundle, inventory, validator=validate_bundle):
 
 
 
-def load_directory(config_dir, directory="assistant", validator=validate_bundle):
+def load_directory(config_dir, directory="assistant", validator=validate_bundle, *, parser=yaml.safe_load, limit=_MAX_BYTES):
     """Read fixed-directory regular YAML using directory-relative no-follow opens."""
     loaded, errors = {}, {}
     descriptors = []
@@ -139,10 +139,10 @@ def load_directory(config_dir, directory="assistant", validator=validate_bundle)
                 with os.fdopen(fd, 'rb') as file:
                     if not stat.S_ISREG(os.fstat(file.fileno()).st_mode):
                         raise ValueError('Not a regular file')
-                    raw = file.read(_MAX_BYTES + 1)
-                if len(raw) > _MAX_BYTES:
+                    raw = file.read(limit + 1)
+                if len(raw) > limit:
                     raise ValueError('Artifact too large')
-                bundle = validator(yaml.safe_load(raw))
+                bundle = validator(parser(raw))
                 if bundle['component']['id'] != stem:
                     raise ValueError('Filename identity mismatch')
                 loaded[stem] = bundle

@@ -1,0 +1,154 @@
+{
+  "bindings": {
+    "policies": [],
+    "subjects": [
+      {
+        "aliases": {
+          "en": [
+            "workbench"
+          ]
+        },
+        "fields": {
+          "temperature": {
+            "entity": "sensor.workbench_temperature"
+          }
+        },
+        "key": "station",
+        "kind": "room",
+        "label": {
+          "en": "Station"
+        },
+        "roomAliases": {
+          "en": [
+            "study"
+          ]
+        },
+        "roomKey": "office",
+        "roomLabel": {
+          "en": "Office"
+        }
+      }
+    ]
+  },
+  "component": {
+    "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "dev": false,
+    "id": "workbench",
+    "version": "0.1.0"
+  },
+  "definitions": {
+    "capabilities": [
+      {
+        "answer_type": "measurement.v1",
+        "client": {
+          "anchors_key": "meta.assistant.temperature.anchors",
+          "presentation": {
+            "details": [
+              {
+                "label_key": "meta.assistant.temperature.title",
+                "layout": "rows",
+                "roles": [
+                  "temperature"
+                ]
+              }
+            ],
+            "summary": [
+              "temperature"
+            ]
+          },
+          "selectors": [
+            "area",
+            "subject"
+          ],
+          "version": 2
+        },
+        "description_key": "meta.assistant.temperature.description",
+        "examples_key": "meta.assistant.temperature.examples",
+        "freshness": {
+          "basis": "measurement",
+          "max_age_seconds": 900
+        },
+        "id": "workbench.station_temperature",
+        "limitations": [
+          "stale",
+          "missing_source"
+        ],
+        "operation": "read",
+        "optional_facts": [],
+        "policy": {
+          "evaluator": "measurement.v1"
+        },
+        "query_type": "measurement-query.v1",
+        "required_facts": [
+          {
+            "role": "temperature",
+            "source": {
+              "id": "sensor.workbench_temperature",
+              "relation": "upstream"
+            },
+            "type": "number",
+            "units": [
+              "°C"
+            ]
+          }
+        ],
+        "revision": 1,
+        "title_key": "meta.assistant.temperature.title"
+      }
+    ]
+  },
+  "schema": 2,
+  "translations": {
+    "de": {
+      "meta": {
+        "assistant": {
+          "temperature": {
+            "anchors": [
+              "temperature",
+              "warm"
+            ],
+            "description": "Reported station temperature.",
+            "examples": [
+              "What is the station temperature?"
+            ],
+            "title": "Station temperature"
+          }
+        }
+      }
+    },
+    "en": {
+      "meta": {
+        "assistant": {
+          "temperature": {
+            "anchors": [
+              "temperature",
+              "warm"
+            ],
+            "description": "Reported station temperature.",
+            "examples": [
+              "What is the station temperature?"
+            ],
+            "title": "Station temperature"
+          }
+        }
+      }
+    },
+    "pl": {
+      "meta": {
+        "assistant": {
+          "temperature": {
+            "anchors": [
+              "temperature",
+              "warm"
+            ],
+            "description": "Reported station temperature.",
+            "examples": [
+              "What is the station temperature?"
+            ],
+            "title": "Station temperature"
+          }
+        }
+      }
+    }
+  }
+}

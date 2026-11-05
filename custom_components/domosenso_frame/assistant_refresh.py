@@ -9,7 +9,7 @@ def fingerprint(config_dir):
     root=Path(config_dir)/'domosenso'
     result=[]
     if root.is_symlink():return ('invalid-root',)
-    for name in ('assistant','assistant-runtime','assistant-actions'):
+    for name in ('assistant','assistant-runtime','assistant-actions','assistant-metadata'):
         directory=root/name
         try:
             info=directory.lstat();result.append((name,info.st_mode,info.st_mtime_ns,info.st_ino))

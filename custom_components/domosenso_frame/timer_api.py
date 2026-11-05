@@ -109,6 +109,7 @@ def read_query(hass, connection, msg, grant, policy_read, now):
 
 def actions(hass, connection, msg, grant, read, control):
     from .assistant_api import _validate
+    from .action_metadata import PROJECT, project_timers, projection_enabled
     try:
         _validate(msg, {'version','endpoint','supported'})
         supported = msg['supported']
@@ -118,7 +119,10 @@ def actions(hass, connection, msg, grant, read, control):
         enabled = {'actionType':'timer-action.v1','resultType':'timer-result.v1'} in supported
         result = [{'id':cap,'revision':1,'actionType':'timer-action.v1','resultType':'timer-result.v1', **localized_metadata(hass, cap, rows),
                    'subjects':[{'id':engine.subject(r['entity']),'label':r['label']} for r in rows]} for cap in ACTIONS] if enabled and rows else []
-        connection.send_result(msg['id'], {'version':1,'asOf':engine.now().isoformat(),'actions':result})
+        reply = {'version':1,'asOf':engine.now().isoformat(),'actions':result}
+        if PROJECT in supported and projection_enabled(state, endpoint['id']):
+            reply = project_timers(reply)
+        connection.send_result(msg['id'], reply)
     except Exception:
         connection.send_error(msg['id'], 'frame_denied', 'Timer actions unavailable or access denied')
 
