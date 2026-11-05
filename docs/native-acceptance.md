@@ -54,3 +54,18 @@ remain disabled by default; green unit tests alone are not a cutover decision.
 The standalone server can supply native BLE-derived HA entities using the ordinary
 integration registry and source-report freshness path. This patch does not add radio,
 provider, Android identity or server topology fields to the home semantic contract.
+
+## Integration handoff
+
+On 2026-11-05 the owner requested merging the documented candidate into `main`
+without further fixes. The unsuccessful independent native-language trials remain
+an open acceptance gate; this source merge does not enable v2 by default, establish
+a release or deploy the integration to a running Home Assistant.
+
+Installation work should fetch this repository's `main` into its own branch and
+preserve its existing source grants, mappings and deployment/signing identities.
+The compatible native-client source includes both canonical metadata consumption
+and the standalone local-HA recovery changes. An autonomous HA/Bridge/MQTT/BLE stack
+uses the same semantic contract as a remote server; provider or Android topology
+details must stay outside shared home inputs. Native-client releases and physical
+installation tests have their own ownership and authorization.
