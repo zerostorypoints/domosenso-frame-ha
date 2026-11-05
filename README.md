@@ -12,6 +12,8 @@ is maintained separately; this repository contains no app binaries or AI models.
 This development branch adds component-backed assistant answers and an explicit source-selection
 panel. The published HACS release remains unchanged until this branch is reviewed and released.
 See [assistant setup, compatibility and verification](docs/assistant.md).
+Opt-in [shared timers and HA time answers](docs/timers.md) are available on this
+development branch, with explicit helper mappings, write grants and alarm targets.
 
 ## Install through HACS
 

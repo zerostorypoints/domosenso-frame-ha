@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "component": {
+    "id": "lights",
+    "version": "0.4.0",
+    "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "dev": false
+  },
+  "definitions": {
+    "actions": [
+      {
+        "id": "lights.turn_on",
+        "revision": 1,
+        "operation": "write",
+        "action_type": "control-action.v1",
+        "result_type": "control-result.v1",
+        "effect": "turn_on",
+        "parameters": {},
+        "confirmation": "none",
+        "title_key": "meta.assistant.turn_on.title",
+        "description_key": "meta.assistant.turn_on.description",
+        "examples_key": "meta.assistant.turn_on.examples",
+        "required_facts": [
+          {
+            "role": "light",
+            "type": "state",
+            "units": [],
+            "source": {
+              "relation": "provides",
+              "id": "light.room_<id>"
+            }
+          }
+        ],
+        "optional_facts": [
+          {
+            "role": "light",
+            "type": "state",
+            "units": [],
+            "source": {
+              "relation": "upstream",
+              "id": "light.<room>"
+            }
+          },
+          {
+            "role": "light",
+            "type": "state",
+            "units": [],
+            "source": {
+              "relation": "upstream",
+              "id": "light.<bulb>"
+            }
+          }
+        ]
+      },
+      {
+        "id": "lights.turn_off",
+        "revision": 1,
+        "operation": "write",
+        "action_type": "control-action.v1",
+        "result_type": "control-result.v1",
+        "effect": "turn_off",
+        "parameters": {},
+        "confirmation": "none",
+        "title_key": "meta.assistant.turn_off.title",
+        "description_key": "meta.assistant.turn_off.description",
+        "examples_key": "meta.assistant.turn_off.examples",
+        "required_facts": [
+          {
+            "role": "light",
+            "type": "state",
+            "units": [],
+            "source": {
+              "relation": "provides",
+              "id": "light.room_<id>"
+            }
+          }
+        ],
+        "optional_facts": [
+          {
+            "role": "light",
+            "type": "state",
+            "units": [],
+            "source": {
+              "relation": "upstream",
+              "id": "light.<room>"
+            }
+          },
+          {
+            "role": "light",
+            "type": "state",
+            "units": [],
+            "source": {
+              "relation": "upstream",
+              "id": "light.<bulb>"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "translations": {
+    "en": {
+      "meta": {
+        "assistant": {
+          "turn_off": {
+            "description": "Request explicit off for a mapped light; access requires a separate write grant.",
+            "examples": [
+              "Turn off the office lights"
+            ],
+            "title": "Turn off the light"
+          },
+          "turn_on": {
+            "description": "Request explicit on for a mapped light; access requires a separate write grant.",
+            "examples": [
+              "Turn on the office lights"
+            ],
+            "title": "Turn on the light"
+          }
+        }
+      }
+    },
+    "de": {
+      "meta": {
+        "assistant": {
+          "turn_off": {
+            "description": "Fordert das Ausschalten eines zugeordneten Lichts an; eine separate Steuerungsfreigabe ist erforderlich.",
+            "examples": [
+              "Schalte das Licht im Büro aus"
+            ],
+            "title": "Licht ausschalten"
+          },
+          "turn_on": {
+            "description": "Fordert das Einschalten eines zugeordneten Lichts an; eine separate Steuerungsfreigabe ist erforderlich.",
+            "examples": [
+              "Schalte das Licht im Büro ein"
+            ],
+            "title": "Licht einschalten"
+          }
+        }
+      }
+    },
+    "pl": {
+      "meta": {
+        "assistant": {
+          "turn_off": {
+            "description": "Wyłączenie przypisanego światła wymaga osobnego uprawnienia do sterowania.",
+            "examples": [
+              "Zgaś światła w gabinecie"
+            ],
+            "title": "Wyłącz światło"
+          },
+          "turn_on": {
+            "description": "Włączenie przypisanego światła wymaga osobnego uprawnienia do sterowania.",
+            "examples": [
+              "Włącz światła w gabinecie"
+            ],
+            "title": "Włącz światło"
+          }
+        }
+      }
+    }
+  },
+  "bindings": {
+    "subjects": [
+      {
+        "key": "light.room_office",
+        "kind": "light",
+        "label": {
+          "en": "Office",
+          "de": "Büro",
+          "pl": "Gabinet"
+        },
+        "fields": {
+          "light": {
+            "entity": "light.room_office"
+          }
+        },
+        "group": {
+          "entity": "light.office_group"
+        }
+      },
+      {
+        "key": "light.desk",
+        "kind": "light",
+        "label": {
+          "en": "Desk",
+          "pl": "Biurko"
+        },
+        "fields": {
+          "light": {
+            "entity": "light.desk"
+          }
+        },
+        "roomKey": "office"
+      }
+    ],
+    "policies": []
+  }
+}

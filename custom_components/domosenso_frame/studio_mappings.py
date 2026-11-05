@@ -8,10 +8,14 @@ import os
 import tempfile
 import uuid
 from .layouts import Conflict,save_verified
+from .assistant_selection import validate_policy, validate_change
 from .assistant_bindings import validate_selections, validate_new_selections
+from .assistant_metadata import validate_sources, validate_source_change
+from .timers import validate_mapping as validate_timers, eligible as timer_eligible
 from .radar import validate as validate_radar, eligible as radar_eligible
+from .control_profiles import validate_mapping as validate_controls
 
-GROUPS={'rooms','air','weather','calendars','media','lights','covers','status','mains','radar','assistant'}
+GROUPS={'rooms','air','weather','calendars','media','lights','covers','status','mains','radar','assistant','timers'}
 CLASSES={'temperature':{'temperature'},'humidity':{'humidity'},'co2':{'carbon_dioxide'},'pm2_5':{'pm25','pm2_5'},'voc':{'volatile_organic_compounds','volatile_organic_compounds_parts'},'nox':{'nitrogen_dioxide'},'power':{'power'},'voltage':{'voltage'}}
 MEDIA_BITS={'play_pause':1|16384,'previous':16,'next':32,'power':128|256,'volume':4,'source':2048}
 
@@ -22,6 +26,7 @@ def media_controls(state):
     return {key:(features&bits)==bits for key,bits in MEDIA_BITS.items()}
 
 def eligible(state,kind):
+    if kind == 'timers': return timer_eligible(state)
     if kind in ('radar_presence','radar_distance'):return radar_eligible(state,kind)
     if not state:return False
     domain=state.entity_id.partition('.')[0]
@@ -31,7 +36,7 @@ def eligible(state,kind):
     return domain=={'media':'media_player','calendars':'calendar','lights':'light','covers':'cover'}.get(kind,kind)
 
 def discover(states):
-    kinds=['radar_presence','radar_distance',*CLASSES,'weather','calendars','media','lights','covers','status','assistant']
+    kinds=['timers','radar_presence','radar_distance',*CLASSES,'weather','calendars','media','lights','covers','status','assistant']
     result={key:[] for key in kinds}
     values=states.values() if isinstance(states,dict) else states.async_all()
     for state in sorted(values,key=lambda s:(not bool(s.attributes.get('component')),s.entity_id)):
@@ -45,7 +50,7 @@ def editable(endpoint):
     s=endpoint.get('studio',{});d=endpoint.get('display',{})
     rooms=s.get('rooms',[{'label':r['label'],'temperature':r['entity']} for r in endpoint.get('temperature',[])])
     rows=lambda values,keys:[{k:v for k,v in row.items() if k in keys} for row in values]
-    return copy.deepcopy({'assistant':endpoint.get('assistant',{'subjects':[],'sensitive':False}),'radar':endpoint.get('radar',{}),'rooms':rows(rooms,{'label','temperature','humidity','roomKey'}),'air':rows(endpoint.get('air',[]),{'label','entity','metric'}),'weather':d.get('weather'),'calendars':endpoint.get('calendars',[]),'media':{'entity':s['media']['entity']} if s.get('media') else {},'lights':rows(s.get('lights',[]),{'label','entity'}),'covers':rows(s.get('covers',[]),{'label','entity'}),'status':rows(s.get('status',d.get('status',[])),{'label','entity'}),'mains':s.get('mains',{})})
+    return copy.deepcopy({'timers':endpoint.get('timers',{'writeEnabled':False,'items':[]}),'assistant':endpoint.get('assistant',{'subjects':[],'sensitive':False}),'radar':endpoint.get('radar',{}),'rooms':rows(rooms,{'label','temperature','humidity','roomKey'}),'air':rows(endpoint.get('air',[]),{'label','entity','metric'}),'weather':d.get('weather'),'calendars':endpoint.get('calendars',[]),'media':{'entity':s['media']['entity']} if s.get('media') else {},'lights':rows(s.get('lights',[]),{'label','entity'}),'covers':rows(s.get('covers',[]),{'label','entity'}),'status':rows(s.get('status',d.get('status',[])),{'label','entity'}),'mains':s.get('mains',{})})
 
 def readiness(endpoint,states):
     s=endpoint.get('studio',{});m=editable(endpoint);result={}
@@ -88,8 +93,19 @@ def merge_patch(endpoint,patch,states=None):
         if not isinstance(v,str) or not re.fullmatch(r'[a-z_]+\.[a-z0-9_]+',v):raise ValueError('Invalid mapping entity')
         if states is not None and v not in previous and not eligible(states.get(v),kind):raise ValueError('Select an existing eligible entity')
     for key,value in patch.items():
-        if key=='assistant':
-            shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive','component_sources'])
+        if key=='timers':
+            out['timers']=validate_timers(value,states,endpoint)
+        elif key=='assistant':
+            shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive','component_sources','source_policy','controls','metadata_sources'])
+            if 'controls' in value:validate_controls(value['controls'])
+            # Controls-only changes preserve every existing read grant. Legacy read
+            # saves preserve independent actuator consent.
+            if set(value) in ({'controls'}, {'metadata_sources'}):value={**copy.deepcopy(out.get('assistant',{'subjects':[],'sensitive':False})),**value}
+            elif 'controls' not in value and 'controls' in out.get('assistant',{}):value={**value,'controls':copy.deepcopy(out['assistant']['controls'])}
+            if 'source_policy' in value:validate_policy(value['source_policy'])
+            elif 'source_policy' in out.get('assistant',{}):value={**value,'source_policy':copy.deepcopy(out['assistant']['source_policy'])}
+            if 'metadata_sources' in value:validate_sources(value['metadata_sources'])
+            elif 'metadata_sources' in out.get('assistant',{}):value={**value,'metadata_sources':copy.deepcopy(out['assistant']['metadata_sources'])}
             validate_selections(value.get('component_sources',[]))
             if not {'subjects','sensitive'}<=set(value) or type(value['sensitive']) is not bool or not isinstance(value['subjects'],list) or len(value['subjects'])>100:raise ValueError('Invalid assistant mapping')
             if any(k in value and type(value[k]) is not bool for k in ('calendar_sensitive','presence_sensitive')):raise ValueError('Invalid sensitive exposure')
@@ -180,8 +196,9 @@ def merge_patch(endpoint,patch,states=None):
     return out
 
 class Mappings:
-    def __init__(self,endpoints,saved,persist,assistant_artifacts=None):
+    def __init__(self,endpoints,saved,persist,assistant_artifacts=None,metadata_candidates=None):
         self.assistant_artifacts=assistant_artifacts
+        self.metadata_candidates=metadata_candidates
         self.endpoints=endpoints;self.defaults=copy.deepcopy(endpoints);self.saved=copy.deepcopy(saved);self.persist=persist;self.lock=asyncio.Lock()
         if not isinstance(saved,dict):raise ValueError('Invalid saved mappings')
         for eid,entry in saved.items():
@@ -198,7 +215,12 @@ class Mappings:
             authorize()
             if revision!=self.get(eid,states)['revision']:raise Conflict('Source mappings changed. Reload mappings; your template draft is retained.')
             def validate_component_change():
+                proposed=patch.get('assistant',{})
+                if 'metadata_sources' in proposed:
+                    previous=self.endpoints[eid].get('assistant',{}).get('metadata_sources',[])
+                    validate_source_change(previous,proposed['metadata_sources'],self.metadata_candidates() if self.metadata_candidates else [])
                 if self.assistant_artifacts is not None and 'assistant' in patch:
+                    if 'source_policy' in patch['assistant']:validate_change(self.endpoints[eid].get('assistant',{}).get('source_policy'),patch['assistant']['source_policy'],self.assistant_artifacts())
                     validate_new_selections(self.endpoints[eid].get('assistant',{}).get('component_sources',[]), patch['assistant'].get('component_sources',[]), self.assistant_artifacts())
             validate_component_change()
             effective=merge_patch(self.endpoints[eid],patch,states);updated=copy.deepcopy(self.saved)
@@ -206,6 +228,7 @@ class Mappings:
             combined=copy.deepcopy(updated.get(eid,{}).get('patch',{}))
             for key,value in patch.items():
                 if key=='mains' and value:combined[key]={field:effective.get('studio',{}).get('mains',{}).get(field) for field in ('power','voltage')}
+                elif key=='assistant':combined[key]=copy.deepcopy(effective['assistant'])
                 elif key=='rooms':combined[key]=copy.deepcopy(effective['studio']['rooms'])
                 else:combined[key]=copy.deepcopy(value)
             updated[eid]={'patch':combined,'sequence':updated.get(eid,{}).get('sequence',0)+1}
@@ -224,6 +247,20 @@ async def save_mappings_verified(store,value,path,executor):
     """Retain the previous envelope even when Store writes bytes but verification fails."""
     def backup():return path.read_bytes() if path.exists() else None
     previous=await executor(backup)
+    def retain_before(suffix):
+        destination=path.with_name(path.name+suffix)
+        if destination.is_symlink():raise OSError('Invalid mapping backup')
+        try:fd=os.open(destination,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        except FileExistsError:return
+        try:
+            with os.fdopen(fd,'wb') as file:
+                file.write(previous if previous is not None else json.dumps({'version':1,'minor_version':1,'key':'domosenso_frame_mappings','data':{}}).encode())
+                file.flush();os.fsync(file.fileno())
+        except Exception:
+            destination.unlink(missing_ok=True);raise
+    for field,suffix in (('source_policy','.pre-source-policy-v1'),('metadata_sources','.pre-assistant-metadata-v2')):
+        if any(field in entry.get('patch',{}).get('assistant',{}) for entry in value.values()):
+            await executor(retain_before,suffix)
     try:await save_verified(store,value,path,'domosenso_frame_mappings',executor)
     except Exception:
         def restore():

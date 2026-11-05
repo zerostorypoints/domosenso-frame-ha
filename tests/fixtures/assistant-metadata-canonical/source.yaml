@@ -1,0 +1,164 @@
+manifest:
+  id: workbench
+  version: 0.1.0
+  assistant:
+    version: 1
+    definition: assistant.yaml
+    bindings: templates/assistant-bindings.yaml.j2
+  artifacts:
+    templates:
+    - templates/assistant-bindings.yaml.j2
+  upstream:
+  - id: sensor.workbench_temperature
+  - id: sensor.workbench_humidity
+definitions:
+  capabilities:
+  - id: workbench.station_temperature
+    revision: 1
+    operation: read
+    query_type: measurement-query.v1
+    answer_type: measurement.v1
+    title_key: meta.assistant.temperature.title
+    description_key: meta.assistant.temperature.description
+    examples_key: meta.assistant.temperature.examples
+    required_facts:
+    - role: temperature
+      type: number
+      units:
+      - °C
+      source:
+        relation: upstream
+        id: sensor.workbench_temperature
+    optional_facts: []
+    policy:
+      evaluator: measurement.v1
+    freshness:
+      basis: measurement
+      max_age_seconds: 900
+    limitations:
+    - stale
+    - missing_source
+    client:
+      version: 2
+      anchors_key: meta.assistant.temperature.anchors
+      selectors:
+      - area
+      - subject
+      presentation:
+        summary:
+        - temperature
+        details:
+        - layout: rows
+          label_key: meta.assistant.temperature.title
+          roles:
+          - temperature
+  - id: workbench.station_humidity
+    revision: 1
+    operation: read
+    query_type: measurement-query.v1
+    answer_type: measurement.v1
+    title_key: meta.assistant.humidity.title
+    description_key: meta.assistant.humidity.description
+    examples_key: meta.assistant.humidity.examples
+    required_facts:
+    - role: humidity
+      type: number
+      units:
+      - '%'
+      source:
+        relation: upstream
+        id: sensor.workbench_humidity
+    optional_facts: []
+    policy:
+      evaluator: measurement.v1
+    freshness:
+      basis: measurement
+      max_age_seconds: 900
+    limitations:
+    - stale
+    - missing_source
+    client:
+      version: 2
+      anchors_key: meta.assistant.humidity.anchors
+      selectors:
+      - area
+      - subject
+      presentation:
+        summary:
+        - humidity
+        details:
+        - layout: rows
+          label_key: meta.assistant.humidity.title
+          roles:
+          - humidity
+bindings:
+  subjects:
+  - key: station
+    kind: room
+    label:
+      en: Station
+    roomKey: office
+    roomLabel:
+      en: Office
+    aliases:
+      en:
+      - workbench
+    roomAliases:
+      en:
+      - study
+    fields:
+      temperature:
+        entity: sensor.workbench_temperature
+      humidity:
+        entity: sensor.workbench_humidity
+  policies: []
+translations:
+  en:
+    meta:
+      assistant:
+        temperature:
+          title: Station temperature
+          description: Reported station temperature.
+          examples:
+          - What is the station temperature?
+          anchors: &id001
+          - temperature
+          - warm
+        humidity:
+          title: Station humidity
+          description: Reported station humidity.
+          examples:
+          - What is the station humidity?
+          anchors: &id002
+          - humidity
+          - humid
+  de:
+    meta:
+      assistant:
+        temperature:
+          title: Station temperature
+          description: Reported station temperature.
+          examples:
+          - What is the station temperature?
+          anchors: *id001
+        humidity:
+          title: Station humidity
+          description: Reported station humidity.
+          examples:
+          - What is the station humidity?
+          anchors: *id002
+  pl:
+    meta:
+      assistant:
+        temperature:
+          title: Station temperature
+          description: Reported station temperature.
+          examples:
+          - What is the station temperature?
+          anchors: *id001
+        humidity:
+          title: Station humidity
+          description: Reported station humidity.
+          examples:
+          - What is the station humidity?
+          anchors: *id002

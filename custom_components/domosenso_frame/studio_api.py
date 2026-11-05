@@ -9,7 +9,9 @@ from homeassistant.core import callback
 from .studio import Library,Conflict,validate_config
 from .studio_runtime import Runtime,installed_durations
 from .studio_data import Data
-from .studio_mappings import Mappings,save_mappings_verified
+from .studio_mappings import Mappings,save_mappings_verified,merge_patch,readiness
+from .assistant_projection import project
+from .timers import validate_targets
 from .studio_actions import validate_action,perform,takeover
 from .layouts import save_verified
 from .assistant_api import inventory_diagnostics
@@ -36,9 +38,20 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
         records=getattr(inventory,'attributes',{}).get('components',[]) if inventory else []
         verified,errors=inventory_diagnostics(state.get('assistant_artifacts',{}),records)
         return verified,{**state.get('assistant_errors',{}),**errors},records
-    mappings=state['studio_mappings']=Mappings(state['endpoints'],mapping_saved,persist_mappings,lambda:assistant_context()[0])
+    from .assistant_metadata import active_metadata, source_candidates
+    def metadata_candidates():
+        records=assistant_context()[2]
+        verified=active_metadata(state.get('assistant_metadata_artifacts',{}),records)
+        return source_candidates(verified,lambda eid:getattr(registry.async_get(eid),'id',None))
+    mappings=state['studio_mappings']=Mappings(state['endpoints'],mapping_saved,persist_mappings,lambda:assistant_context()[0],metadata_candidates)
     def with_assistant_catalog(result):
         verified,errors,records=assistant_context()
+        result['timerDevices']=[{'deviceId':d['deviceId'],'name':d['name'], 'endpoint':d['endpoint']} for d in state['grants'].devices() if d['state']=='approved']
+        result['candidates']['timers']=[r for r in result['candidates'].get('timers',[]) if state.get('timer_source_verified',lambda _:False)(r['entity'])]
+        endpoint=state['endpoints'][result['endpoint']]
+        result['widgets']=readiness(project(endpoint,verified,lambda _:True,endpoint.get('display',{}).get('locale','en')),hass.states)
+        if engine:=state.get('controls'):result['controlCatalog']=engine.profiles.catalog(endpoint)
+        if candidates:=metadata_candidates():result['metadataCatalog']=candidates
         result['assistantCatalog']=assistant_catalog(verified,errors,records,state['endpoints'][result['endpoint']],hass.states)
         return result
     await lib.initialize({id:state['layouts'].get(id) for id,e in state['endpoints'].items() if 'display' in e},installed)
@@ -64,13 +77,31 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
     @websocket_api.async_response
     async def mapping_update(h,c,msg):
         try:
-            result=await mappings.update(msg['endpoint'],msg['revision'],msg['patch'],h.states,lambda:admin(c))
+            def authorize_mapping():
+                admin(c)
+                if 'controls' in msg['patch'].get('assistant',{}):
+                    engine=state.get('controls')
+                    if not engine:raise ValueError('Controls unavailable')
+                    engine.profiles.validate_change(state['endpoints'][msg['endpoint']],msg['patch']['assistant']['controls'])
+                if 'timers' in msg['patch']:
+                    for row in msg['patch']['timers'].get('items',[]):
+                        if not state.get('timer_source_verified',lambda _:False)(row.get('entity')): raise ValueError('Select a core timer helper')
+                    # Validate the whole projected mapping, both before and after
+                    # persistence. This permits a first helper/target on its own
+                    # endpoint and catches removals which strand other views.
+                    effective=dict(state['endpoints'])
+                    effective[msg['endpoint']]=merge_patch(effective[msg['endpoint']],msg['patch'],h.states)
+                    validate_targets(effective,state['grants'].records,previous=state['endpoints'])
+            result=await mappings.update(msg['endpoint'],msg['revision'],msg['patch'],h.states,authorize_mapping)
             data.cache.clear();runtime.reset(msg['endpoint'])
+            if state.get('assistant_metadata_read_enabled'):
+                h.bus.async_fire('domosenso_frame_event',{'endpoint':msg['endpoint'],'kind':'assistant_metadata'})
+            if 'timers' in msg['patch'] and state.get('timers'):await state['timers'].mapping_changed()
             if 'radar' in msg['patch'] and state.get('radar'):state['radar'].reset(msg['endpoint'])
             admin(c);c.send_result(msg['id'],with_assistant_catalog(result))
         except Conflict:deny(c,msg,'mapping_conflict','Source mappings changed. Reload mappings; your template draft is retained.')
         except ValueError as error:deny(c,msg,'mapping_invalid',str(error))
-        except Exception:deny(c,msg,'mapping_save_failed','Could not persist source mappings. Previous live mappings retained; reload before retrying.')
+        except Exception:deny(c,msg,'mapping_save_failed','Could not confirm the mapping save. Reload current mappings before retrying.')
     @command('studio_library')
     @websocket_api.require_admin
     @callback

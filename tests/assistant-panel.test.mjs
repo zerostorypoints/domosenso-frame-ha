@@ -69,3 +69,80 @@ test('manual mapping handoff saves to the frame selected in assistant sources',a
  editor.mappingDraft.assistant.sensitive=true;await editor.saveMapping();
  assert.equal(editor.endpoint,'beta');assert.equal(calls.find(c=>c.type.endsWith('_update')).endpoint,'beta');
 });
+test('future mode uses a bounded proposal and individual checkboxes become exclusions',async()=>{
+ const {el,calls}=await panel('pl');
+ const scope={component:'plants',kind:'plant',roles:['moisture','plant'],capabilities:{'plants.watering_need':1},exclude:[]};
+ el.result.assistantCatalog.components[0].scopes=[scope];el.render();
+ const future=el.querySelector('[data-future]');assert.ok(future);future.click();
+ assert.match(el.textContent,/obecne i przyszłe/);
+ assert.deepEqual(el.draft.source_policy,{version:1,scopes:[scope]});
+ el.querySelector('[data-subject]').click();
+ assert.deepEqual(el.draft.source_policy.scopes[0].exclude,['plant.fern']);
+ el.querySelector('[data-save]').click();await tick();
+ assert.deepEqual(calls.find(x=>x.type.endsWith('_update')).patch.assistant.source_policy.scopes[0].exclude,['plant.fern']);el.remove();
+});
+test('turning future mode off keeps currently selected subjects as exact references',async()=>{
+ const {el}=await panel();const scope={component:'plants',kind:'plant',roles:['moisture','plant'],capabilities:{'plants.watering_need':1},exclude:[]};
+ el.result.assistantCatalog.components[0].scopes=[scope];el.render();el.querySelector('[data-future]').click();
+ el.querySelector('[data-future]').click();assert.deepEqual(el.draft.source_policy.scopes,[]);assert.deepEqual(el.draft.component_sources,[selection]);el.remove();
+});
+test('disabling future mode freezes approved roles and keeps independent exact grants',async()=>{
+ const {el}=await panel();const scope={component:'plants',kind:'plant',roles:['moisture'],capabilities:{'plants.watering_need':1},exclude:[]};
+ const component=el.result.assistantCatalog.components[0];component.scopes=[scope];component.subjects[0].selection.fields.last_watered={entity:'sensor.last_watered'};
+ el.draft.source_policy={version:1,scopes:[structuredClone(scope)]};el.render();el.querySelector('[data-future]').click();
+ assert.deepEqual(el.draft.component_sources,[{component:'plants',subject:'plant.fern',fields:{moisture:{entity:'sensor.moisture'}}}]);
+ el.draft.source_policy={version:1,scopes:[structuredClone(scope)]};
+ el.draft.component_sources=[{component:'plants',subject:'plant.fern',fields:{plant:{entity:'plant.fern'}}}];
+ el.render();el.querySelector('[data-future]').click();
+ assert.deepEqual(el.draft.component_sources[0].fields,{plant:{entity:'plant.fern'},moisture:{entity:'sensor.moisture'}});el.remove();
+});
+test('explicit control grant preserves read selections and starts disabled',async()=>{
+ const {el,calls}=await panel();
+ const grant={source:'studio:light.demo',entity:'light.demo',bindingRevision:'a'.repeat(64),capabilities:{'lights.turn_on':1,'lights.turn_off':1}};
+ el.result.controlCatalog={areas:[{id:'office',name:'Office'}],sources:[{source:grant.source,entity:grant.entity,label:'Desk',kind:'light',members:['light.demo'],grant}]};el.render();
+ assert.equal(el.querySelector('[data-controls-enabled]').checked,false);
+ assert.equal(calls.filter(x=>x.type.endsWith('_update')).length,0);
+ el.querySelector('[data-control-grant]').click();
+ assert.equal(el.draft.controls.enabled,false);
+ el.querySelector('[data-controls-enabled]').click();
+ el.querySelector('[data-save]').click();await tick();
+ const saved=calls.find(x=>x.type.endsWith('_update')).patch.assistant;
+ assert.deepEqual(saved.subjects,original.subjects);assert.equal(saved.sensitive,false);
+ assert.deepEqual(saved.controls,{enabled:true,grants:[grant],mappings:[]});el.remove();
+});
+test('control area/class/wind edits remove prior grant and require saved review',async()=>{
+ const {el}=await panel();const source='studio:cover.demo';
+ el.result.controlCatalog={areas:[{id:'office',name:'Office'}],sources:[{source,entity:'cover.demo',label:'Blind',kind:'cover',reason:'unverified_class',grant:null}]};el.render();
+ assert.ok(el.querySelector('[data-control-area]'));assert.ok(el.querySelector('[data-control-class]'));
+ const area=el.querySelector('[data-control-area]');area.value='office';area.dispatchEvent(new window.Event('change'));
+ assert.deepEqual(el.draft.controls.mappings,[{source,entity:'cover.demo',area:'office'}]);
+ assert.match(el.textContent,/save.*review/i);el.remove();
+});
+test('changed wind binding is reviewed separately while keeping safe direction grants',async()=>{
+ const {el,calls}=await panel();const grant={source:'studio:cover.awning',entity:'cover.awning',bindingRevision:'b'.repeat(64),safetyRevision:'c'.repeat(64),capabilities:{'awnings.extend':1,'awnings.retract':1,'awnings.stop':1}};
+ const updated={...structuredClone(grant),safetyRevision:'d'.repeat(64)};
+ el.draft.controls={enabled:true,grants:[structuredClone(grant)],mappings:[]};
+ el.result.controlCatalog={areas:[],sources:[{source:grant.source,entity:grant.entity,label:'Awning',kind:'awning',members:['cover.awning'],grant:updated}]};el.render();
+ assert.match(el.textContent,/wind.*review/i);assert.equal(el.querySelector('[data-control-grant]').checked,true);
+ const review=el.querySelector('[data-control-wind-review]');assert.ok(review);review.click();
+ assert.deepEqual(el.draft.controls.grants,[updated]);assert.equal(calls.filter(x=>x.type.endsWith('_update')).length,0);
+ el.querySelector('[data-save]').click();await tick();
+ assert.deepEqual(calls.find(x=>x.type.endsWith('_update')).patch.assistant.controls.grants,[updated]);el.remove();
+});
+
+test('v2 metadata read consent saves only after review and keeps legacy selections',async()=>{
+ const {el,calls}=await panel('pl');
+ const grant={capability:'workbench.station_temperature',revision:1,subject:'north-probe',role:'temperature',entity:'sensor.workbench_north',registryId:'fixture'};
+ el.result.metadataCatalog=[{title:{en:'Temperature',pl:'Temperatura'},label:{en:'Probe',pl:'Sonda'},grant}];
+ el.render();
+ el.querySelector('[data-metadata-source]').click();
+ assert.equal(calls.filter(call=>call.type.endsWith('_update')).length,0);
+ el.querySelector('[data-save]').click();
+ await tick();
+ assert.deepEqual(calls.find(call=>call.type.endsWith('_update')).patch.assistant,{...original,metadata_sources:[grant]});
+ el.result.metadataCatalog=[];
+ el.render();
+ el.querySelector('[data-remove-metadata-source]').click();
+ assert.deepEqual(el.draft.metadata_sources,[]);
+ el.remove();
+});

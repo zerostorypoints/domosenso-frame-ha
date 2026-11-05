@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from .assistant_data import calendar_window
 from .assistant_extended import ExtendedRuntime
+from . import timer_api
 from .assistant_contract import load_directory, identity_matches
 
 DOMAIN = 'domosenso_frame'
@@ -70,7 +71,7 @@ def capabilities(hass, connection, msg, grant, policy_read, now=lambda: datetime
         if not isinstance(supported, list) or len(supported) > 64 or any(not isinstance(p, dict) or set(p) != {'queryType', 'answerType'} or any(not isinstance(v, str) or len(v) > 80 for v in p.values()) for p in supported):
             raise ValueError('Invalid supported types')
         endpoint, engine = _engine(hass, connection, grant, msg, policy_read, now)
-        result = {'version': 1, 'asOf': now().isoformat(), 'capabilities': engine.capabilities(endpoint, supported)}
+        result = {'version': 1, 'asOf': now().isoformat(), 'capabilities': engine.capabilities(endpoint, supported) + timer_api.read_capabilities(hass, connection, msg, grant, policy_read, now)}
         current, _ = _engine(hass, connection, grant, msg, policy_read, now)
         if current is not endpoint:
             raise ValueError('Mapping changed')
@@ -93,20 +94,37 @@ def query(hass, connection, msg, grant, policy_read, now=lambda: datetime.now(ti
 
 
 async def query_async(hass, connection, msg, grant, policy_read, now=lambda: datetime.now(timezone.utc)):
+    if msg.get('capability') in timer_api.READS:
+        try:
+            _validate(msg, {'endpoint','version','capability','revision','answerType','arguments'})
+            state, endpoint, _ = timer_api.access(hass, connection, msg, grant, policy_read)
+            import copy
+            mapping = copy.deepcopy(endpoint.get('timers'))
+            result = timer_api.read_query(hass, connection, msg, grant, policy_read, now)
+            if msg['capability'] == 'timers.status': await state['timers'].flush()
+            _, current, _ = timer_api.access(hass, connection, msg, grant, policy_read)
+            if current.get('timers') != mapping or hass.data.get(DOMAIN) is not state: raise ValueError('Mapping changed')
+            # Re-evaluate permissions after persistence without releasing a formerly allowed fact.
+            checked = timer_api.read_query(hass, connection, msg, grant, policy_read, now)
+            if {f['subjectId'] for f in result['facts']} != {f['subjectId'] for f in checked['facts']}: raise ValueError('Authorization changed')
+            connection.send_result(msg['id'], result)
+        except Exception:
+            connection.send_error(msg['id'], 'frame_denied', 'Timer/time unavailable or access denied')
+        return
     if msg.get('capability') == 'weather.forecast':
         try:
             from zoneinfo import ZoneInfo
             _validate(msg, {'endpoint','version','capability','revision','answerType','arguments'})
             if type(msg['revision']) is not int or msg['revision'] != 1 or msg['answerType'] != 'weather.v1': raise ValueError('Unsupported forecast type')
             endpoint, engine = _engine(hass, connection, grant, msg, policy_read, now)
-            snapshot = engine.effective_endpoint(endpoint)
+            snapshot = engine.effective_endpoint(endpoint,'weather.forecast')
             async def service(domain, name, data):
                 kwargs = {'blocking': True, 'return_response': True}
                 if hasattr(connection, 'context'): kwargs['context'] = connection.context(msg)
                 return await hass.services.async_call(domain, name, data, **kwargs)
             def recheck():
                 current, checked = _engine(hass, connection, grant, msg, policy_read, now)
-                return current is endpoint and checked.effective_endpoint(current) == snapshot
+                return current is endpoint and checked.effective_endpoint(current,'weather.forecast') == snapshot
             result = await engine.forecast(endpoint, msg['arguments'], service, ZoneInfo(hass.config.time_zone), recheck)
             connection.send_result(msg['id'], result)
         except Exception:
@@ -124,7 +142,8 @@ async def query_async(hass, connection, msg, grant, policy_read, now=lambda: dat
         endpoint, engine = _engine(hass, connection, grant, msg, policy_read, now)
         args = msg['arguments']; tz = ZoneInfo(hass.config.time_zone); current = now()
         start, end = calendar_window(args, current.astimezone(tz).date(), tz)
-        subjects = engine._calendars(engine.effective_endpoint(endpoint))
+        metadata_snapshot = engine.effective_endpoint(endpoint,'calendar.agenda')
+        subjects = engine._calendars(metadata_snapshot)
         if 'subjectId' in args:
             subjects = [s for s in subjects if s['id'] == args['subjectId']]
         if not subjects:
@@ -135,7 +154,8 @@ async def query_async(hass, connection, msg, grant, policy_read, now=lambda: dat
             kwargs['context'] = connection.context(msg)
         response = await hass.services.async_call('calendar','get_events',{'entity_id':entities,'start_date_time':start.isoformat(),'end_date_time':end.isoformat()},**kwargs)
         current_endpoint, checked = _engine(hass, connection, grant, msg, policy_read, now)
-        current_sources = {s['fields']['state']['entity'] for s in checked._calendars(checked.effective_endpoint(current_endpoint))}
+        if checked.effective_endpoint(current_endpoint,'calendar.agenda') != metadata_snapshot:raise ValueError('Metadata changed')
+        current_sources = {s['fields']['state']['entity'] for s in checked._calendars(checked.effective_endpoint(current_endpoint,'calendar.agenda'))}
         if current_endpoint is not endpoint or not set(entities) <= current_sources or any(not checked.permitted(eid) for eid in entities):
             raise ValueError('Authorization changed')
         facts=[]; evidence=[]; success=0; limitations={'provider_sync_unknown'}
@@ -190,6 +210,7 @@ async def setup(hass, grant, register_command, policy_read):
     from homeassistant.core import callback
 
     state = hass.data[DOMAIN]
+    from . import assistant_metadata, assistant_metadata_api
     from homeassistant.helpers import entity_registry as er
     registry = er.async_get(hass)
     def source_verified(eid):
@@ -199,16 +220,57 @@ async def setup(hass, grant, register_command, policy_read):
     state['assistant_source_verified'] = source_verified
     state['assistant_state_get'] = lambda eid: state_for_assistant(hass.states.get(eid), registry.async_get(eid))
     state['assistant_registry_id'] = lambda eid: getattr(registry.async_get(eid), 'id', None)
-    async def reload_metadata():
-        loaded, errors = await hass.async_add_executor_job(load_directory, hass.config.path())
-        state['assistant_artifacts'] = loaded
-        inventory = hass.states.get('sensor.domosenso_components') if hasattr(hass, 'states') else None
-        records = getattr(inventory, 'attributes', {}).get('components') if inventory else None
-        verified, mismatches = inventory_diagnostics(loaded, records)
-        state['assistant_verified_artifacts'] = verified
-        state['assistant_errors'] = {**errors, **mismatches}
-
+    def area_id_for(eid):
+        from homeassistant.helpers import area_registry as ar, device_registry as dr
+        entry = registry.async_get(eid)
+        if not entry:
+            return None
+        device = dr.async_get(hass).async_get(entry.device_id) if entry.device_id else None
+        area_id = entry.area_id or (device.area_id if device else None)
+        return area_id if area_id and ar.async_get(hass).async_get_area(area_id) else None
+    state['assistant_area_id'] = area_id_for
+    from .assistant_refresh import MetadataRefresh, fingerprint
+    def load_metadata():
+        from .assistant_runtime_contract import load_directory as load_runtime
+        from .timer_contract import load_directory as load_actions
+        from .control_profiles import load_directory as load_controls
+        runtime,runtime_errors=load_runtime(hass.config.path())
+        commands,command_errors=load_actions(hass.config.path())
+        controls,control_errors=load_controls(hass.config.path())
+        loaded,errors=load_directory(hass.config.path())
+        metadata,metadata_errors=assistant_metadata.load_metadata(hass.config.path())
+        return {'control_artifacts':controls,'control_errors':control_errors,'assistant_runtime_artifacts':runtime,'assistant_runtime_errors':runtime_errors,
+                'assistant_action_artifacts':commands,'assistant_action_errors':command_errors,
+                'assistant_artifacts':loaded,'assistant_errors':errors,
+                'assistant_metadata_artifacts':metadata,'assistant_metadata_errors':metadata_errors}
+    def publish_metadata(snapshot):
+        if hass.data.get(DOMAIN) is not state:return
+        changed=state.get('assistant_metadata_artifacts',{})!=snapshot.get('assistant_metadata_artifacts',{})
+        state.update({key:snapshot.get(key,{}) for key in ('control_artifacts','control_errors','assistant_runtime_artifacts','assistant_runtime_errors',
+            'assistant_action_artifacts','assistant_action_errors','assistant_artifacts','assistant_errors',
+            'assistant_metadata_artifacts','assistant_metadata_errors')})
+        inventory=hass.states.get('sensor.domosenso_components') if hasattr(hass,'states') else None
+        records=getattr(inventory,'attributes',{}).get('components') if inventory else None
+        verified,mismatches=inventory_diagnostics(state['assistant_artifacts'],records)
+        state['assistant_verified_artifacts']=verified
+        state['assistant_errors']={**state['assistant_errors'],**mismatches}
+        state['assistant_metadata_revision']=state.get('assistant_metadata_revision',0)+1
+        if data:=state.get('studio_data'):data.cache.clear()
+        if changed and hasattr(hass,'bus'):
+            for endpoint_id in state.get('endpoints',{}):
+                hass.bus.async_fire(DOMAIN+'_event',{'endpoint':endpoint_id,'kind':'assistant_metadata'})
+    refresh=MetadataRefresh(lambda:fingerprint(hass.config.path()),load_metadata,publish_metadata,hass.async_add_executor_job)
+    state['assistant_refresh_close']=refresh.close
+    async def reload_metadata():await refresh.check(force=True)
     await reload_metadata()
+    if hasattr(hass,'bus'):
+        from datetime import timedelta
+        from homeassistant.helpers.event import async_track_time_interval, async_track_state_change_event
+        async def tick(_):await refresh.check()
+        async def inventory_changed(_):await refresh.check(force=True)
+        state.setdefault('subscriptions',set()).update([
+            async_track_time_interval(hass,tick,timedelta(seconds=30)),
+            async_track_state_change_event(hass,['sensor.domosenso_components'],inventory_changed)])
     command = websocket_api.websocket_command
     @command({vol.Required('type'): DOMAIN + '/assistant_capabilities', vol.Required('endpoint'): str, vol.Required('version'): int, vol.Required('supported'): list})
     @callback
@@ -230,5 +292,6 @@ async def setup(hass, grant, register_command, policy_read):
             c.send_error(msg['id'], 'frame_denied', 'Administrator access required')
             return
         c.send_result(msg['id'], {'loaded': len(state['assistant_artifacts']), 'errors': state['assistant_errors']})
+    assistant_metadata_api.setup(hass, grant, register_command, policy_read)
     for handler in (cap, ask, reload):
         register_command(hass, handler)

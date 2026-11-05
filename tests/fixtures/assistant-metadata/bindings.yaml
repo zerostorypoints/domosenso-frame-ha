@@ -1,0 +1,14 @@
+subjects:
+  - key: north-probe
+    kind: sensor
+    label: {en: North probe, de: Nordsonde, pl: Sonda północna}
+    aliases: {en: [north probe], pl: [północnej]}
+    area: {key: studio, label: {en: Studio, de: Atelier, pl: Pracownia}, aliases: {pl: [pracowni]}}
+    fields:
+      temperature: {entity: sensor.workbench_north}
+  - key: south-probe
+    kind: sensor
+    label: {en: South probe, de: Südsonde, pl: Sonda południowa}
+    area: {key: studio, label: {en: Studio, de: Atelier, pl: Pracownia}, aliases: {pl: [pracowni]}}
+    fields:
+      temperature: {entity: sensor.workbench_south}

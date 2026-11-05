@@ -51,14 +51,14 @@ def _bounded(value, depth=0, budget=None):
         raise ValueError('Invalid artifact value')
 
 
-ROUTES = {'climate-air.temperature': ('temperature-query.v1', 'temperature.v1'), 'climate-air.air_readings': ('air-query.v1', 'air.v1'), 'climate-air.air_assessment': ('air-query.v1', 'air.v1'), 'climate-air.humidity': ('environment-query.v1', 'environment.v1'), 'climate-air.status': ('environment-query.v1', 'environment.v1'), 'plants.watering_need': ('plant-query.v1', 'plant-watering.v1'), 'plants.status': ('plant-query.v1', 'plant-status.v1'), 'plants.last_watered': ('plant-query.v1', 'plant-event.v1'), 'plants.water_in': ('plant-query.v1', 'plant-estimate.v1'), 'media.now_playing': ('media-query.v1', 'media.v1'), 'media.status': ('media-query.v1', 'media.v1'), 'media.mains': ('reading-query.v1', 'reading.v1'), 'lights.status': ('light-query.v1', 'lights.v1'), 'calendar.agenda': ('calendar-query.v1', 'calendar.v1'), 'weather.current': ('weather-query.v1', 'weather.v1'), 'weather.forecast': ('weather-query.v1', 'weather.v1'), 'bermuda-presence.observations': ('presence-query.v1', 'presence.v1'), 'awnings.status': ('awning-query.v1', 'awnings.v1'), 'awnings.wind': ('awning-query.v1', 'awnings.v1'), 'audio-sensor.level': ('audio-query.v1', 'audio-level.v1'), 'backup.status': ('status-query.v1', 'backup.v1'), 'ramka.status': ('status-query.v1', 'frame.v1')}
+ROUTES = {'ramka.current_time': ('time-query.v1', 'time.v1'), 'timers.status': ('timer-query.v1', 'timer-status.v1'), 'climate-air.temperature': ('temperature-query.v1', 'temperature.v1'), 'climate-air.air_readings': ('air-query.v1', 'air.v1'), 'climate-air.air_assessment': ('air-query.v1', 'air.v1'), 'climate-air.humidity': ('environment-query.v1', 'environment.v1'), 'climate-air.status': ('environment-query.v1', 'environment.v1'), 'plants.watering_need': ('plant-query.v1', 'plant-watering.v1'), 'plants.status': ('plant-query.v1', 'plant-status.v1'), 'plants.last_watered': ('plant-query.v1', 'plant-event.v1'), 'plants.water_in': ('plant-query.v1', 'plant-estimate.v1'), 'media.now_playing': ('media-query.v1', 'media.v1'), 'media.status': ('media-query.v1', 'media.v1'), 'media.mains': ('reading-query.v1', 'reading.v1'), 'lights.status': ('light-query.v1', 'lights.v1'), 'calendar.agenda': ('calendar-query.v1', 'calendar.v1'), 'weather.current': ('weather-query.v1', 'weather.v1'), 'weather.forecast': ('weather-query.v1', 'weather.v1'), 'bermuda-presence.observations': ('presence-query.v1', 'presence.v1'), 'awnings.status': ('awning-query.v1', 'awnings.v1'), 'awnings.wind': ('awning-query.v1', 'awnings.v1'), 'audio-sensor.level': ('audio-query.v1', 'audio-level.v1'), 'backup.status': ('status-query.v1', 'backup.v1'), 'ramka.status': ('status-query.v1', 'frame.v1')}
 
 @lru_cache(maxsize=1)
 def _validator():
     return Draft202012Validator(json.loads(Path(__file__).with_name('assistant-profile.schema.json').read_text(encoding='utf-8')))
 
 
-def validate_bundle(bundle):
+def validate_bundle(bundle, *, _runtime=False):
     _bounded(bundle)
     try:
         if len(json.dumps(bundle, allow_nan=False, ensure_ascii=False).encode('utf-8')) > _MAX_BYTES:
@@ -71,6 +71,8 @@ def validate_bundle(bundle):
     roles, ids = set(), set()
     for cap in bundle['definitions']['capabilities']:
         cid = cap['id']
+        if not _runtime and ('runtime_source' in cap or cid == 'ramka.current_time'):
+            raise ValueError('Runtime metadata requires assistant-runtime directory')
         route = ('component-query.v1', 'component-description.v1') if cid == component + '.explain' else ROUTES.get(cid)
         if not cid.startswith(component + '.') or cid in ids or cap['revision'] != 1 or cap['operation'] != 'read' or cap['policy']['evaluator'] != cid or route != (cap['query_type'], cap['answer_type']):
             raise ValueError('Unsupported capability')
@@ -93,12 +95,12 @@ def validate_bundle(bundle):
     return bundle
 
 
-def identity_matches(bundle, inventory):
+def identity_matches(bundle, inventory, validator=validate_bundle):
     """Compare a *normalized*, explicitly installed inventory record; unknown shapes fail closed."""
     if not isinstance(inventory, dict) or inventory.get('package') != '' or inventory.get('installed') is False:
         return False
     try:
-        component = validate_bundle(bundle)['component']
+        component = validator(bundle)['component']
         actual, expected = inventory.get('commit'), component['commit']
         if not isinstance(actual, str) or not re.fullmatch(r'[0-9a-f]{12,40}', actual) or not re.fullmatch(r'[0-9a-f]{12,40}', expected):
             return False
@@ -109,7 +111,7 @@ def identity_matches(bundle, inventory):
 
 
 
-def load_directory(config_dir):
+def load_directory(config_dir, directory="assistant", validator=validate_bundle, *, parser=yaml.safe_load, limit=_MAX_BYTES):
     """Read fixed-directory regular YAML using directory-relative no-follow opens."""
     loaded, errors = {}, {}
     descriptors = []
@@ -120,7 +122,7 @@ def load_directory(config_dir):
         try:
             domosenso_fd = os.open('domosenso', flags, dir_fd=root_fd)
             descriptors.append(domosenso_fd)
-            directory_fd = os.open('assistant', flags, dir_fd=domosenso_fd)
+            directory_fd = os.open(directory, flags, dir_fd=domosenso_fd)
             descriptors.append(directory_fd)
         except FileNotFoundError:
             return loaded, errors
@@ -137,10 +139,10 @@ def load_directory(config_dir):
                 with os.fdopen(fd, 'rb') as file:
                     if not stat.S_ISREG(os.fstat(file.fileno()).st_mode):
                         raise ValueError('Not a regular file')
-                    raw = file.read(_MAX_BYTES + 1)
-                if len(raw) > _MAX_BYTES:
+                    raw = file.read(limit + 1)
+                if len(raw) > limit:
                     raise ValueError('Artifact too large')
-                bundle = validate_bundle(yaml.safe_load(raw))
+                bundle = validator(parser(raw))
                 if bundle['component']['id'] != stem:
                     raise ValueError('Filename identity mismatch')
                 loaded[stem] = bundle

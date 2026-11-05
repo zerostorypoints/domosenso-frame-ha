@@ -1,0 +1,485 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "version",
+        "endpoint",
+        "deviceId",
+        "supported"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "type": {
+          "const": "domosenso_frame/control_targets"
+        },
+        "version": {
+          "type": "integer",
+          "const": 1
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "deviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supported": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "actionType",
+              "resultType"
+            ],
+            "properties": {
+              "actionType": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "resultType": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "version",
+        "endpoint",
+        "deviceId",
+        "capability",
+        "revision",
+        "targetId",
+        "targetRevision",
+        "requestId"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "type": {
+          "const": "domosenso_frame/control_action"
+        },
+        "version": {
+          "type": "integer",
+          "const": 1
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "deviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "capability": {
+          "enum": [
+            "lights.turn_on",
+            "lights.turn_off",
+            "covers.open",
+            "covers.close",
+            "covers.stop",
+            "awnings.extend",
+            "awnings.retract",
+            "awnings.stop"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "const": 1
+        },
+        "targetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "targetRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "scopeChoice": {
+          "const": "configured"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "actionType",
+        "resultType",
+        "requestIdPrefix",
+        "expiresAt",
+        "targets"
+      ],
+      "properties": {
+        "version": {
+          "type": "integer",
+          "const": 1
+        },
+        "actionType": {
+          "const": "control-action.v1"
+        },
+        "resultType": {
+          "const": "control-result.v1"
+        },
+        "requestIdPrefix": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "expiresAt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "targets": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "revision",
+              "kind",
+              "scope",
+              "label",
+              "aliases",
+              "room",
+              "capabilities",
+              "partialScope",
+              "memberIds",
+              "limitations"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "revision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "enum": [
+                  "light",
+                  "cover",
+                  "awning"
+                ]
+              },
+              "scope": {
+                "enum": [
+                  "subject",
+                  "room"
+                ]
+              },
+              "label": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "en"
+                    ],
+                    "additionalProperties": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  }
+                ]
+              },
+              "aliases": {
+                "type": "array",
+                "maxItems": 256,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "room": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "label",
+                      "aliases"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      },
+                      "label": {
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "en"
+                            ],
+                            "additionalProperties": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            }
+                          }
+                        ]
+                      },
+                      "aliases": {
+                        "type": "array",
+                        "maxItems": 256,
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "capabilities": {
+                "type": "array",
+                "maxItems": 256,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "revision"
+                  ],
+                  "properties": {
+                    "id": {
+                      "enum": [
+                        "lights.turn_on",
+                        "lights.turn_off",
+                        "covers.open",
+                        "covers.close",
+                        "covers.stop",
+                        "awnings.extend",
+                        "awnings.retract",
+                        "awnings.stop"
+                      ]
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "const": 1
+                    }
+                  }
+                }
+              },
+              "partialScope": {
+                "type": "boolean"
+              },
+              "memberIds": {
+                "type": "array",
+                "maxItems": 256,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "limitations": {
+                "type": "array",
+                "maxItems": 256,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "resultType",
+        "requestId",
+        "capability",
+        "revision",
+        "targetId",
+        "targetRevision",
+        "status",
+        "reason",
+        "outcomes"
+      ],
+      "properties": {
+        "version": {
+          "type": "integer",
+          "const": 1
+        },
+        "resultType": {
+          "const": "control-result.v1"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "capability": {
+          "enum": [
+            "lights.turn_on",
+            "lights.turn_off",
+            "covers.open",
+            "covers.close",
+            "covers.stop",
+            "awnings.extend",
+            "awnings.retract",
+            "awnings.stop"
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "const": 1
+        },
+        "targetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "targetRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "confirmed",
+            "moving",
+            "failed",
+            "unknown"
+          ]
+        },
+        "reason": {
+          "enum": [
+            "command_sent",
+            "state_observed",
+            "motion_observed",
+            "stale_revision",
+            "access_denied",
+            "unavailable",
+            "unsupported",
+            "wind_block",
+            "partial_scope",
+            "partial_failure",
+            "service_error",
+            "outcome_unknown",
+            "request_conflict",
+            "ledger_full",
+            "storage_failed",
+            "invalid_request"
+          ]
+        },
+        "outcomes": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "targetId",
+              "status",
+              "reason",
+              "assumedState"
+            ],
+            "properties": {
+              "targetId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "status": {
+                "enum": [
+                  "accepted",
+                  "confirmed",
+                  "moving",
+                  "failed",
+                  "unknown"
+                ]
+              },
+              "reason": {
+                "enum": [
+                  "command_sent",
+                  "state_observed",
+                  "motion_observed",
+                  "stale_revision",
+                  "access_denied",
+                  "unavailable",
+                  "unsupported",
+                  "wind_block",
+                  "partial_scope",
+                  "partial_failure",
+                  "service_error",
+                  "outcome_unknown",
+                  "request_conflict",
+                  "ledger_full",
+                  "storage_failed",
+                  "invalid_request"
+                ]
+              },
+              "assumedState": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

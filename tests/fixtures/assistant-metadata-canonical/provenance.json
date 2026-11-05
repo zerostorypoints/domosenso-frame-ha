@@ -1,0 +1,13 @@
+{
+  "frameworkRevision": "b53c34dadb49fb49de455a802b22752355b9099e",
+  "sharedSemanticsRevision": "b75547ea6de8594010faffdc19c8ba3afc30e6a5",
+  "sha256": {
+    "custom_components/domosenso_frame/frame-assistant-metadata.schema.json": "4cd10c562cd33bff14c9eadd6ec2a389fa5d49c9c6957c4fc92b92bce917c938",
+    "tests/fixtures/assistant-metadata-canonical/source.yaml": "eef1dc3dd04705bb0efce6f080132fd4e9106bb6e79200af8d212cec6149aa29",
+    "tests/fixtures/assistant-metadata-canonical/temperature-only.json": "f3c13c2b6a4a77587dcd62cefa7c38353261391619f65d351a322052e2f26039",
+    "tests/fixtures/assistant-metadata-canonical/temperature-humidity.json": "2d23c5f2857755817309b1a364f1eeef677fd9c516be8457e6d9c0b7210be881",
+    "tests/fixtures/assistant-metadata-canonical/SHA256SUMS": "4ec7ce0e2c6d3b738292a860b55360c1c4a74504ae1a59c1b648e6d3f4b2053d",
+    "tests/fixtures/shared-semantics/assessment.json": "b3f9f78dae5bb1f83eb20c16e3cf66757cbc070c8849e7ccd5b946f4fd3b4140",
+    "tests/fixtures/shared-semantics/operability.json": "694558b012b2811f6384a63ee3d09ec5a1458eb5e50240e88a4486d41c3f4a42"
+  }
+}

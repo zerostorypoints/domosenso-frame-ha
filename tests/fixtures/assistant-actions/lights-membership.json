@@ -1,0 +1,47 @@
+{
+  "initial": {
+    "light.room_office": {
+      "state": "on",
+      "attributes": {
+        "component": "lights"
+      }
+    },
+    "light.office_group": {
+      "state": "on",
+      "attributes": {
+        "entity_id": [
+          "light.desk"
+        ]
+      }
+    },
+    "light.desk": {
+      "state": "on",
+      "attributes": {}
+    }
+  },
+  "expanded": {
+    "light.room_office": {
+      "state": "on",
+      "attributes": {
+        "component": "lights"
+      }
+    },
+    "light.office_group": {
+      "state": "on",
+      "attributes": {
+        "entity_id": [
+          "light.desk",
+          "light.ceiling"
+        ]
+      }
+    },
+    "light.desk": {
+      "state": "on",
+      "attributes": {}
+    },
+    "light.ceiling": {
+      "state": "off",
+      "attributes": {}
+    }
+  }
+}

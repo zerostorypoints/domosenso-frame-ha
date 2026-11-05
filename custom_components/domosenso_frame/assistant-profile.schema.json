@@ -280,6 +280,9 @@
                 },
                 "minItems": 0,
                 "maxItems": 32
+              },
+              "runtime_source": {
+                "const": "ha_clock"
               }
             },
             "required": [
@@ -297,7 +300,49 @@
               "freshness",
               "limitations"
             ],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "required": [
+                    "runtime_source"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "id": {
+                      "const": "ramka.current_time"
+                    },
+                    "query_type": {
+                      "const": "time-query.v1"
+                    },
+                    "answer_type": {
+                      "const": "time.v1"
+                    },
+                    "required_facts": {
+                      "maxItems": 0
+                    },
+                    "optional_facts": {
+                      "maxItems": 0
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "id": {
+                      "const": "ramka.current_time"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "runtime_source"
+                  ]
+                }
+              }
+            ]
           },
           "minItems": 1,
           "maxItems": 64
@@ -522,7 +567,8 @@
                   "audio_source",
                   "backup",
                   "frame",
-                  "component"
+                  "component",
+                  "timer"
                 ]
               },
               "label": {

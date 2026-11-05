@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Frame assistant v2 private read metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "component", "definitions", "bindings"],
+  "properties": {
+    "schema": {"type": "integer", "const": 2},
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "commit", "dev"],
+      "properties": {
+        "id": {"$ref": "#/$defs/slug"},
+        "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$", "maxLength": 32},
+        "commit": {"type": "string", "pattern": "^[a-f0-9]{7,40}$"},
+        "dev": {"type": "boolean"}
+      }
+    },
+    "definitions": {"$ref": "#/$defs/definitions"},
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subjects"],
+      "properties": {"subjects": {"type": "array", "maxItems": 256, "items": {"$ref": "#/$defs/subject"}}}
+    }
+  },
+  "$defs": {
+    "slug": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 80},
+    "key": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "maxLength": 80},
+    "label": {"type": "string", "minLength": 1, "maxLength": 120, "pattern": "^[^\\u0000-\\u001f\\u007f\\u202a-\\u202e\\u2066-\\u2069]+$"},
+    "phrase": {"type": "string", "minLength": 1, "maxLength": 240, "pattern": "^[^\\u0000-\\u001f\\u007f\\u202a-\\u202e\\u2066-\\u2069]+$"},
+    "localizedLabel": {
+      "type": "object", "required": ["en"], "additionalProperties": false,
+      "properties": {"en": {"$ref": "#/$defs/label"}, "de": {"$ref": "#/$defs/label"}, "pl": {"$ref": "#/$defs/label"}}
+    },
+    "tokens": {"type": "array", "maxItems": 16, "uniqueItems": true, "items": {"$ref": "#/$defs/label"}},
+    "aliases": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"en": {"$ref": "#/$defs/tokens"}, "de": {"$ref": "#/$defs/tokens"}, "pl": {"$ref": "#/$defs/tokens"}}
+    },
+    "examples": {"type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": {"$ref": "#/$defs/phrase"}},
+    "definition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "revision", "title", "description", "anchors", "examples", "source", "evaluator", "selectors"],
+      "properties": {
+        "id": {"type": "string", "maxLength": 120, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*\\.[a-z][a-z0-9_]*$"},
+        "revision": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "title": {"$ref": "#/$defs/localizedLabel"},
+        "description": {"$ref": "#/$defs/localizedLabel"},
+        "anchors": {"allOf": [{"$ref": "#/$defs/aliases"}, {"required": ["en"], "additionalProperties": {"minItems": 1}}]},
+        "examples": {
+          "type": "object", "required": ["en"], "additionalProperties": false,
+          "properties": {"en": {"$ref": "#/$defs/examples"}, "de": {"$ref": "#/$defs/examples"}, "pl": {"$ref": "#/$defs/examples"}}
+        },
+        "source": {
+          "type": "object", "additionalProperties": false, "required": ["role", "relation", "id"],
+          "properties": {
+            "role": {"$ref": "#/$defs/key"},
+            "relation": {"enum": ["provides", "upstream", "consumes"]},
+            "id": {"type": "string", "maxLength": 160, "pattern": "^[a-z_]+\\.[a-z0-9_<>-]+$"},
+            "component": {"$ref": "#/$defs/slug"}
+          }
+        },
+        "evaluator": {
+          "type": "object", "additionalProperties": false, "required": ["kind", "unit", "aggregate", "maxAgeSeconds"],
+          "properties": {
+            "kind": {"const": "measurement"},
+            "unit": {"enum": ["°C", "°F", "%", "ppm", "µg/m³", "dB", "W", "V", "lx", "index"]},
+            "aggregate": {"enum": ["none", "mean", "count"]},
+            "maxAgeSeconds": {"type": "integer", "minimum": 1, "maximum": 86400}
+          }
+        },
+        "selectors": {"type": "array", "maxItems": 2, "uniqueItems": true, "items": {"enum": ["area", "subject"]}}
+      }
+    },
+    "definitions": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"$ref": "#/$defs/definition"}},
+    "area": {
+      "type": "object", "additionalProperties": false, "required": ["key", "label"],
+      "properties": {"key": {"$ref": "#/$defs/key"}, "label": {"$ref": "#/$defs/localizedLabel"}, "aliases": {"$ref": "#/$defs/aliases"}}
+    },
+    "subject": {
+      "type": "object", "additionalProperties": false, "required": ["key", "kind", "label", "fields"],
+      "properties": {
+        "key": {"$ref": "#/$defs/key"},
+        "kind": {"$ref": "#/$defs/key"},
+        "label": {"$ref": "#/$defs/localizedLabel"},
+        "aliases": {"$ref": "#/$defs/aliases"},
+        "area": {"$ref": "#/$defs/area"},
+        "fields": {
+          "type": "object", "minProperties": 1, "maxProperties": 8,
+          "propertyNames": {"$ref": "#/$defs/key"},
+          "additionalProperties": {
+            "type": "object", "additionalProperties": false, "required": ["entity"],
+            "properties": {
+              "entity": {"type": "string", "maxLength": 160, "pattern": "^[a-z_]+\\.[a-z0-9_]+$"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

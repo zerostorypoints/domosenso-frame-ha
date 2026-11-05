@@ -36,7 +36,7 @@ def validate_selections(value):
     return value
 
 
-def selected_subjects(endpoint, artifacts):
+def selected_subjects(endpoint, artifacts, capability=None):
     """Resolve only exact role/source matches in *currently verified* artifacts."""
     result = []
     for chosen in endpoint.get('assistant', {}).get('component_sources', []):
@@ -46,10 +46,17 @@ def selected_subjects(endpoint, artifacts):
         subject = next((row for row in bundle['bindings']['subjects'] if row['key'] == chosen['subject']), None)
         if not subject:
             continue
+        if any(scope['component']==chosen['component'] and scope['kind']==subject['kind'] and subject['key'] in scope['exclude'] for scope in endpoint.get('assistant',{}).get('source_policy',{}).get('scopes',[])):
+            continue
         fields = {role: copy.deepcopy(field) for role, field in subject['fields'].items()
                   if chosen['fields'].get(role) == source_identity(field)}
         if fields:
             result.append({**copy.deepcopy(subject), 'fields': fields, '_component': chosen['component']})
+    from .assistant_selection import dynamic_subjects
+    for subject in dynamic_subjects(endpoint, artifacts, capability):
+        match=next((s for s in result if (s['_component'],s['key'])==(subject['_component'],subject['key'])),None)
+        if match:match['fields'].update(subject['fields'])
+        else:result.append(subject)
     return result
 
 
@@ -81,4 +88,17 @@ def catalog(artifacts, errors, inventory, endpoint, states):
                 subjects.append({'key':row['key'], 'kind':row['kind'], 'label':copy.deepcopy(row['label']),
                                  'selection':selection, 'missing':sum(states.get(f['entity']) is None for f in row['fields'].values())})
         result.append({'id':cid, 'status':'verified' if bundle else errors.get(cid, 'missing_metadata'), 'subjects':subjects, 'explanation':bool(bundle and any(c['id']==cid+'.explain' for c in bundle['definitions']['capabilities']))})
+    from .assistant_selection import proposals
+    for row in result:
+        row['scopes']=proposals(row['id'],artifacts[row['id']]) if row['id'] in artifacts else []
+    resolved=selected_subjects(endpoint,artifacts)
+    for row in result:
+        scopes=[s for s in endpoint.get('assistant',{}).get('source_policy',{}).get('scopes',[]) if s['component']==row['id']]
+        chosen={s['key'] for s in resolved if s['_component']==row['id']}
+        changed=False
+        for scope in scopes:
+            proposal=next((p for p in row['scopes'] if p['kind']==scope['kind']),{})
+            if not set(scope['roles'])<=set(proposal.get('roles',[])) or any(proposal.get('capabilities',{}).get(c)!=v for c,v in scope['capabilities'].items()):changed=True
+        row['coverage']={'discovered':len(row['subjects']),'selected':len(chosen),'excluded':len({k for s in scopes for k in s['exclude']}),
+                         'incomplete':sum(bool(s['missing']) for s in row['subjects'] if s['key'] in chosen),'scopeChanged':changed}
     return {'components':result}

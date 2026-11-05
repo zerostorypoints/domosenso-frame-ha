@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "component": {
+    "id": "timers",
+    "version": "0.1.0",
+    "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "dev": false
+  },
+  "definitions": {
+    "actions": [
+      {
+        "id": "timers.start",
+        "revision": 1,
+        "operation": "timer",
+        "action_type": "timer-action.v1",
+        "result_type": "timer-result.v1",
+        "title_key": "meta.assistant.start.title",
+        "description_key": "meta.assistant.start.description",
+        "examples_key": "meta.assistant.start.examples",
+        "parameters": {
+          "durationSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 86400
+          },
+          "confirmReplace": {
+            "type": "boolean"
+          }
+        },
+        "confirmation": "replace_active",
+        "effect": "start"
+      },
+      {
+        "id": "timers.pause",
+        "revision": 1,
+        "operation": "timer",
+        "action_type": "timer-action.v1",
+        "result_type": "timer-result.v1",
+        "title_key": "meta.assistant.pause.title",
+        "description_key": "meta.assistant.pause.description",
+        "examples_key": "meta.assistant.pause.examples",
+        "parameters": {},
+        "confirmation": "none",
+        "effect": "pause"
+      },
+      {
+        "id": "timers.resume",
+        "revision": 1,
+        "operation": "timer",
+        "action_type": "timer-action.v1",
+        "result_type": "timer-result.v1",
+        "title_key": "meta.assistant.resume.title",
+        "description_key": "meta.assistant.resume.description",
+        "examples_key": "meta.assistant.resume.examples",
+        "parameters": {},
+        "confirmation": "none",
+        "effect": "resume"
+      },
+      {
+        "id": "timers.cancel",
+        "revision": 1,
+        "operation": "timer",
+        "action_type": "timer-action.v1",
+        "result_type": "timer-result.v1",
+        "title_key": "meta.assistant.cancel.title",
+        "description_key": "meta.assistant.cancel.description",
+        "examples_key": "meta.assistant.cancel.examples",
+        "parameters": {},
+        "confirmation": "none",
+        "effect": "cancel"
+      }
+    ]
+  },
+  "translations": {
+    "en": {
+      "meta": {
+        "assistant": {
+          "cancel": {
+            "description": "Cancel timer.",
+            "examples": [
+              "Cancel the timer."
+            ],
+            "title": "Cancel timer"
+          },
+          "pause": {
+            "description": "Pause timer.",
+            "examples": [
+              "Pause the timer."
+            ],
+            "title": "Pause timer"
+          },
+          "resume": {
+            "description": "Resume timer.",
+            "examples": [
+              "Resume the timer."
+            ],
+            "title": "Resume timer"
+          },
+          "start": {
+            "description": "Start timer.",
+            "examples": [
+              "Set a timer for five minutes."
+            ],
+            "title": "Start timer"
+          }
+        }
+      }
+    },
+    "de": {
+      "meta": {
+        "assistant": {
+          "cancel": {
+            "description": "Timer abbrechen.",
+            "examples": [
+              "Brich den Timer ab."
+            ],
+            "title": "Timer abbrechen"
+          },
+          "pause": {
+            "description": "Timer pausieren.",
+            "examples": [
+              "Pausiere den Timer."
+            ],
+            "title": "Timer pausieren"
+          },
+          "resume": {
+            "description": "Timer fortsetzen.",
+            "examples": [
+              "Setze den Timer fort."
+            ],
+            "title": "Timer fortsetzen"
+          },
+          "start": {
+            "description": "Timer starten.",
+            "examples": [
+              "Stelle einen Timer auf fünf Minuten."
+            ],
+            "title": "Timer starten"
+          }
+        }
+      }
+    },
+    "pl": {
+      "meta": {
+        "assistant": {
+          "cancel": {
+            "description": "Anuluj minutnik.",
+            "examples": [
+              "Anuluj minutnik."
+            ],
+            "title": "Anuluj minutnik"
+          },
+          "pause": {
+            "description": "Wstrzymaj minutnik.",
+            "examples": [
+              "Wstrzymaj minutnik."
+            ],
+            "title": "Wstrzymaj minutnik"
+          },
+          "resume": {
+            "description": "Wznów minutnik.",
+            "examples": [
+              "Wznów minutnik."
+            ],
+            "title": "Wznów minutnik"
+          },
+          "start": {
+            "description": "Uruchom minutnik.",
+            "examples": [
+              "Ustaw minutnik na pięć minut."
+            ],
+            "title": "Uruchom minutnik"
+          }
+        }
+      }
+    }
+  },
+  "bindings": {
+    "subjects": [
+      {
+        "key": "general",
+        "kind": "timer",
+        "label": "General",
+        "fields": {
+          "timer": {
+            "entity": "timer.domosenso_general"
+          }
+        }
+      }
+    ],
+    "policies": []
+  }
+}
