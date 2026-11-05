@@ -43,13 +43,13 @@ ANCHORS = {
         'need water|need watering|water the plants|needs watering|needs water|watering|thirsty|should water|water|need a drink|due for water|time to give',
         'podlać|wymaga podlewania|wymagają podlewania|potrzebuje wody|potrzebują wody|podlewania|podlania|wody|brakuje wody|podlanie|potrzebują'),
     'plants.status': (
-        'plant condition|plants reporting problems|plants|plant|houseplants|houseplant|plant health|condition of|doing|wrong with|what condition',
-        'stan roślin|rośliny|roślinom|roślina|roślin|roślinie|roślinami|kwiaty|kwiatów|dolega|stan|w jakim stanie|w jakiej kondycji|jak się ma|w porządku'),
+        'plant condition|plants reporting problems|plants|plant|houseplants|houseplant|plant health|condition of|doing|wrong with|what condition|status',
+        'stan roślin|rośliny|roślinom|roślina|roślin|roślinie|kwiaty|kwiatów|dolega|stan|w jakim stanie|w jakiej kondycji|jak się ma|jak się teraz ma|w porządku|status'),
     'plants.last_watered': (
-        'last watered|watering detected|last had water|last record watering|was watered|watered|last watering|previous watering|last water|watered last|register watering|detected watering|last detect watering',
-        'ostatnio podlano|wykryto podlewanie|była podlewana|podlano|podlewano|podlana|podlanie|podlewanie|podlewana|ostatnio podlana|ostatnie podlewanie|po raz ostatni|ostatniego podlewania|ostatni raz|podlał'),
+        'last watered|watering detected|last had water|last record watering|was watered|watered|last watering|previous watering|last water|watered last|register watering|detected watering|last detect watering|last receive water|water most recently given',
+        'ostatnio podlano|wykryto podlewanie|była podlewana|podlano|podlewano|podlana|ostatnio podlana|ostatnie podlewanie|po raz ostatni|ostatniego podlewania|ostatni raz|ostatnim razem|ostatnim podlewaniu|podlał'),
     'plants.water_in': (
-        'when might|how soon|when will this plant|when will|how long before|another watering|next watering|for its next watering|need watering again|until watering|wait for water|how long until|when do you expect|next water',
+        'how soon|when will this plant|when will|how long before|another watering|next watering|for its next watering|need watering again|until watering|wait for water|how long until|when do you expect|next water|days until|needs watering again|due for its next water',
         'za ile|kiedy może wymagać|kiedy będzie potrzebować|kiedy podlać|kiedy podlewać|następne podlewanie|kiedy znów|poczekać na podlewanie|ile dni|termin podlewania|bez podlewania|znów trzeba|kolejnego podlewania|szacunkowy termin|znowu potrzebować'),
     'media.now_playing': ('now playing|what is playing|what music|song', 'co gra|co leci|jaki utwór|odtwarzana muzyka'),
     'media.status': ('player status|playback status', 'stan odtwarzacza|status odtwarzacza'),
@@ -60,12 +60,12 @@ ANCHORS = {
     'weather.current': ('weather now|current weather|weather|conditions outside|conditions outdoors|outside|raining|outdoor weather',
                         'pogoda teraz|obecna pogoda|pogoda|pogodę|pogody|na dworze|na zewnątrz|pada|raport pogodowy|pogodowy|warunki pogodowe|za oknem'),
     'weather.forecast': ('forecast|will it rain|when will it rain|weather tomorrow|tomorrow weather|weather this week|rain|outlook|forecasted|supposed to be|outdoor weather forecast',
-                         'prognoza|prognozę|prognozy|będzie padać|pogoda jutro|jutro pogoda|pogody na jutro|deszcz|padać|zapowiada|zapowiadają'),
+                         'prognoza|prognozę|prognozy|będzie padać|pogoda jutro|jutro pogoda|pogody na jutro|deszcz|padać|zapowiada|zapowiadają|zapowiadana|prognozuje'),
     'bermuda-presence.observations': ('presence|presence sensor', 'obecność|czujnik obecności'),
     'awnings.status': ('awning status|awning|awnings', 'markizy|markiza|stan markizy'),
     'awnings.wind': ('awning wind|wind alarm', 'alarm wiatrowy|alarm wiatru|markizie grozi wiatr'),
     'audio-sensor.level': ('sound level|noise level', 'poziom dźwięku|poziom hałasu|jaki poziom'),
-    'backup.status': ('backup|backups', 'kopia zapasowa|kopie zapasowe|backup'),
+    'backup.status': ('backup|backups|last backup', 'kopia zapasowa|kopie zapasowe|backup|ostatnia kopia'),
     'ramka.status': ('frame mode|frame status|mode is the frame', 'tryb ramki|stan ramki|status ramki'),
     'ramka.current_time': ('what time|current time|time is it|clock|local time|hour|the time|time check',
                             'która godzina|jaka jest godzina|która jest|godzina|godzinę|godzinę mamy|zegar|zegarze|zegara|aktualny czas|bieżący czas'),
@@ -176,14 +176,14 @@ def _identifier(value):
 
 
 OPTION_VALUES = {
-    'period': {'today': ('today', 'dzisiaj|dziś|dzisiejsze|dzisiejszego'), 'tomorrow': ('tomorrow', 'jutro'),
+    'period': {'today': ('today', 'dzisiaj|dziś|dzisiejsze|dzisiejszego'), 'tomorrow': ('tomorrow|tomorrows', 'jutro|jutrzejsze|jutrzejszego'),
                'next_7_days': ('this week|next seven days|next 7 days|coming seven days|seven days ahead',
                                'w tym tygodniu|najbliższe siedem dni|najbliższych siedem dni|najbliższych siedmiu dni|najbliższych siedmiu dniach|kolejne siedem dni|następne siedem dni|najbliższy tydzień')},
     'filter': {'on': ('on', 'włączone'), 'off': ('off', 'wyłączone'), 'unknown': ('unknown', 'nieznane')},
     'metric': {'score': ('score', 'wskaźnik'), 'co2': ('co2|carbon dioxide', 'co2|dwutlenek węgla|dwutlenku węgla'),
                'pm2_5': ('pm2 5|pm 2 5|particulates|particulate matter', 'pm2 5|pm 2 5|pył|pyłu'), 'voc': ('voc', 'voc'), 'nox': ('nox', 'nox'),
                'power': ('power|watts', 'moc|waty'), 'voltage': ('voltage|volts', 'napięcie|wolty')},
-    'nextOnly': {'yes': ('next event|next appointment|next meeting|appointment comes next|meeting comes next', 'następne wydarzenie|następne spotkanie|najbliższe wydarzenie|najbliższe spotkanie|spotkanie jest następne')},
+    'nextOnly': {'yes': ('next event|next appointment|next meeting|appointment comes next|meeting comes next', 'następne wydarzenie|następne spotkanie|najbliższe wydarzenie|najbliższe spotkanie|spotkanie jest następne|jest następne')},
 }
 
 
@@ -229,6 +229,16 @@ def describe(cap):
                        if isinstance(item, str) and _clean(item)] for lang, values in cap['examples'].items()
                 if lang in ('en', 'de', 'pl') and isinstance(values, list)}
     examples = {lang: values for lang, values in examples.items() if values}
+    # V1 vanilla defaults can reuse a different read's example (air quality for
+    # raw readings, now-playing for player state). Offer the existing owned
+    # anchor rather than advertising an ambiguous or unrelated native command.
+    def words(value):
+        return re.sub(r'[^\w]+', ' ', value.casefold()).strip()
+    for lang, phrases in anchors.items():
+        matching = [example for example in examples.get(lang, []) if any(
+            ' ' + words(phrase) + ' ' in ' ' + words(example) + ' ' for phrase in phrases)]
+        examples[lang] = matching or [phrases[0]]
+
     if identifier == 'ramka.current_time':
         examples.update(en=['Which hour is it?', 'What time is it?', 'What is the time?'],
                         pl=['Która godzina?', 'Która jest godzina?', 'Jaka jest godzina?'])
