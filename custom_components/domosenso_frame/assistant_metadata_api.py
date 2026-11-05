@@ -49,10 +49,11 @@ def _catalog(hass, connection, endpoint_id, locale, grant, policy_read):
         supported = list(legacy.SUPPORTED_PAIRS)
         available = engine.capabilities(current, supported) + timer_api.read_capabilities(
             hass, connection, {'endpoint': endpoint_id, 'supported': supported}, grant, policy_read, instant)
-        projected = {cap['id']: (cap, legacy.describe(cap)) for cap in available}
+        projected = {cap['id']: (cap, metadata.decorate_projection(cap, legacy.describe(cap), artifacts)) for cap in available}
         legacy_scope = [current, state.get('assistant_metadata_revision'), [
             {key: value for key, value in cap.items() if key not in ('availability', 'availabilityAsOf', 'limitations')}
-            for cap in available]]
+            for cap in available], [{key: value for key, value in descriptor.items() if key != 'availability'}
+                                    for _, descriptor in projected.values()]]
     revision = locale + '.' + metadata.token(secret, scope, proof, locale, catalog, legacy_scope)
     return state, catalog, revision, projected
 

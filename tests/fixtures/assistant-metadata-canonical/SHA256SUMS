@@ -1,0 +1,4 @@
+eef1dc3dd04705bb0efce6f080132fd4e9106bb6e79200af8d212cec6149aa29  source.yaml
+f3c13c2b6a4a77587dcd62cefa7c38353261391619f65d351a322052e2f26039  temperature-only.json
+2d23c5f2857755817309b1a364f1eeef677fd9c516be8457e6d9c0b7210be881  temperature-humidity.json
+4cd10c562cd33bff14c9eadd6ec2a389fa5d49c9c6957c4fc92b92bce917c938  ../../../schemas/frame-assistant-metadata.schema.json

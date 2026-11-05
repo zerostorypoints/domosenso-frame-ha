@@ -111,17 +111,21 @@ def resolve_air_policy(metric, entity, unit, override, policies, state_get, perm
     fingerprints={(tuple(p['levels']),p['higher_is_better'],tuple(sorted(p.get('helpers',{}).items()))) for p in candidates}
     if len(fingerprints)!=1:return None,'conflicting_policy'
     policy=dict(candidates[0]); levels=list(policy['levels']); helpers=policy.get('helpers',{})
-    role_order=('fair','poor') if metric=='score' else ('raised','high')
+    role_order=(('fair',),('poor',)) if metric=='score' else (('fair','raised'),('poor','high'))
     if any(not permitted(eid) for eid in helpers.values()):return None,'missing_policy'
     fallback=False
-    for i,role in enumerate(role_order):
-        if role not in helpers:continue
-        state=state_get(helpers[role])
-        try:
-            n=float(state.state)
-            if not math.isfinite(n):raise ValueError()
-            levels[i]=n
-        except (AttributeError,TypeError,ValueError):fallback=True
+    for i, aliases in enumerate(role_order):
+        values=[]
+        for role in aliases:
+            if role not in helpers:continue
+            state=state_get(helpers[role])
+            try:
+                n=float(state.state)
+                if not math.isfinite(n):raise ValueError()
+                values.append(n)
+            except (AttributeError,TypeError,ValueError):fallback=True
+        if len(set(values))>1:return None,'conflicting_policy'
+        if values:levels[i]=values[0]
     if (policy['higher_is_better'] and not levels[0]>levels[1]) or (not policy['higher_is_better'] and not levels[0]<levels[1]):return None,'conflicting_policy'
     policy['levels']=levels;policy['source']='fallback' if fallback or not helpers else 'configured'
     return policy,None
@@ -765,7 +769,9 @@ class Runtime:
                     else:
                         policy_levels=selected['levels']; policy_source=selected['source'];direction='higher_is_better' if selected['higher_is_better'] else 'lower_is_better'
                         a,b=policy_levels
-                        assessment=('good' if value>=a else 'raised' if value>=b else 'high') if selected['higher_is_better'] else ('good' if value<a else 'raised' if value<b else 'high')
+                        from .shared_semantics import assessment as shared_assessment
+                        level=shared_assessment(value,'falling' if selected['higher_is_better'] else 'rising',{'fair':a,'poor':b})
+                        assessment={'good':'good','fair':'raised','poor':'high'}[level['level']] if level else 'unknown'
             usable=status=='usable' and (not capability.endswith('air_assessment') or assessment!='unknown')
             if status=='usable' and not usable:status='unverified'
             evaluated+=int(usable)

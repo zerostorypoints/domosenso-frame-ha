@@ -1,0 +1,288 @@
+{
+ "$comment": "The assessment contract of docs/2026-11-05-shared-home-decisions.md (D1). Every implementation runs every case: a value and limits give expected {level, side?} or null (no level). The string \"NaN\" stands for a non-finite number, which JSON cannot hold.",
+ "version": 1,
+ "cases": [
+  {
+   "name": "range inside",
+   "value": 22,
+   "kind": "range",
+   "limits": {
+    "low": 20,
+    "high": 24
+   },
+   "expected": {
+    "level": "good"
+   }
+  },
+  {
+   "name": "range low endpoint is inside",
+   "value": 20,
+   "kind": "range",
+   "limits": {
+    "low": 20,
+    "high": 24
+   },
+   "expected": {
+    "level": "good"
+   }
+  },
+  {
+   "name": "range high endpoint is inside",
+   "value": 24,
+   "kind": "range",
+   "limits": {
+    "low": 20,
+    "high": 24
+   },
+   "expected": {
+    "level": "good"
+   }
+  },
+  {
+   "name": "range below",
+   "value": 19.9,
+   "kind": "range",
+   "limits": {
+    "low": 20,
+    "high": 24
+   },
+   "expected": {
+    "level": "poor",
+    "side": "low"
+   }
+  },
+  {
+   "name": "range above",
+   "value": 24.1,
+   "kind": "range",
+   "limits": {
+    "low": 20,
+    "high": 24
+   },
+   "expected": {
+    "level": "poor",
+    "side": "high"
+   }
+  },
+  {
+   "name": "range humidity below",
+   "value": 35,
+   "kind": "range",
+   "limits": {
+    "low": 40,
+    "high": 60
+   },
+   "expected": {
+    "level": "poor",
+    "side": "low"
+   }
+  },
+  {
+   "name": "rising below fair",
+   "value": 799,
+   "kind": "rising",
+   "limits": {
+    "fair": 800,
+    "poor": 1200
+   },
+   "expected": {
+    "level": "good"
+   }
+  },
+  {
+   "name": "rising at fair is fair",
+   "value": 800,
+   "kind": "rising",
+   "limits": {
+    "fair": 800,
+    "poor": 1200
+   },
+   "expected": {
+    "level": "fair"
+   }
+  },
+  {
+   "name": "rising between",
+   "value": 1000,
+   "kind": "rising",
+   "limits": {
+    "fair": 800,
+    "poor": 1200
+   },
+   "expected": {
+    "level": "fair"
+   }
+  },
+  {
+   "name": "rising at poor is poor",
+   "value": 1200,
+   "kind": "rising",
+   "limits": {
+    "fair": 800,
+    "poor": 1200
+   },
+   "expected": {
+    "level": "poor"
+   }
+  },
+  {
+   "name": "rising above poor",
+   "value": 3000,
+   "kind": "rising",
+   "limits": {
+    "fair": 800,
+    "poor": 1200
+   },
+   "expected": {
+    "level": "poor"
+   }
+  },
+  {
+   "name": "falling above fair",
+   "value": 90,
+   "kind": "falling",
+   "limits": {
+    "fair": 80,
+    "poor": 60
+   },
+   "expected": {
+    "level": "good"
+   }
+  },
+  {
+   "name": "falling at fair is good",
+   "value": 80,
+   "kind": "falling",
+   "limits": {
+    "fair": 80,
+    "poor": 60
+   },
+   "expected": {
+    "level": "good"
+   }
+  },
+  {
+   "name": "falling just below fair",
+   "value": 79,
+   "kind": "falling",
+   "limits": {
+    "fair": 80,
+    "poor": 60
+   },
+   "expected": {
+    "level": "fair"
+   }
+  },
+  {
+   "name": "falling at poor is fair",
+   "value": 60,
+   "kind": "falling",
+   "limits": {
+    "fair": 80,
+    "poor": 60
+   },
+   "expected": {
+    "level": "fair"
+   }
+  },
+  {
+   "name": "falling below poor",
+   "value": 59,
+   "kind": "falling",
+   "limits": {
+    "fair": 80,
+    "poor": 60
+   },
+   "expected": {
+    "level": "poor"
+   }
+  },
+  {
+   "name": "no value",
+   "value": null,
+   "kind": "range",
+   "limits": {
+    "low": 20,
+    "high": 24
+   },
+   "expected": null
+  },
+  {
+   "name": "value not finite",
+   "value": "NaN",
+   "kind": "rising",
+   "limits": {
+    "fair": 800,
+    "poor": 1200
+   },
+   "expected": null
+  },
+  {
+   "name": "value is text",
+   "value": "22",
+   "kind": "range",
+   "limits": {
+    "low": 20,
+    "high": 24
+   },
+   "expected": null
+  },
+  {
+   "name": "no limits",
+   "value": 22,
+   "kind": "range",
+   "limits": null,
+   "expected": null
+  },
+  {
+   "name": "a range limit missing",
+   "value": 22,
+   "kind": "range",
+   "limits": {
+    "low": 20
+   },
+   "expected": null
+  },
+  {
+   "name": "a rising limit missing",
+   "value": 900,
+   "kind": "rising",
+   "limits": {
+    "fair": 800
+   },
+   "expected": null
+  },
+  {
+   "name": "a limit not a number",
+   "value": 900,
+   "kind": "rising",
+   "limits": {
+    "fair": "800",
+    "poor": 1200
+   },
+   "expected": null
+  },
+  {
+   "name": "unknown kind",
+   "value": 22,
+   "kind": "between",
+   "limits": {
+    "low": 20,
+    "high": 24
+   },
+   "expected": null
+  },
+  {
+   "name": "negative outside temperature",
+   "value": -5,
+   "kind": "range",
+   "limits": {
+    "low": -10,
+    "high": 5
+   },
+   "expected": {
+    "level": "good"
+   }
+  }
+ ]
+}

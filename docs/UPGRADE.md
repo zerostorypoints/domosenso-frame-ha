@@ -67,3 +67,19 @@ prototype may require explicit review/regrant after this correction; they are
 never automatically broadened. Subsequent wind-provider removal/replacement
 blocks extension without removing separately granted retraction/STOP. The native
 request/result schema remains version 1 and unchanged.
+
+## Unreleased canonical native metadata candidate
+
+Use the framework revision pinned in the canonical fixture provenance when compiling
+new client metadata. Do not overwrite older strict read bundles or edit the resulting
+sidecar by hand. Reload validates a complete private file snapshot, and invalid files
+disable their affected sources. The current experimental native file shape has an
+explicit migration reader; convert authoring to the canonical framework source before
+a production opt-in. A compatible candidate Frame is needed for canonical descriptions
+up to 300 characters. No released compatibility minimum is claimed.
+
+New source proposals require exact separate endpoint approval; copying metadata or
+selecting an existing source does not approve a new capability/role/revision. Revoke
+selection to remove access. Keep current v1 behavior during rollout and retain the
+compatible prior integration/configuration for rollback. This change does not enable
+v2 on startup, write helpers, replay controls or install anything on a tablet.

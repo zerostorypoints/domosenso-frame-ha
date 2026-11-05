@@ -32,7 +32,7 @@ def token(key, *parts):
 
 @lru_cache(maxsize=1)
 def _validator():
-    path = Path(__file__).with_name('frame-assistant-metadata.schema.json')
+    path = Path(__file__).with_name('frame-assistant-metadata-experimental.schema.json')
     return Draft202012Validator(json.loads(path.read_text(encoding='utf-8')))
 
 
@@ -50,6 +50,9 @@ class MetadataLoader(yaml.SafeLoader):
 
 
 def validate_bundle(bundle):
+    if isinstance(bundle, dict) and isinstance(bundle.get('definitions'), dict):
+        from .canonical_metadata import normalize
+        return normalize(bundle)
     _bounded(bundle)
     if len(encoded(bundle)) > MAX_CATALOG_BYTES or not _validator().is_valid(bundle):
         raise ValueError('Invalid metadata schema')
@@ -122,7 +125,8 @@ def resolve(artifacts, grants, permitted, registry_id, secret, scope, area_id_fo
                 subject_key = grant.get('subject')
                 subject = subjects.get(subject_key) if isinstance(subject_key, str) else None
                 field = _declared_field(cap, subject) if subject else None
-                if not field or 'attribute' in grant or field != {'entity': grant.get('entity')}:
+                if (not field or set(field) - {'entity', 'maxAgeSeconds'}
+                        or 'attribute' in grant or field['entity'] != grant.get('entity')):
                     continue
                 eid = field['entity']
                 identity = registry_id(eid)
@@ -188,7 +192,7 @@ def evaluate(cap, rows, arguments, state_get, verified, now):
         if state and not attrs.get('restored'):
             if not verified(eid) or report is None or report > now:
                 status = 'unverified'
-            elif (now - report).total_seconds() > policy['maxAgeSeconds']:
+            elif (now - report).total_seconds() > min(policy['maxAgeSeconds'], field.get('maxAgeSeconds', policy['maxAgeSeconds'])):
                 status = 'stale'
             elif attrs.get('unit_of_measurement') != policy['unit']:
                 status = 'invalid_unit'
@@ -223,11 +227,11 @@ def source_candidates(artifacts, registry_id):
             for subject in bundle['bindings']['subjects']:
                 field = _declared_field(cap, subject)
                 identity = registry_id(field['entity']) if field else None
-                if identity:
+                if identity and not set(field) - {'entity', 'maxAgeSeconds'}:
                     candidates.append({
                         'title': cap['title'], 'label': subject['label'],
                         'grant': {'capability': cap['id'], 'revision': cap['revision'],
-                                  'subject': subject['key'], 'role': cap['source']['role'], 'registryId': identity, **field},
+                                  'subject': subject['key'], 'role': cap['source']['role'], 'registryId': identity, 'entity': field['entity']},
                     })
                 if len(candidates) > 512:
                     return []
@@ -257,3 +261,27 @@ def validate_source_change(previous, proposed, candidates):
     allowed = {encoded(item['grant']) for item in candidates} | {encoded(item) for item in previous}
     if any(encoded(item) not in allowed for item in proposed):
         raise ValueError('Metadata sources changed. Reload before granting access.')
+
+
+def decorate_projection(capability, descriptor, artifacts):
+    """Replace vocabulary only after existing v1 authorization produced a descriptor."""
+    from copy import deepcopy
+    matches = [bundle['annotations'][capability['id']] for bundle in artifacts.values()
+               if capability['id'] in bundle.get('annotations', {})]
+    if not matches:
+        return descriptor
+    if len(matches) != 1:
+        raise ValueError('Conflicting canonical descriptor')
+    annotation = matches[0]
+    definition = annotation['definition']
+    if ((definition['query_type'], definition['answer_type']) !=
+            (capability['queryType'], capability['answerType']) or definition['revision'] != capability['revision']):
+        raise ValueError('Canonical descriptor semantics changed')
+    client = definition['client']
+    if descriptor.get('requireSubject') and 'subject' not in client['selectors']:
+        raise ValueError('Canonical descriptor omits mandatory selector')
+    result = deepcopy(descriptor)
+    result.update({key: annotation[key] for key in ('title', 'description', 'anchors', 'examples')})
+    result['selectors'] = [row for row in result['selectors'] if row['type'] in client['selectors']]
+    result['arguments'] = [key for key in result['arguments'] if key in client['selectors']]
+    return result
