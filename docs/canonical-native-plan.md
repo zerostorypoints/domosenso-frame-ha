@@ -46,3 +46,11 @@ The pinned HA 2026.9.2 container, with no external network or host-published por
 passed canonical paired-WebSocket additions/reload/grants/PL-EN wire/area/revocation,
 and the existing experimental metadata/plant-assessment smoke. Integration code
 hashes before/after the data-only addition are identical. No tablet was contacted.
+
+Independent review found one P2: source proposals allowed canonical opaque subject keys
+and 255-character entity IDs, but the save validator applied a blanket 160-character
+identifier regex. Four RED→GREEN regressions now round-trip spaces, Unicode, a path-like
+opaque dictionary key and a valid 255-character entity. Only those two field bounds
+were aligned; entity syntax and capability/role/revision/registry checks stay strict.
+All 417 Python tests and 20 JS tests pass after the correction (one optional real-core
+timer lifecycle test remains skipped). Narrow independent fix recheck is pending.

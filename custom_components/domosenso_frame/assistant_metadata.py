@@ -247,7 +247,9 @@ def validate_sources(rows):
         if (not isinstance(row, dict) or set(row) != required
                 or type(row['revision']) is not int or not 1 <= row['revision'] <= 65535
                 or any(not isinstance(row[key], str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,160}', row[key])
-                       for key in set(row) - {'revision'})
+                       for key in set(row) - {'revision', 'subject', 'entity'})
+                or not isinstance(row['subject'], str) or not 1 <= len(row['subject']) <= 160
+                or not isinstance(row['entity'], str) or not 1 <= len(row['entity']) <= 255
                 or not re.fullmatch(r'[a-z_]+\.[a-z0-9_]+', row['entity'])):
             raise ValueError('Invalid metadata read selection')
         identity = (row['capability'], row['subject'])

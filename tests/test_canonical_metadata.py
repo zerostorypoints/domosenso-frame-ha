@@ -160,3 +160,41 @@ def test_per_source_freshness_can_tighten_but_never_extend_capability_limit():
         assert len(catalog['capabilities']) == 1
         answer, error = query(env, catalog, catalog['capabilities'][0])
         assert not error and answer['facts'][0]['status'] == status
+
+
+@pytest.mark.parametrize('key', ['east station', 'stacja wschód', 'station/../east'])
+def test_offered_canonical_subject_keys_round_trip_without_identifier_reinterpretation(key):
+    env = environment(False)
+    bundle = raw(False); bundle['bindings']['subjects'][0]['key'] = key
+    bundle = metadata.validate_bundle(bundle)
+    env[0].data['domosenso_frame']['assistant_metadata_artifacts']['workbench'] = bundle
+    candidates = metadata.source_candidates({'workbench': bundle}, env[5].get)
+    grants = [row['grant'] for row in candidates]
+    metadata.validate_source_change([], grants, candidates)
+    env[3]['assistant']['metadata_sources'] = grants
+    catalog, error = discover(env)
+    assert not error and len(catalog['capabilities']) == 1
+    assert key not in json.dumps(catalog, ensure_ascii=False)
+    result, error = query(env, catalog, catalog['capabilities'][0])
+    assert not error and result['facts'][0]['value'] == 21
+
+
+def test_offered_long_entity_id_round_trips_with_strict_entity_syntax():
+    env = environment(False)
+    entity = 'sensor.' + 'fictional_' + 'a' * 238
+    bundle = raw(False)
+    bundle['definitions']['capabilities'][0]['required_facts'][0]['source']['id'] = 'sensor.fictional_<id>'
+    bundle['bindings']['subjects'][0]['fields']['temperature']['entity'] = entity
+    bundle = metadata.validate_bundle(bundle)
+    env[0].data['domosenso_frame']['assistant_metadata_artifacts']['workbench'] = bundle
+    env[5][entity] = 'fictional-long-registry'; env[4].add(entity)
+    env[6][entity] = env[6]['sensor.workbench_temperature']
+    candidates = metadata.source_candidates({'workbench': bundle}, env[5].get)
+    grants = [row['grant'] for row in candidates]
+    metadata.validate_source_change([], grants, candidates)
+    env[3]['assistant']['metadata_sources'] = grants
+    catalog, error = discover(env); assert not error
+    answer, error = query(env, catalog, catalog['capabilities'][0])
+    assert not error and answer['facts'][0]['value'] == 21
+    for bad in ['sensor.bad/../entity', 'sensor.' + 'a' * 249]:
+        with pytest.raises(ValueError): metadata.validate_sources([grants[0] | {'entity': bad}])
