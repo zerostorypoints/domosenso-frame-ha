@@ -53,4 +53,10 @@ identifier regex. Four RED→GREEN regressions now round-trip spaces, Unicode, a
 opaque dictionary key and a valid 255-character entity. Only those two field bounds
 were aligned; entity syntax and capability/role/revision/registry checks stay strict.
 All 417 Python tests and 20 JS tests pass after the correction (one optional real-core
-timer lifecycle test remains skipped). Narrow independent fix recheck is pending.
+timer lifecycle test remains skipped). Narrow independent fix recheck passed at 6b59fd7; no remaining technical blockers.
+
+Final independent review: own linked worktrees, initial 85 focused Python and 27 Node
+tests passed, 31 Python fix regressions passed, all 30 existing v1 fixture projections
+validated by the actual Frame consumer. Final Frame fixture refresh passed five tests
+and producer hashes match the committed integration. These are technical results,
+not human approval or F2 release/physical acceptance.
