@@ -1,6 +1,21 @@
 """HA-owned playlist timing; there is no Android scheduler."""
 import time
 
+def view_key(endpoint, negotiated, preview=False):
+    return (endpoint, 'preview' if preview else 'hifisync' if negotiated else 'legacy')
+
+class SessionViews:
+    """Bind a negotiated cursor to a proved connection, never to a request endpoint."""
+    def __init__(self):self.connections={}
+    def remember(self,connection,proof,negotiated,enabled):
+        binding=(proof['deviceId'],proof['endpoint'])
+        if negotiated and enabled:self.connections[connection]=binding
+        elif not enabled or self.connections.get(connection)!=binding:self.connections.pop(connection,None)
+    def key(self,connection,proof,enabled):
+        binding=(proof['deviceId'],proof['endpoint'])
+        return view_key(proof['endpoint'],bool(enabled and self.connections.get(connection)==binding))
+    def forget(self,connection):self.connections.pop(connection,None)
+
 class Runtime:
     def __init__(self):self.endpoints={};self.navigation={}
     def navigate(self,eid,mode):self.navigation[eid]=mode;self.reset(eid)
@@ -32,7 +47,10 @@ class Runtime:
     def step(self,eid,delta,now=None):
         state=self.endpoints.get(eid)
         if state:state['index']=(state['index']+delta)%state['count'];state['since']=time.monotonic() if now is None else now
-    def reset(self,eid):self.endpoints.pop(eid,None)
+    def reset(self,eid):
+        if isinstance(eid,tuple):self.endpoints.pop(eid,None);return
+        for key in list(self.endpoints):
+            if key==eid or isinstance(key,tuple) and key[0]==eid:self.endpoints.pop(key,None)
 
 def installed_durations(raw,page_entity,photo_count=5):
     """Read numeric delays from the installed Ramka script; never infer them from labels."""

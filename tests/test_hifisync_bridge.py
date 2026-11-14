@@ -82,3 +82,35 @@ def test_music_session_uses_player_when_no_helper_for_opted_in_client():
     assert not bridge.music_active(False, True, False, False, 'playing')
     assert not bridge.music_active(True, True, True, False, 'playing')
     assert bridge.music_active(True, True, True, True, 'paused')
+
+
+def test_legacy_reads_and_previews_do_not_reset_modern_navigation():
+    runtime_spec = importlib.util.spec_from_file_location('runtime_interleaved', Path(__file__).parents[1] / 'custom_components/domosenso_frame/studio_runtime.py')
+    runtime = importlib.util.module_from_spec(runtime_spec); runtime_spec.loader.exec_module(runtime)
+    rt = runtime.Runtime()
+    modern = runtime.view_key('frame', True)
+    legacy = runtime.view_key('frame', False)
+    preview = runtime.view_key('frame', True, preview=True)
+    config = {'modes': [{'id': 'ambient', 'screens': [{'id': 'climate', 'requires': [], 'duration': 0, 'widgets': []}]}, {'id': 'media', 'screens': [{'id': 'playing', 'requires': [], 'duration': 0, 'widgets': [{'type': 'media'}]}, {'id': 'system', 'requires': ['hifisync-system'], 'duration': 0, 'widgets': [{'type': 'hifisync-system'}]}]}]}
+    assert rt.select(modern, config, 'ambient', '', True, ['hifisync-system'], '1', 0)[1] == 'playing'
+    assert rt.select(legacy, config, 'ambient', '', False, [], '1', 1)[1] == 'climate'
+    assert rt.select(preview, config, 'ambient', '', True, [], '1', 2)[1] == 'playing'
+    rt.step(modern, 1, 3)
+    assert rt.select(modern, config, 'ambient', '', True, ['hifisync-system'], '1', 4)[1] == 'system'
+    rt.reset('frame')
+    assert rt.select(modern, config, 'ambient', '', True, ['hifisync-system'], '1', 5)[1] == 'playing'
+
+
+def test_action_view_is_bound_to_pairing_and_ignores_legacy_interleaving():
+    runtime_spec = importlib.util.spec_from_file_location('runtime_binding', Path(__file__).parents[1] / 'custom_components/domosenso_frame/studio_runtime.py')
+    runtime = importlib.util.module_from_spec(runtime_spec); runtime_spec.loader.exec_module(runtime)
+    views = runtime.SessionViews(); first = object(); second = object()
+    proof = {'deviceId': 'one', 'endpoint': 'frame', 'state': 'approved'}
+    views.remember(first, proof, True, True)
+    views.remember(first, proof, False, True)
+    assert views.key(first, proof, True) == runtime.view_key('frame', True)
+    assert views.key(second, proof, True) == runtime.view_key('frame', False)
+    assert views.key(first, {**proof, 'endpoint': 'other'}, True) == runtime.view_key('other', False)
+    assert views.key(first, proof, False) == runtime.view_key('frame', False)
+    views.forget(first)
+    assert views.key(first, proof, True) == runtime.view_key('frame', False)

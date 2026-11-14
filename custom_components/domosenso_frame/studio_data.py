@@ -83,10 +83,10 @@ class Data:
         entities.update(display[k] for k in ('weather','mode_entity','page_entity') if display.get(k))
         for eid in entities:
             if not connection.user.permissions.check_entity(eid,POLICY_READ):raise ValueError('Source not permitted')
-    async def snapshot(self,connection,endpoint,offset=0,context=None,capabilities_version=False,hifisync_version=False):
+    async def snapshot(self,connection,endpoint,offset=0,context=None,capabilities_version=False,hifisync_version=False,runtime_key=None):
         from .assistant_projection import project, still_current
         from .assistant_api import active_artifacts
-        hass=self.hass;original=endpoint;self.check(connection,original)
+        hass=self.hass;original=endpoint;runtime_key=runtime_key or endpoint['id'];self.check(connection,original)
         metadata_revision=hass.data[DOMAIN].get('assistant_metadata_revision',0)
         inventory=hass.states.get('sensor.domosenso_components')
         records=getattr(inventory,'attributes',{}).get('components') if inventory else None
@@ -177,7 +177,7 @@ class Data:
         mains={k:measure(eid,k) for k,eid in sources.get('mains',{}).items()}
         widgets=readiness(endpoint,hass.states);capabilities=[k for k,v in widgets.items() if v['ready'] and k not in ('clock','navigation','media-controls')]
         if widgets['rooms']['ready']:capabilities.append('temperature')
-        library=hass.data[DOMAIN]['studio_library'];saved_config=library.config(endpoint['id']);config=saved_config if hifisync_version else legacy_config(saved_config);runtime=sources.get('runtime',{});mode=self.runtime.mode(endpoint['id'],plain(runtime.get('mode'),'ambient'));page=plain(runtime.get('page'));music=plain(runtime.get('music_view'))=='on'
+        library=hass.data[DOMAIN]['studio_library'];saved_config=library.config(endpoint['id']);config=saved_config if hifisync_version else legacy_config(saved_config);runtime=sources.get('runtime',{});mode=self.runtime.mode(runtime_key,plain(runtime.get('mode'),'ambient'));page=plain(runtime.get('page'));music=plain(runtime.get('music_view'))=='on'
         def current_hifisync():
             provider=hass.data.get('hifisync',{}).get('studio_snapshot_v1')
             return projection(endpoint,hifisync_version,permitted,provider,dt_util.utcnow())
@@ -188,8 +188,8 @@ class Data:
             capabilities.append('hifisync-system')
             if hifisync['snapshot']['room'] is not None:capabilities.append('hifisync-room')
         applied=library.saved['applied'].get(endpoint['id']);revision=str(applied['revision'])+applied['templateId'] if applied else 'classic'
-        if (applied and applied.get('runtimeOwned')) or not runtime.get('scripts') or endpoint['id'] in self.runtime.navigation:
-            active,screen,elapsed,shield=self.runtime.select(endpoint['id'],config,mode,page,music,capabilities,revision)
+        if (applied and applied.get('runtimeOwned')) or not runtime.get('scripts') or runtime_key in self.runtime.navigation:
+            active,screen,elapsed,shield=self.runtime.select(runtime_key,config,mode,page,music,capabilities,revision)
         else:
             # Until explicit Apply, preserve the old HA-selected layout/page and its scheduler.
             active=base['mode'] if base['mode'] in ('controls','ambient','media') else 'ambient'
@@ -255,7 +255,7 @@ class Data:
         if sources.get('photos'):
             current=next(s for m in config['modes'] for s in m['screens'] if m['id']==active and s['id']==screen)
             pw=next((w for w in current['widgets'] if w['type']=='photos'),None);interval=pw.get('options',{}).get('interval',10) if pw else 10;count=pw.get('options',{}).get('count',5) if pw else 5;index=int(elapsed//interval)%count
-            exposure=self.runtime.endpoints.get(eid,{}).get('since',0)
+            exposure=self.runtime.endpoints.get(runtime_key,{}).get('since',0)
             async def loadphoto():return await hass.async_add_executor_job(photos,sources['photos']['directory'],hass.config.path('www'),index,count,exposure)
             photo=await self.cached((uid,eid,generation,'photo',exposure,index,count),60,loadphoto)
         self.check(connection,endpoint,original)

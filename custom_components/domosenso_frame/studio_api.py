@@ -7,7 +7,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.helpers.storage import Store
 from homeassistant.core import callback
 from .studio import Library,Conflict,validate_config
-from .studio_runtime import Runtime,installed_durations
+from .studio_runtime import Runtime,SessionViews,view_key,installed_durations
 from .studio_data import Data
 from .studio_mappings import Mappings,save_mappings_verified,merge_patch,readiness
 from .assistant_projection import project
@@ -55,7 +55,7 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
         result['assistantCatalog']=assistant_catalog(verified,errors,records,state['endpoints'][result['endpoint']],hass.states)
         return result
     await lib.initialize({id:state['layouts'].get(id) for id,e in state['endpoints'].items() if 'display' in e},installed)
-    runtime=state['studio_runtime']=Runtime();data=state['studio_data']=Data(hass,reading,display_snapshot,runtime);state['studio_clients']={}
+    runtime=state['studio_runtime']=Runtime();data=state['studio_data']=Data(hass,reading,display_snapshot,runtime);state['studio_clients']={};views=SessionViews()
     def command(name,fields={}):return websocket_api.websocket_command({vol.Required('type'):'domosenso_frame/'+name,**fields})
     def deny(c,msg,code='studio_failed',message='Frame operation unavailable or access denied'):c.send_error(msg['id'],code,message)
     def admin(c):
@@ -129,7 +129,7 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
     async def dashboard(h,c,msg):
         try:
             if msg.get('hifisyncVersion')==1:admin(c)
-            endpoint=state['endpoints'][msg['endpoint']];result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1,msg.get('hifisyncVersion')==1)
+            endpoint=state['endpoints'][msg['endpoint']];result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1,msg.get('hifisyncVersion')==1,view_key(endpoint['id'],msg.get('hifisyncVersion')==1,preview=True))
             if msg.get('hifisyncVersion')==1:admin(c)
             result['readOnly']=True;c.send_result(msg['id'],result)
         except Exception:deny(c,msg)
@@ -137,17 +137,20 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
     @websocket_api.async_response
     async def display(h,c,msg):
         try:
-            proof,endpoint=grant(h,c);result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1,msg.get('hifisyncVersion')==1);current_proof,current=grant(h,c)
+            proof,endpoint=grant(h,c);negotiated=msg.get('hifisyncVersion')==1 and endpoint.get('hifisync') is True
+            result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1,msg.get('hifisyncVersion')==1,view_key(endpoint['id'],negotiated));current_proof,current=grant(h,c)
             if current_proof!=proof or current is not endpoint:raise ValueError('Endpoint changed')
+            views.remember(c,proof,negotiated,endpoint.get('hifisync') is True)
+            c.subscriptions.setdefault('domosenso_frame_studio_view',lambda:views.forget(c))
             state['studio_clients'][endpoint['id']]=time.monotonic();c.send_result(msg['id'],result)
         except Exception:deny(c,msg)
     @command('studio_action',{vol.Required('action'):validate_action})
     @websocket_api.async_response
     async def action(h,c,msg):
         try:
-            _,endpoint=grant(h,c);rt=runtime.endpoints.get(endpoint['id']);now=time.monotonic()
+            proof,endpoint=grant(h,c);key=views.key(c,proof,endpoint.get('hifisync') is True);rt=runtime.endpoints.get(key);now=time.monotonic()
             if rt and now<rt['shield']:raise ValueError('Touch shield active')
-            await perform(h,c,endpoint,msg['action'],c.context(msg),lambda:grant(h,c));c.send_result(msg['id'],{'ok':True})
+            await perform(h,c,endpoint,msg['action'],c.context(msg),lambda:grant(h,c),key);c.send_result(msg['id'],{'ok':True})
         except Exception:deny(c,msg)
     for handler in (mapping_get,mapping_update,library,update,dashboard,display,action):register_command(hass,handler)
     await register_static_paths(hass,[StaticPathConfig('/domosenso_frame/ui/0.2.0',str(Path(__file__).parent/'ui/0.2.0'),False),StaticPathConfig('/domosenso_frame/ui/0.2.1',str(Path(__file__).parent/'ui/0.2.1'),False)])
