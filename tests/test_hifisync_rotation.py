@@ -72,13 +72,13 @@ def test_pause_mapping_requires_input_boolean_and_is_permission_checked():
     with pytest.raises(ValueError): sources.validate_sources({'runtime': {'paused': 'sensor.demo'}})
 
 
-def test_pause_without_navigation_preserves_elapsed_and_off_never_rotates():
+def test_resume_gives_current_page_its_full_duration_and_off_never_rotates():
     rt=runtime.Runtime();assert select(rt, 0)=='playing'
     assert select(rt, 5, paused=True)=='playing'
     assert select(rt, 105, paused=True)=='playing'
     assert select(rt, 110)=='playing'
-    assert select(rt, 119)=='playing'
-    assert select(rt, 120)=='system'
+    assert select(rt, 124)=='playing'
+    assert select(rt, 125)=='system'
     rt=runtime.Runtime();config=configuration()
     assert select(rt, 0, config=config, mode='off')=='ambient'
     assert select(rt, 100, config=config, mode='off')=='ambient'

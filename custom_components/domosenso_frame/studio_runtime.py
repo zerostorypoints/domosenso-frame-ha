@@ -41,7 +41,7 @@ class Runtime:
         paused=bool(paused and hifi_music and mode!='off')
         if paused and state.get('paused_at') is None:state['paused_at']=now
         elif not paused and state.get('paused_at') is not None:
-            state['since']+=max(0,now-state['paused_at']);state['paused_at']=None
+            state['since']=now;state['paused_at']=None
         elapsed=max(0,(state['paused_at'] if paused else now)-state['since']);visited=0
         while not paused and mode not in ('calendar','off') and visible[state['index']]['duration'] and elapsed>=visible[state['index']]['duration'] and visited<1000:
             duration=visible[state['index']]['duration'];elapsed-=duration;state['since']+=duration;state['index']=(state['index']+1)%len(visible);visited+=1
