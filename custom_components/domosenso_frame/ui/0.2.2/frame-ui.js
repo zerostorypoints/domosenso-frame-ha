@@ -93,7 +93,7 @@ const CSS=`
  --measure-line:#80a8bf;--measure-soft:#7293a4;--measure-dim:#394c55;--measure-fill:#141f26;
  --color-amber-primary:#e8a04a;--color-bg-deep:#0d0b08;--color-ink:#f4ead2;--color-ink-3:#b7a98e;--font-jetbrains-mono:monospace}
 [data-hifisync-drawing=system]{grid-template-rows:minmax(0,1fr) auto}
-.hifisync-drawing .sc-rack{min-width:0;min-height:0;margin:0;padding:5px}
+.hifisync-drawing .sc-rack{display:block;min-width:0;min-height:0;margin:0;padding:5px}
 .hifisync-drawing .sc-rack svg{width:100%;height:100%;display:block}
 .hifisync-drawing .sc-rack svg :where(path,line,circle,rect,polyline,polygon,ellipse){vector-effect:non-scaling-stroke}
 .hifisync-drawing .sc-rack-hit{cursor:pointer}
