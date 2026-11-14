@@ -114,3 +114,16 @@ def test_action_view_is_bound_to_pairing_and_ignores_legacy_interleaving():
     assert views.key(first, proof, False) == runtime.view_key('frame', False)
     views.forget(first)
     assert views.key(first, proof, True) == runtime.view_key('frame', False)
+
+
+def test_drawing_requires_handshake_and_malformed_data_does_not_discard_snapshot():
+    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    value = sample()
+    component = value['snapshot']['system']['components'][0]
+    component['drawing'] = {'rackKind':'spk', 'widthCm':20, 'drivers':[{'role':'woofer','size':16.5,'count':2,'face':'front','secret':'x'}], 'secret':'x'}
+    assert 'drawing' not in bridge.sanitize(value, now)['snapshot']['system']['components'][0]
+    drawing = bridge.sanitize(value, now, drawings=True)['snapshot']['system']['components'][0]['drawing']
+    assert drawing == {'rackKind':'spk', 'widthCm':20, 'drivers':[{'role':'woofer','size':16.5,'count':2,'face':'front'}]}
+    for invalid in [{'rackKind':'other'}, {'rackKind':'spk','widthCm':1001}, {'rackKind':'spk','drivers':[{'role':'x','size':True,'count':1}]}, {'rackKind':'spk','floorstanding':1}]:
+        component['drawing'] = invalid
+        assert 'drawing' not in bridge.sanitize(value, now, drawings=True)['snapshot']['system']['components'][0]

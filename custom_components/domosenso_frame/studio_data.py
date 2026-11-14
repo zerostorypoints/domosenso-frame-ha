@@ -83,7 +83,7 @@ class Data:
         entities.update(display[k] for k in ('weather','mode_entity','page_entity') if display.get(k))
         for eid in entities:
             if not connection.user.permissions.check_entity(eid,POLICY_READ):raise ValueError('Source not permitted')
-    async def snapshot(self,connection,endpoint,offset=0,context=None,capabilities_version=False,hifisync_version=False,runtime_key=None):
+    async def snapshot(self,connection,endpoint,offset=0,context=None,capabilities_version=False,hifisync_version=False,runtime_key=None,hifisync_drawings_version=False):
         from .assistant_projection import project, still_current
         from .assistant_api import active_artifacts
         hass=self.hass;original=endpoint;runtime_key=runtime_key or endpoint['id'];self.check(connection,original)
@@ -180,7 +180,7 @@ class Data:
         library=hass.data[DOMAIN]['studio_library'];saved_config=library.config(endpoint['id']);config=saved_config if hifisync_version else legacy_config(saved_config);runtime=sources.get('runtime',{});mode=self.runtime.mode(runtime_key,plain(runtime.get('mode'),'ambient'));page=plain(runtime.get('page'));music=plain(runtime.get('music_view'))=='on'
         def current_hifisync():
             provider=hass.data.get('hifisync',{}).get('studio_snapshot_v1')
-            return projection(endpoint,hifisync_version,permitted,provider,dt_util.utcnow())
+            return projection(endpoint,hifisync_version,permitted,provider,dt_util.utcnow(),drawings=hifisync_drawings_version)
         music=music_active(hifisync_version,endpoint.get('hifisync') is True,bool(runtime.get('music_view')),music,ms.state if ms else None)
         playback=music
         hifisync=current_hifisync() if playback else None

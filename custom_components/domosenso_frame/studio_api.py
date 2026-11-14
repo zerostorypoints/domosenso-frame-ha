@@ -124,21 +124,21 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
         except Conflict:deny(c,msg,'studio_conflict','Library changed. Reload the library; your draft is retained.')
         except ValueError as error:deny(c,msg,'studio_invalid',str(error))
         except Exception:deny(c,msg,'studio_save_failed','Could not persist the template library. Previous layout retained.')
-    @command('studio_dashboard',{vol.Required('endpoint'):str,vol.Optional('capabilitiesVersion'):version1,vol.Optional('hifisyncVersion'):version1,vol.Optional('offset',default=0):vol.All(int,vol.Range(min=-30,max=30))})
+    @command('studio_dashboard',{vol.Required('endpoint'):str,vol.Optional('capabilitiesVersion'):version1,vol.Optional('hifisyncVersion'):version1,vol.Optional('hifisyncDrawingsVersion'):version1,vol.Optional('offset',default=0):vol.All(int,vol.Range(min=-30,max=30))})
     @websocket_api.async_response
     async def dashboard(h,c,msg):
         try:
             if msg.get('hifisyncVersion')==1:admin(c)
-            endpoint=state['endpoints'][msg['endpoint']];result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1,msg.get('hifisyncVersion')==1,view_key(endpoint['id'],msg.get('hifisyncVersion')==1,preview=True))
+            endpoint=state['endpoints'][msg['endpoint']];result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1,msg.get('hifisyncVersion')==1,view_key(endpoint['id'],msg.get('hifisyncVersion')==1,preview=True),msg.get('hifisyncDrawingsVersion')==1)
             if msg.get('hifisyncVersion')==1:admin(c)
             result['readOnly']=True;c.send_result(msg['id'],result)
         except Exception:deny(c,msg)
-    @command('studio_display',{vol.Optional('capabilitiesVersion'):version1,vol.Optional('hifisyncVersion'):version1,vol.Optional('offset',default=0):vol.All(int,vol.Range(min=-30,max=30))})
+    @command('studio_display',{vol.Optional('capabilitiesVersion'):version1,vol.Optional('hifisyncVersion'):version1,vol.Optional('hifisyncDrawingsVersion'):version1,vol.Optional('offset',default=0):vol.All(int,vol.Range(min=-30,max=30))})
     @websocket_api.async_response
     async def display(h,c,msg):
         try:
             proof,endpoint=grant(h,c);negotiated=msg.get('hifisyncVersion')==1 and endpoint.get('hifisync') is True
-            result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1,msg.get('hifisyncVersion')==1,view_key(endpoint['id'],negotiated));current_proof,current=grant(h,c)
+            result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1,msg.get('hifisyncVersion')==1,view_key(endpoint['id'],negotiated),msg.get('hifisyncDrawingsVersion')==1);current_proof,current=grant(h,c)
             if current_proof!=proof or current is not endpoint:raise ValueError('Endpoint changed')
             views.remember(c,proof,negotiated,endpoint.get('hifisync') is True)
             c.subscriptions.setdefault('domosenso_frame_studio_view',lambda:views.forget(c))

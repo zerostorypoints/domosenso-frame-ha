@@ -20,7 +20,43 @@ def legacy_config(config):
     return result
 
 
-def sanitize(value, now):
+def sanitize_drawing(value):
+    """Copy a bounded drawing, or omit it when any recognized field is invalid."""
+    try:
+        if not isinstance(value, dict) or value['rackKind'] not in ('amp', 'phono', 'tt', 'src', 'spk', 'sub', 'dac'):
+            return None
+        result = {'rackKind': value['rackKind']}
+        def bounded_number(v, maximum):
+            if type(v) not in (int, float) or not math.isfinite(v) or not .01 <= v <= maximum:
+                raise ValueError('Invalid drawing number')
+            return v
+        def bounded_text(v):
+            if not isinstance(v, str) or not 1 <= len(v) <= 80:
+                raise ValueError('Invalid drawing text')
+            return v
+        for key in ('widthCm', 'heightCm', 'depthCm'):
+            if key in value: result[key] = bounded_number(value[key], 1000)
+        for key in ('floorstanding', 'active'):
+            if key in value:
+                if type(value[key]) is not bool: raise ValueError('Invalid drawing boolean')
+                result[key] = value[key]
+        if 'bassAlignment' in value: result['bassAlignment'] = bounded_text(value['bassAlignment'])
+        if 'drivers' in value:
+            drivers = value['drivers']
+            if not isinstance(drivers, list) or len(drivers) > 16: raise ValueError('Invalid drivers')
+            result['drivers'] = []
+            for driver in drivers:
+                count = driver['count']
+                if type(count) is not int or not 1 <= count <= 32: raise ValueError('Invalid driver count')
+                clean = {'role': bounded_text(driver['role']), 'size': bounded_number(driver['size'], 100), 'count': count}
+                for key in ('type', 'face'):
+                    if key in driver: clean[key] = bounded_text(driver[key])
+                result['drivers'].append(clean)
+        return result
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return None
+
+def sanitize(value, now, drawings=False):
     """Accept only a bounded, unexpired v1 presentation payload; never pass extras."""
     try:
         if not isinstance(value, dict) or type(value['stale']) is not bool:
@@ -51,7 +87,11 @@ def sanitize(value, now):
             quantity = item['quantity']
             if type(quantity) is not int or not 1 <= quantity <= 64:
                 return None
-            out.append({'id': text(item['id']), 'label': text(item['label']), 'role': text(item['role']), 'quantity': quantity})
+            clean = {'id': text(item['id']), 'label': text(item['label']), 'role': text(item['role']), 'quantity': quantity}
+            if drawings:
+                drawing = sanitize_drawing(item.get('drawing'))
+                if drawing is not None: clean['drawing'] = drawing
+            out.append(clean)
         if any(not isinstance(row, list) or len(row) > 32 for row in rack):
             return None
         ids = {item['id'] for item in out}
@@ -82,12 +122,12 @@ def sanitize(value, now):
         return None
 
 
-def projection(endpoint, negotiated, permitted, provider, now):
+def projection(endpoint, negotiated, permitted, provider, now, drawings=False):
     player = endpoint.get('studio', {}).get('media', {}).get('entity')
     if not (negotiated and endpoint.get('hifisync') is True and player and callable(provider) and permitted(player)):
         return None
     try:
-        return sanitize(provider(player), now)
+        return sanitize(provider(player), now, drawings=drawings)
     except Exception:
         return None
 
