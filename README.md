@@ -124,7 +124,15 @@ domosenso_frame:
       studio:
         media:
           entity: media_player.example
+        runtime:
+          paused: input_boolean.example_paused
 ```
+
+The optional `runtime.paused` mapping points to an existing `input_boolean` and
+requires the frame user to have read permission. When it is on, HiFiSync Music
+rotation pauses; manual navigation still works, and the current screen resumes
+its remaining duration when it is off. No helper or write action is created.
+Screens with a duration of zero remain manual-only.
 
 Apply a copy of the HiFiSync template in Template Studio after connecting an
 updated paired Frame. Existing applied templates are preserved. An explicitly saved HiFiSync setting overrides the YAML default. Reload or restart

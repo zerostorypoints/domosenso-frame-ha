@@ -189,7 +189,7 @@ class Data:
             if hifisync['snapshot']['room'] is not None:capabilities.append('hifisync-room')
         applied=library.saved['applied'].get(endpoint['id']);revision=str(applied['revision'])+applied['templateId'] if applied else 'classic'
         if (applied and applied.get('runtimeOwned')) or not runtime.get('scripts') or runtime_key in self.runtime.navigation:
-            active,screen,elapsed,shield=self.runtime.select(runtime_key,config,mode,page,music,capabilities,revision)
+            active,screen,elapsed,shield=self.runtime.select(runtime_key,config,mode,page,music,capabilities,revision,paused=plain(runtime.get('paused'))=='on')
         else:
             # Until explicit Apply, preserve the old HA-selected layout/page and its scheduler.
             active=base['mode'] if base['mode'] in ('controls','ambient','media') else 'ambient'

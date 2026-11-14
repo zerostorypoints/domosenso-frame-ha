@@ -50,7 +50,8 @@ def validate_sources(value):
         path=value['photos'].get('directory','')
         if not isinstance(path,str) or not path or Path(path).is_absolute() or '..' in Path(path).parts:raise ValueError('Photo directory must be relative to www')
     if 'runtime' in value:
-        runtime=value['runtime'];shape(runtime,['mode','page','music_view','approach','scripts','legacy_loop','legacy_automations','durations'])
+        runtime=value['runtime'];shape(runtime,['mode','page','music_view','paused','approach','scripts','legacy_loop','legacy_automations','durations'])
+        if 'paused' in runtime:entity(runtime['paused'],'input_boolean')
         for key in ('mode','page','music_view','approach','legacy_loop'):
             if key in runtime:entity(runtime[key],'script' if key=='legacy_loop' else None)
         shape(runtime.get('scripts',{}),['controls','ambient','media','calendar'])
