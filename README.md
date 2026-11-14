@@ -105,3 +105,36 @@ household configuration, calendar contents or other private data in issues.
 commit `81eea61bebe972305a17e5576d04c6abdbe05604`. Packaging changes add installation
 instructions, standalone repository links and HACS validation. Household data,
 credentials, Android app code and AI models are excluded.
+
+### Optional HiFiSync Studio pilot
+
+The pilot requires the optional HiFiSync Home Assistant integration, a player
+bound there, and a Frame client supporting `hifisyncVersion: 1`. For a YAML
+Frame endpoint, an administrator enables sharing explicitly and maps the same
+player in Studio (using the Studio source mapper or the `studio.media.entity`
+setting):
+
+```yaml
+domosenso_frame:
+  endpoints:
+    - id: listening_frame
+      name: Listening frame
+      dashboard: /lovelace
+      display: {}
+      hifisync: true
+      studio:
+        media:
+          entity: media_player.example
+```
+
+Apply a copy of the HiFiSync template in Template Studio after connecting an
+updated paired Frame. Existing applied templates are preserved. The endpoint
+opt-in currently uses YAML configuration; config-entry-only endpoints do not
+expose an opt-in control. Reload/restart Home Assistant after changing YAML.
+Only the mapped player's locally supplied snapshot is shared, subject to the
+user's read permission and the device grant. Without a valid projection or
+compatible client, Now Playing remains available. Older clients receive a
+filtered template without the new widgets. Revoking pairing, disabling the
+endpoint option, or unloading HiFiSync stops subsequent bridge responses from
+sharing its data. Token and system selection are managed by HiFiSync, not Frame.
+This is a pilot; validate in a separate HA installation before deployment.

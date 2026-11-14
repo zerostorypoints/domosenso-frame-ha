@@ -7,8 +7,9 @@ import re
 from pathlib import Path
 from jsonschema import Draft202012Validator, ValidationError
 from .layouts import Conflict
+from .hifisync_bridge import validate_template
 
-ASSETS=Path(__file__).parent/'ui/0.2.0'
+ASSETS=Path(__file__).parent/'ui/0.2.1'
 SCHEMA=json.loads((ASSETS/'schema.json').read_text())
 REGISTRY=json.loads((ASSETS/'registry.json').read_text())
 BUILTINS=json.loads((ASSETS/'templates.json').read_text())
@@ -31,6 +32,7 @@ def validate_config(config):
     try:Draft202012Validator(SCHEMA).validate(config)
     except ValidationError as error:raise ValueError('Invalid template configuration') from error
     if set(m['id'] for m in config['modes'])!=set(STATES):raise ValueError('Missing template states')
+    validate_template(config)
     for mode in config['modes']:
         if len({s['id'] for s in mode['screens']})!=len(mode['screens']):raise ValueError('Duplicate screens')
         if not any(not s['requires'] for s in mode['screens']):raise ValueError('State needs an unconditional screen')

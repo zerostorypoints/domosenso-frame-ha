@@ -37,7 +37,7 @@ SOURCE=vol.Schema({vol.Required('entity'):cv.entity_id,vol.Required('label'):LAB
 DISPLAY=vol.Schema({vol.Optional('locale',default='en'):vol.In(['en','de','pl']),vol.Optional('config'):validate_config,vol.Optional('weather'):cv.entity_id,vol.Optional('status',default=[]):vol.All([vol.Schema({vol.Required('entity'):cv.entity_id,vol.Required('label'):LABEL})],vol.Length(max=64)),vol.Optional('mode_entity'):cv.entity_id,vol.Optional('page_entity'):cv.entity_id})
 ENDPOINT=vol.Schema({vol.Required('id'):vol.Match(r'^[a-z][a-z0-9_-]{0,39}$'),vol.Required('name'):LABEL,
     vol.Optional('semantic_version'):vol.In([1]),vol.Optional('metadata_source'):vol.Schema({'component':LABEL,'revision':vol.All(str,vol.Length(max=160))}),
-    vol.Optional('timers'):validate_timers,vol.Optional('radar'):validate_radar,vol.Optional('display'):DISPLAY,vol.Optional('studio'):validate_sources,
+    vol.Optional('hifisync',default=False):cv.boolean,vol.Optional('timers'):validate_timers,vol.Optional('radar'):validate_radar,vol.Optional('display'):DISPLAY,vol.Optional('studio'):validate_sources,
     vol.Required('dashboard'):vol.All(str,vol.Match(r'^/(?!/|auth/|api/)[A-Za-z0-9_/-]+$')),
     vol.Optional('temperature',default=[]):vol.All([SOURCE],vol.Length(max=64)),
     vol.Optional('air',default=[]):vol.All([SOURCE],vol.Length(max=64)),
@@ -175,7 +175,7 @@ def profile(hass,connection,msg):
       'endpoints':[{'id':e['id'],'name':e['name'],'dashboard':e['dashboard'],'rooms':[s['label'] for s in e['temperature']],
        **({'assistantMetadataVersions':[2]} if state.get('assistant_metadata_read_enabled') and state.get('assistant_metadata_legacy_enabled') and e['id'] in state.get('assistant_metadata_verified_endpoints', ()) else {}),
        **({'assistantActionMetadataVersions':[2]} if projection_enabled(state, e['id']) else {}),
-       **({'capabilitiesVersion':1} if state.get('studio_ready') else {}),'semanticVersion':e.get('semantic_version',0),'displayVersion':1 if 'display' in e else 0,'studioVersion':2 if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else 0,
+       **({'capabilitiesVersion':1} if state.get('studio_ready') else {}),**({'hifisyncVersion':1} if state.get('studio_ready') and e.get('hifisync') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else {}),'semanticVersion':e.get('semantic_version',0),'displayVersion':1 if 'display' in e else 0,'studioVersion':2 if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else 0,
        'topics':[t for t,key in [('temperature','temperature'),('air','air'),('calendar','calendars')] if e[key]]} for e in state['endpoints'].values()]})
 
 @command('begin',publicKey=vol.All(str,vol.Length(max=256)),endpoint=LABEL,name=LABEL)

@@ -1,4 +1,4 @@
-import './ui/0.2.0/studio.js';
+import './ui/0.2.1/studio.js';
 import './assistant-panel.js';
 import './timer-panel.js';
 class DomoSensoFramePanel extends HTMLElement {

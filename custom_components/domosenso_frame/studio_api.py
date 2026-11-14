@@ -124,17 +124,22 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
         except Conflict:deny(c,msg,'studio_conflict','Library changed. Reload the library; your draft is retained.')
         except ValueError as error:deny(c,msg,'studio_invalid',str(error))
         except Exception:deny(c,msg,'studio_save_failed','Could not persist the template library. Previous layout retained.')
-    @command('studio_dashboard',{vol.Required('endpoint'):str,vol.Optional('capabilitiesVersion'):version1,vol.Optional('offset',default=0):vol.All(int,vol.Range(min=-30,max=30))})
+    @command('studio_dashboard',{vol.Required('endpoint'):str,vol.Optional('capabilitiesVersion'):version1,vol.Optional('hifisyncVersion'):version1,vol.Optional('offset',default=0):vol.All(int,vol.Range(min=-30,max=30))})
     @websocket_api.async_response
     async def dashboard(h,c,msg):
         try:
-            result=await data.snapshot(c,state['endpoints'][msg['endpoint']],msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1);result['readOnly']=True;c.send_result(msg['id'],result)
+            if msg.get('hifisyncVersion')==1:admin(c)
+            endpoint=state['endpoints'][msg['endpoint']];result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1,msg.get('hifisyncVersion')==1)
+            if msg.get('hifisyncVersion')==1:admin(c)
+            result['readOnly']=True;c.send_result(msg['id'],result)
         except Exception:deny(c,msg)
-    @command('studio_display',{vol.Optional('capabilitiesVersion'):version1,vol.Optional('offset',default=0):vol.All(int,vol.Range(min=-30,max=30))})
+    @command('studio_display',{vol.Optional('capabilitiesVersion'):version1,vol.Optional('hifisyncVersion'):version1,vol.Optional('offset',default=0):vol.All(int,vol.Range(min=-30,max=30))})
     @websocket_api.async_response
     async def display(h,c,msg):
         try:
-            _,endpoint=grant(h,c);result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1);grant(h,c);state['studio_clients'][endpoint['id']]=time.monotonic();c.send_result(msg['id'],result)
+            proof,endpoint=grant(h,c);result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1,msg.get('hifisyncVersion')==1);current_proof,current=grant(h,c)
+            if current_proof!=proof or current is not endpoint:raise ValueError('Endpoint changed')
+            state['studio_clients'][endpoint['id']]=time.monotonic();c.send_result(msg['id'],result)
         except Exception:deny(c,msg)
     @command('studio_action',{vol.Required('action'):validate_action})
     @websocket_api.async_response
@@ -145,4 +150,4 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
             await perform(h,c,endpoint,msg['action'],c.context(msg),lambda:grant(h,c));c.send_result(msg['id'],{'ok':True})
         except Exception:deny(c,msg)
     for handler in (mapping_get,mapping_update,library,update,dashboard,display,action):register_command(hass,handler)
-    await register_static_paths(hass,[StaticPathConfig('/domosenso_frame/ui/0.2.0',str(Path(__file__).parent/'ui/0.2.0'),False)])
+    await register_static_paths(hass,[StaticPathConfig('/domosenso_frame/ui/0.2.0',str(Path(__file__).parent/'ui/0.2.0'),False),StaticPathConfig('/domosenso_frame/ui/0.2.1',str(Path(__file__).parent/'ui/0.2.1'),False)])
