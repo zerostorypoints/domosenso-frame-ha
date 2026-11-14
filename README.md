@@ -109,10 +109,9 @@ credentials, Android app code and AI models are excluded.
 ### Optional HiFiSync Studio pilot
 
 The pilot requires the optional HiFiSync Home Assistant integration, a player
-bound there, and a Frame client supporting `hifisyncVersion: 1`. For a YAML
-Frame endpoint, an administrator enables sharing explicitly and maps the same
-player in Studio (using the Studio source mapper or the `studio.media.entity`
-setting):
+bound there, and a Frame client supporting `hifisyncVersion: 1`. An administrator enables sharing for each frame in the **HiFiSync** tab and maps the
+same player in Studio. For YAML endpoints, `hifisync: true` can also set the
+initial default and `studio.media.entity` can set the player:
 
 ```yaml
 domosenso_frame:
@@ -128,9 +127,8 @@ domosenso_frame:
 ```
 
 Apply a copy of the HiFiSync template in Template Studio after connecting an
-updated paired Frame. Existing applied templates are preserved. The endpoint
-opt-in currently uses YAML configuration; config-entry-only endpoints do not
-expose an opt-in control. Reload/restart Home Assistant after changing YAML.
+updated paired Frame. Existing applied templates are preserved. An explicitly saved HiFiSync setting overrides the YAML default. Reload or restart
+Home Assistant after changing YAML.
 Only the mapped player's locally supplied snapshot is shared, subject to the
 user's read permission and the device grant. Without a valid projection or
 compatible client, Now Playing remains available. Older clients receive a

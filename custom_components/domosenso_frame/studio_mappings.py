@@ -15,7 +15,7 @@ from .timers import validate_mapping as validate_timers, eligible as timer_eligi
 from .radar import validate as validate_radar, eligible as radar_eligible
 from .control_profiles import validate_mapping as validate_controls
 
-GROUPS={'rooms','air','weather','calendars','media','lights','covers','status','mains','radar','assistant','timers'}
+GROUPS={'hifisync','rooms','air','weather','calendars','media','lights','covers','status','mains','radar','assistant','timers'}
 CLASSES={'temperature':{'temperature'},'humidity':{'humidity'},'co2':{'carbon_dioxide'},'pm2_5':{'pm25','pm2_5'},'voc':{'volatile_organic_compounds','volatile_organic_compounds_parts'},'nox':{'nitrogen_dioxide'},'power':{'power'},'voltage':{'voltage'}}
 MEDIA_BITS={'play_pause':1|16384,'previous':16,'next':32,'power':128|256,'volume':4,'source':2048}
 
@@ -50,7 +50,7 @@ def editable(endpoint):
     s=endpoint.get('studio',{});d=endpoint.get('display',{})
     rooms=s.get('rooms',[{'label':r['label'],'temperature':r['entity']} for r in endpoint.get('temperature',[])])
     rows=lambda values,keys:[{k:v for k,v in row.items() if k in keys} for row in values]
-    return copy.deepcopy({'timers':endpoint.get('timers',{'writeEnabled':False,'items':[]}),'assistant':endpoint.get('assistant',{'subjects':[],'sensitive':False}),'radar':endpoint.get('radar',{}),'rooms':rows(rooms,{'label','temperature','humidity','roomKey'}),'air':rows(endpoint.get('air',[]),{'label','entity','metric'}),'weather':d.get('weather'),'calendars':endpoint.get('calendars',[]),'media':{'entity':s['media']['entity']} if s.get('media') else {},'lights':rows(s.get('lights',[]),{'label','entity'}),'covers':rows(s.get('covers',[]),{'label','entity'}),'status':rows(s.get('status',d.get('status',[])),{'label','entity'}),'mains':s.get('mains',{})})
+    return copy.deepcopy({'hifisync':endpoint.get('hifisync',False),'timers':endpoint.get('timers',{'writeEnabled':False,'items':[]}),'assistant':endpoint.get('assistant',{'subjects':[],'sensitive':False}),'radar':endpoint.get('radar',{}),'rooms':rows(rooms,{'label','temperature','humidity','roomKey'}),'air':rows(endpoint.get('air',[]),{'label','entity','metric'}),'weather':d.get('weather'),'calendars':endpoint.get('calendars',[]),'media':{'entity':s['media']['entity']} if s.get('media') else {},'lights':rows(s.get('lights',[]),{'label','entity'}),'covers':rows(s.get('covers',[]),{'label','entity'}),'status':rows(s.get('status',d.get('status',[])),{'label','entity'}),'mains':s.get('mains',{})})
 
 def readiness(endpoint,states):
     s=endpoint.get('studio',{});m=editable(endpoint);result={}
@@ -93,7 +93,10 @@ def merge_patch(endpoint,patch,states=None):
         if not isinstance(v,str) or not re.fullmatch(r'[a-z_]+\.[a-z0-9_]+',v):raise ValueError('Invalid mapping entity')
         if states is not None and v not in previous and not eligible(states.get(v),kind):raise ValueError('Select an existing eligible entity')
     for key,value in patch.items():
-        if key=='timers':
+        if key=='hifisync':
+            if type(value) is not bool:raise ValueError('Invalid HiFiSync opt-in')
+            out['hifisync']=value
+        elif key=='timers':
             out['timers']=validate_timers(value,states,endpoint)
         elif key=='assistant':
             shape(value,['subjects','sensitive','explanations','calendar_sensitive','presence_sensitive','component_sources','source_policy','controls','metadata_sources'])

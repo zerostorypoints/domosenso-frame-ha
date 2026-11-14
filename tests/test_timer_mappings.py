@@ -139,3 +139,17 @@ def test_invalid_retained_target_can_be_removed_without_implicitly_exposing_help
         assert await r.update('frame',items=[])
         assert 'new-endpoint' not in r.endpoints
     run(case)
+
+
+def test_hifisync_opt_in_is_explicit_and_survives_reload_over_yaml_default():
+    async def case():
+        r = Rig(); endpoint = {'id': 'frame', 'display': {}, 'hifisync': True}; saved = {}
+        async def persist(value): saved.update(copy.deepcopy(value))
+        manager = mappings.Mappings({'frame': endpoint}, {}, persist)
+        before = manager.get('frame', r.states)
+        assert before['mappings']['hifisync'] is True
+        await manager.update('frame', before['revision'], {'hifisync': False}, r.states, lambda: None)
+        restored = mappings.Mappings({'frame': endpoint}, saved, persist)
+        assert restored.get('frame', r.states)['mappings']['hifisync'] is False
+        with pytest.raises(ValueError): mappings.merge_patch(endpoint, {'hifisync': 'true'})
+    run(case)
