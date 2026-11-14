@@ -65,3 +65,20 @@ def test_hifisync_widgets_require_gates_and_first_now_playing_screen():
     config['modes'][0]['screens'][1]['requires'] = ['hifisync-system']
     config['modes'][0]['screens'].reverse()
     with pytest.raises(ValueError): bridge.validate_template(config)
+
+
+def test_projection_rejects_values_exceeding_packaged_renderer_limits():
+    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    value = sample(); value['snapshot']['system']['components'][0]['quantity'] = 65
+    assert bridge.sanitize(value, now) is None
+    value = sample(); value['snapshot']['room']['widthM'] = 201
+    assert bridge.sanitize(value, now) is None
+    value = sample(); value['snapshot']['system']['rack'] = [['unknown']]
+    assert bridge.sanitize(value, now) is None
+
+
+def test_music_session_uses_player_when_no_helper_for_opted_in_client():
+    assert bridge.music_active(True, True, False, False, 'playing')
+    assert not bridge.music_active(False, True, False, False, 'playing')
+    assert not bridge.music_active(True, True, True, False, 'playing')
+    assert bridge.music_active(True, True, True, True, 'paused')

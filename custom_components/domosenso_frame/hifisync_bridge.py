@@ -44,32 +44,38 @@ def sanitize(value, now):
         system = source['system']
         components = system['components']
         rack = system['rack']
-        if not isinstance(components, list) or len(components) > 200 or not isinstance(rack, list) or len(rack) > 128:
+        if not isinstance(components, list) or len(components) > 64 or not isinstance(rack, list) or len(rack) > 32:
             return None
         out = []
         for item in components:
             quantity = item['quantity']
-            if type(quantity) is not int or not 1 <= quantity <= 1000:
+            if type(quantity) is not int or not 1 <= quantity <= 64:
                 return None
             out.append({'id': text(item['id']), 'label': text(item['label']), 'role': text(item['role']), 'quantity': quantity})
-        if any(not isinstance(row, list) or len(row) > 128 for row in rack):
+        if any(not isinstance(row, list) or len(row) > 32 for row in rack):
             return None
+        ids = {item['id'] for item in out}
+        if len(ids) != len(out) or any(item not in ids for row in rack for item in row):return None
         clean_rack = [[text(item) for item in row] for row in rack]
         room = source.get('room')
         if room is not None:
             placements = room['placements']
-            if not isinstance(placements, list) or len(placements) > 128:
+            if not isinstance(placements, list) or len(placements) > 16:
                 return None
             width, length = number(room['widthM']), number(room['lengthM'])
-            if width <= 0 or length <= 0:
+            if not .01 <= width <= 200 or not .01 <= length <= 200:
                 return None
             clean_placements = []
             for item in placements:
                 x, y = number(item['xM']), number(item['yM'])
                 if item['role'] not in ('left', 'right', 'subwoofer', 'listening') or not 0 <= x <= width or not 0 <= y <= length:
                     return None
-                clean_placements.append({'role': item['role'], 'xM': x, 'yM': y, 'rotationDeg': number(item['rotationDeg'], True)})
-            room = {'name': text(room['name']), 'widthM': width, 'lengthM': length, 'heightM': number(room['heightM'], True), 'placements': clean_placements}
+                rotation=number(item['rotationDeg'], True)
+                if rotation is not None and not -360 <= rotation <= 360:return None
+                clean_placements.append({'role': item['role'], 'xM': x, 'yM': y, 'rotationDeg': rotation})
+            height=number(room['heightM'], True)
+            if height is not None and not .01 <= height <= 200:return None
+            room = {'name': text(room['name']), 'widthM': width, 'lengthM': length, 'heightM': height, 'placements': clean_placements}
         snapshot = {'version': 1, 'revision': text(source['revision']), 'system': {'id': text(system['id']), 'name': text(system['name']), 'components': out, 'rack': clean_rack}, 'room': room}
         return {'snapshot': snapshot, 'stale': value['stale'], 'validUntil': until.isoformat()}
     except (KeyError, TypeError, ValueError, OverflowError, AttributeError):
@@ -100,3 +106,7 @@ def validate_template(config):
         first = screens[0]
         if first['requires'] or not any(w['type'] == 'media' for w in first['widgets']):
             raise ValueError('Now Playing must be the first unconditional media screen')
+
+
+def music_active(negotiated, enabled, has_helper, helper_active, player_state):
+    return helper_active if has_helper else bool(negotiated and enabled and player_state == 'playing')

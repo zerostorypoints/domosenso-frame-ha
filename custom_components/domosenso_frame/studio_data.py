@@ -14,7 +14,7 @@ from homeassistant.auth.permissions.const import POLICY_READ
 from homeassistant.util import dt as dt_util
 from .studio_sources import source_entities
 from .studio_mappings import readiness,media_controls
-from .hifisync_bridge import legacy_config, projection
+from .hifisync_bridge import legacy_config, projection, music_active
 
 DOMAIN='domosenso_frame'
 
@@ -181,7 +181,8 @@ class Data:
         def current_hifisync():
             provider=hass.data.get('hifisync',{}).get('studio_snapshot_v1')
             return projection(endpoint,hifisync_version,permitted,provider,dt_util.utcnow())
-        playback=music if runtime.get('music_view') else bool(ms and ms.state=='playing')
+        music=music_active(hifisync_version,endpoint.get('hifisync') is True,bool(runtime.get('music_view')),music,ms.state if ms else None)
+        playback=music
         hifisync=current_hifisync() if playback else None
         if hifisync and playback:
             capabilities.append('hifisync-system')
