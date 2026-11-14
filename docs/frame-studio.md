@@ -1,4 +1,4 @@
-# Frame Studio — shared UI 0.2.1 pilot, contract 2
+# Frame Studio — shared UI 0.2.2 pilot, contract 2
 
 The catalog owns this portable renderer, widget registry and template editor. The same generated
 renderer runs in Home Assistant and the Android app. It has no HA globals or network access.

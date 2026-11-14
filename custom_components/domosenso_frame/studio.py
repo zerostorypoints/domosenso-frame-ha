@@ -9,7 +9,7 @@ from jsonschema import Draft202012Validator, ValidationError
 from .layouts import Conflict
 from .hifisync_bridge import validate_template
 
-ASSETS=Path(__file__).parent/'ui/0.2.1'
+ASSETS=Path(__file__).parent/'ui/0.2.2'
 SCHEMA=json.loads((ASSETS/'schema.json').read_text())
 REGISTRY=json.loads((ASSETS/'registry.json').read_text())
 BUILTINS=json.loads((ASSETS/'templates.json').read_text())
