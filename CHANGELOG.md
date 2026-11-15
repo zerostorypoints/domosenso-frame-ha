@@ -1,5 +1,16 @@
 # Changes
 
+## 0.4.1 — pending release
+
+- Add opt-in HiFiSync Studio system and room views through the separately installed
+  HiFiSync Home Assistant integration. The integration token stays in HiFiSync;
+  Frame receives only the permitted player's bounded presentation snapshot.
+- Support optional equipment drawings and a music playlist with manual navigation
+  and an optional read-only pause helper. Older clients keep a compatible layout.
+- Bundle the matching Frame Studio renderer 0.2.6. Existing templates and source
+  mappings are preserved; apply a HiFiSync template explicitly to use the views.
+
+
 ## 0.4.0 — pending release
 
 - Add versioned read-only assistant capabilities and bounded typed answers for the catalog's

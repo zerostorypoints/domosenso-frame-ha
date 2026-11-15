@@ -14,6 +14,7 @@ from homeassistant.auth.permissions.const import POLICY_READ
 from homeassistant.util import dt as dt_util
 from .studio_sources import source_entities
 from .studio_mappings import readiness,media_controls
+from .hifisync_bridge import legacy_config, projection, music_active
 
 DOMAIN='domosenso_frame'
 
@@ -82,10 +83,10 @@ class Data:
         entities.update(display[k] for k in ('weather','mode_entity','page_entity') if display.get(k))
         for eid in entities:
             if not connection.user.permissions.check_entity(eid,POLICY_READ):raise ValueError('Source not permitted')
-    async def snapshot(self,connection,endpoint,offset=0,context=None,capabilities_version=False):
+    async def snapshot(self,connection,endpoint,offset=0,context=None,capabilities_version=False,hifisync_version=False,runtime_key=None,hifisync_drawings_version=False):
         from .assistant_projection import project, still_current
         from .assistant_api import active_artifacts
-        hass=self.hass;original=endpoint;self.check(connection,original)
+        hass=self.hass;original=endpoint;runtime_key=runtime_key or endpoint['id'];self.check(connection,original)
         metadata_revision=hass.data[DOMAIN].get('assistant_metadata_revision',0)
         inventory=hass.states.get('sensor.domosenso_components')
         records=getattr(inventory,'attributes',{}).get('components') if inventory else None
@@ -176,10 +177,19 @@ class Data:
         mains={k:measure(eid,k) for k,eid in sources.get('mains',{}).items()}
         widgets=readiness(endpoint,hass.states);capabilities=[k for k,v in widgets.items() if v['ready'] and k not in ('clock','navigation','media-controls')]
         if widgets['rooms']['ready']:capabilities.append('temperature')
-        library=hass.data[DOMAIN]['studio_library'];config=library.config(endpoint['id']);runtime=sources.get('runtime',{});mode=self.runtime.mode(endpoint['id'],plain(runtime.get('mode'),'ambient'));page=plain(runtime.get('page'));music=plain(runtime.get('music_view'))=='on'
+        library=hass.data[DOMAIN]['studio_library'];saved_config=library.config(endpoint['id']);config=saved_config if hifisync_version else legacy_config(saved_config);runtime=sources.get('runtime',{});mode=self.runtime.mode(runtime_key,plain(runtime.get('mode'),'ambient'));page=plain(runtime.get('page'));music=plain(runtime.get('music_view'))=='on'
+        def current_hifisync():
+            provider=hass.data.get('hifisync',{}).get('studio_snapshot_v1')
+            return projection(endpoint,hifisync_version,permitted,provider,dt_util.utcnow(),drawings=hifisync_drawings_version)
+        music=music_active(hifisync_version,endpoint.get('hifisync') is True,bool(runtime.get('music_view')),music,ms.state if ms else None)
+        playback=music
+        hifisync=current_hifisync() if playback else None
+        if hifisync and playback:
+            capabilities.append('hifisync-system')
+            if hifisync['snapshot']['room'] is not None:capabilities.append('hifisync-room')
         applied=library.saved['applied'].get(endpoint['id']);revision=str(applied['revision'])+applied['templateId'] if applied else 'classic'
-        if (applied and applied.get('runtimeOwned')) or not runtime.get('scripts') or endpoint['id'] in self.runtime.navigation:
-            active,screen,elapsed,shield=self.runtime.select(endpoint['id'],config,mode,page,music,capabilities,revision)
+        if (applied and applied.get('runtimeOwned')) or not runtime.get('scripts') or runtime_key in self.runtime.navigation:
+            active,screen,elapsed,shield=self.runtime.select(runtime_key,config,mode,page,music,capabilities,revision,paused=plain(runtime.get('paused'))=='on')
         else:
             # Until explicit Apply, preserve the old HA-selected layout/page and its scheduler.
             active=base['mode'] if base['mode'] in ('controls','ambient','media') else 'ambient'
@@ -245,7 +255,7 @@ class Data:
         if sources.get('photos'):
             current=next(s for m in config['modes'] for s in m['screens'] if m['id']==active and s['id']==screen)
             pw=next((w for w in current['widgets'] if w['type']=='photos'),None);interval=pw.get('options',{}).get('interval',10) if pw else 10;count=pw.get('options',{}).get('count',5) if pw else 5;index=int(elapsed//interval)%count
-            exposure=self.runtime.endpoints.get(eid,{}).get('since',0)
+            exposure=self.runtime.endpoints.get(runtime_key,{}).get('since',0)
             async def loadphoto():return await hass.async_add_executor_job(photos,sources['photos']['directory'],hass.config.path('www'),index,count,exposure)
             photo=await self.cached((uid,eid,generation,'photo',exposure,index,count),60,loadphoto)
         self.check(connection,endpoint,original)
@@ -253,4 +263,6 @@ class Data:
         check_projection()
         for sensor in plant_history:
             if sensor:state(sensor)
-        return {'version':2,'config':config,'mode':active,'screen':screen,'connected':True,'fetchedAt':dt_util.utcnow().isoformat(),'timezone':hass.config.time_zone,'capabilities':list(set(capabilities)),'off':mode=='off','wind':plain(sources.get('wind')) in ('on','true'),'readOnly':False,'data':{'weather':weather,'rooms':rooms,'air':base['air'],'assessment':base['assessment'],'status':statuses,'plants':plants,'media':media,'mains':mains,'history':history_data,'calendar':results[1],'photos':photo,**controls,'runtime':{'shieldUntil':(now+timedelta(seconds=shield)).isoformat() if shield else None,'approachEnabled':plain(runtime.get('approach'))=='on' if runtime.get('approach') else None}}}
+        if library.config(eid)!=saved_config:raise ValueError('Template changed during request')
+        if playback and current_hifisync()!=hifisync:raise ValueError('HiFiSync projection changed during request')
+        return {'version':2,'config':config,'mode':active,'screen':screen,'connected':True,'fetchedAt':dt_util.utcnow().isoformat(),'timezone':hass.config.time_zone,'capabilities':list(set(capabilities)),'off':mode=='off','wind':plain(sources.get('wind')) in ('on','true'),'readOnly':False,'data':{**({'hifisync':hifisync} if hifisync_version else {}),'weather':weather,'rooms':rooms,'air':base['air'],'assessment':base['assessment'],'status':statuses,'plants':plants,'media':media,'mains':mains,'history':history_data,'calendar':results[1],'photos':photo,**controls,'runtime':{'shieldUntil':(now+timedelta(seconds=shield)).isoformat() if shield else None,'approachEnabled':plain(runtime.get('approach'))=='on' if runtime.get('approach') else None}}}

@@ -7,7 +7,7 @@ arrange screens in Frame Studio and approve Android tablets using a six-digit co
 Works with DomoSenso installations and vanilla Home Assistant. The Android/AI app
 is maintained separately; this repository contains no app binaries or AI models.
 
-**Version 0.4.0 is a pending alpha/pilot release. Requires Home Assistant 2026.9.2 or newer.**
+**Version 0.4.1 is a pending alpha/pilot release. Requires Home Assistant 2026.9.2 or newer.**
 
 This development branch adds component-backed assistant answers and an explicit source-selection
 panel. The published HACS release remains unchanged until this branch is reviewed and released.
@@ -105,3 +105,42 @@ household configuration, calendar contents or other private data in issues.
 commit `81eea61bebe972305a17e5576d04c6abdbe05604`. Packaging changes add installation
 instructions, standalone repository links and HACS validation. Household data,
 credentials, Android app code and AI models are excluded.
+
+### Optional HiFiSync Studio pilot
+
+The pilot requires the optional HiFiSync Home Assistant integration, a player
+bound there, and a Frame client supporting `hifisyncVersion: 1`. An administrator enables sharing for each frame in the **HiFiSync** tab and maps the
+same player in Studio. For YAML endpoints, `hifisync: true` can also set the
+initial default and `studio.media.entity` can set the player:
+
+```yaml
+domosenso_frame:
+  endpoints:
+    - id: listening_frame
+      name: Listening frame
+      dashboard: /lovelace
+      display: {}
+      hifisync: true
+      studio:
+        media:
+          entity: media_player.example
+        runtime:
+          paused: input_boolean.example_paused
+```
+
+The optional `runtime.paused` mapping points to an existing `input_boolean` and
+requires the frame user to have read permission. When it is on, HiFiSync Music
+rotation pauses; manual navigation still works, and the current screen resumes
+with its full duration when the helper turns off. No helper or write action is created.
+Screens with a duration of zero remain manual-only.
+
+Apply a copy of the HiFiSync template in Template Studio after connecting an
+updated paired Frame. Existing applied templates are preserved. An explicitly saved HiFiSync setting overrides the YAML default. Reload or restart
+Home Assistant after changing YAML.
+Only the mapped player's locally supplied snapshot is shared, subject to the
+user's read permission and the device grant. Without a valid projection or
+compatible client, Now Playing remains available. Older clients receive a
+filtered template without the new widgets. Revoking pairing, disabling the
+endpoint option, or unloading HiFiSync stops subsequent bridge responses from
+sharing its data. Token and system selection are managed by HiFiSync, not Frame.
+This is a pilot; validate in a separate HA installation before deployment.
