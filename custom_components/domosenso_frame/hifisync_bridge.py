@@ -29,6 +29,18 @@ def legacy_config(config):
     return result
 
 
+def full_screen(used_ids, base_id, title, widget_type, requires):
+    screen_id = base_id
+    suffix = 1
+    while screen_id in used_ids:
+        screen_id = f'{base_id}-{suffix}'
+        suffix += 1
+    return {
+        'id': screen_id, 'title': title, 'duration': 15, 'requires': requires,
+        'widgets': [{'id': widget_type, 'type': widget_type, 'layout': {'x': 0, 'y': 0, 'w': 12, 'h': 12}}],
+    }
+
+
 def effective_config(config, enabled, *, has_system, has_room):
     """Compose a display-only Music playlist without editing the saved layout."""
     result = legacy_config(config)
@@ -56,9 +68,13 @@ def effective_config(config, enabled, *, has_system, has_room):
             widget['type'] == 'media' for widget in screen['widgets']
         )),
         None,
-    ) or next(screen for screen in screens if not screen['requires'])
-    screens.remove(anchor)
-    used_ids = {anchor['id'], *(screen['id'] for screen in screens)}
+    )
+    used_ids = {screen['id'] for screen in screens}
+    if anchor is None:
+        anchor = full_screen(used_ids, 'now-playing', 'Now Playing', 'media', [])
+        used_ids.add(anchor['id'])
+    else:
+        screens.remove(anchor)
     extra = []
     for kind, title in (('hifisync-system', 'System'), ('hifisync-room', 'Room')):
         if kind not in available_kinds:
@@ -75,15 +91,7 @@ def effective_config(config, enabled, *, has_system, has_room):
             screen['widgets'] = [widget for widget in screen['widgets']
                                  if widget['type'] == kind or widget['type'] not in KINDS]
         else:
-            screen_id = kind
-            suffix = 1
-            while screen_id in used_ids:
-                screen_id = f'{kind}-{suffix}'
-                suffix += 1
-            screen = {
-                'id': screen_id, 'title': title, 'duration': 15, 'requires': [kind],
-                'widgets': [{'id': kind, 'type': kind, 'layout': {'x': 0, 'y': 0, 'w': 12, 'h': 12}}],
-            }
+            screen = full_screen(used_ids, kind, title, kind, [kind])
         extra.append(screen)
         used_ids.add(screen['id'])
     if extra and not anchor['duration']:

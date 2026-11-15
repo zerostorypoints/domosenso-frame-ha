@@ -179,14 +179,14 @@ def test_effective_playlist_reuses_saved_pilot_page_once_and_missing_room_does_n
     assert bridge.effective_config(template, False, has_system=True, has_room=True)['modes'][0]['screens'] == [now_playing]
 
 
-def test_effective_playlist_uses_first_unconditional_page_with_no_now_playing_and_avoids_id_collisions():
+def test_effective_playlist_avoids_custom_page_id_collisions():
     custom = [page('hifisync-system', 'clock', requires=['weather']), page('custom-first', 'clock')]
     template = {'modes': [{'id': 'media', 'screens': custom}]}
     screens = bridge.effective_config(template, True, has_system=True, has_room=False)['modes'][0]['screens']
-    assert screens[0]['id'] == 'custom-first'
+    assert screens[0]['widgets'][0]['type'] == 'media'
     assert screens[1]['widgets'][0]['type'] == 'hifisync-system'
     assert screens[1]['id'] != 'hifisync-system'
-    assert screens[2] == custom[0]
+    assert screens[2:] == custom
     assert template['modes'][0]['screens'] == custom
 
 
@@ -233,3 +233,19 @@ def test_negotiated_summary_is_bounded_by_player_permission_and_hides_extra_data
     absent = {'candidates': {'media': [{'entity': 'media_player.one'}]}}
     bridge.add_link_summaries(absent, installed=False, provider=None, permitted=lambda _: True)
     assert absent == {'hifisyncInstalled': False, 'candidates': {'media': [{'entity': 'media_player.one'}]}}
+
+
+def test_opted_in_imported_layout_without_player_page_starts_with_now_playing():
+    home = page('home', 'clock', duration=20)
+    existing_id = page('now-playing', 'rooms', duration=20)
+    template = {'modes': [{'id': 'media', 'screens': [home, existing_id]}]}
+    screens = bridge.effective_config(template, True, has_system=True, has_room=True)['modes'][0]['screens']
+
+    assert [screen['widgets'][0]['type'] for screen in screens] == [
+        'media', 'hifisync-system', 'hifisync-room', 'clock', 'rooms',
+    ]
+    assert len({screen['id'] for screen in screens}) == len(screens)
+    assert screens[0]['title'] == 'Now Playing'
+    assert screens[-2:] == [home, existing_id]
+    assert template['modes'][0]['screens'] == [home, existing_id]
+    assert bridge.effective_config(template, False, has_system=True, has_room=True) == template
