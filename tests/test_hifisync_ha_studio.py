@@ -145,6 +145,24 @@ def test_real_ha_negotiation_mapping_and_room_departure(tmp_path):
                 step = {'kind': 'navigation', 'action': 'next'}
                 assert await action(panel, step) == {'ok': True}
                 assert (await panel.call(hass, 'studio_display', **flags))['screen'] == 'hifisync-system'
+                artwork_started = asyncio.Event()
+                artwork_finished = asyncio.Event()
+                studio_data = hass.data[frame.DOMAIN]['studio_data']
+                cached = studio_data.cached
+
+                async def slow_artwork(key, ttl, read):
+                    if 'art' in key:
+                        artwork_started.set()
+                        await artwork_finished.wait()
+                    return await cached(key, ttl, read)
+
+                with patch.object(studio_data, 'cached', slow_artwork):
+                    inflight = asyncio.create_task(panel.call(hass, 'studio_display', **flags))
+                    await asyncio.wait_for(artwork_started.wait(), 2)
+                    hass.states.async_set('media_player.demo', 'idle')
+                    artwork_finished.set()
+                    assert (await inflight).get('error') == 'studio_failed'
+                hass.states.async_set('media_player.demo', 'playing')
                 assert await action(panel, step) == {'ok': True}
                 room = await panel.call(hass, 'studio_display', **flags)
                 visit = room['roomVisitId']

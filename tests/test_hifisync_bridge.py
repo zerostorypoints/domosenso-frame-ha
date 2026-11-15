@@ -190,6 +190,33 @@ def test_effective_playlist_uses_first_unconditional_page_with_no_now_playing_an
     assert template['modes'][0]['screens'] == custom
 
 
+def test_effective_playlist_preserves_custom_pages_with_available_hifisync_requirements():
+    music = page('music', 'media', duration=42)
+    clock = page('room-clock', 'clock', requires=['hifisync-room'])
+    custom = page('custom', 'weather')
+    template = {'modes': [{'id': 'media', 'screens': [clock, music, custom]}]}
+
+    result = bridge.effective_config(template, True, has_system=True, has_room=True)
+    assert [p['id'] for p in result['modes'][0]['screens']] == [
+        'music', 'hifisync-system', 'hifisync-room', 'room-clock', 'custom',
+    ]
+    assert result['modes'][0]['screens'][-2] == clock
+    without_room = bridge.effective_config(template, True, has_system=True, has_room=False)
+    assert [p['id'] for p in without_room['modes'][0]['screens']] == ['music', 'hifisync-system', 'custom']
+    assert bridge.effective_config(template, False, has_system=True, has_room=True)['modes'][0]['screens'] == [music, custom]
+
+
+def test_filtering_an_unconditional_hifisync_only_page_keeps_playback_available():
+    template = {'modes': [{'id': 'media', 'screens': [page('custom', 'hifisync-room')]}]}
+    off = bridge.effective_config(template, False, has_system=True, has_room=True)
+    assert off['modes'][0]['screens'][0]['widgets'][0]['type'] == 'media'
+    on = bridge.effective_config(template, True, has_system=True, has_room=True)
+    assert [p['widgets'][0]['type'] for p in on['modes'][0]['screens']] == [
+        'media', 'hifisync-system', 'hifisync-room',
+    ]
+    assert template['modes'][0]['screens'][0]['widgets'][0]['type'] == 'hifisync-room'
+
+
 def test_negotiated_summary_is_bounded_by_player_permission_and_hides_extra_data():
     result = {'candidates': {'media': [{'entity': 'media_player.one'}, {'entity': 'media_player.forbidden'}, {'entity': 'media_player.unmatched'}]}}
     calls = []

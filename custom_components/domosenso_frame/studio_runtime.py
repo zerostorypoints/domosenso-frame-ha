@@ -79,11 +79,15 @@ class Runtime:
             state.pop('room_visit', None)
             duration=visible[state['index']]['duration'];elapsed-=duration;state['since']+=duration;state['index']=(state['index']+1)%len(visible);visited+=1
             skipped=0
-            while set(visible[state['index']]['requires']) & {'hifisync-system','hifisync-room'} and not visible[state['index']]['duration'] and skipped<len(visible):
+            while not visible[state['index']]['duration'] and skipped<len(visible) and any(
+                widget['type'] in ('hifisync-system', 'hifisync-room') for widget in visible[state['index']]['widgets']
+            ):
                 state['index']=(state['index']+1)%len(visible);skipped+=1
         state['count']=len(visible)
         current = visible[state['index']]
-        if studio_music and room_signature and active=='media' and 'hifisync-room' in current['requires']:
+        if studio_music and room_signature and active=='media' and any(
+            widget['type'] == 'hifisync-room' for widget in current['widgets']
+        ):
             if 'room_visit' not in state:
                 state['room_visit'] = uuid4().hex
             state['room_signature'] = room_signature

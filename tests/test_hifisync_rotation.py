@@ -14,7 +14,8 @@ sources = load('studio_sources')
 
 def configuration(system=15, room=15):
     def screen(id, requires, duration):
-        return {'id': id, 'requires': requires, 'duration': duration, 'widgets': []}
+        return {'id': id, 'requires': requires, 'duration': duration,
+                'widgets': [{'type': kind} for kind in requires]}
     return {'modes': [{'id': 'media', 'screens': [screen('playing', [], 15), screen('system', ['hifisync-system'], system), screen('room', ['hifisync-room'], room)]}, {'id': 'ambient', 'screens': [screen('ambient', [], 10), screen('other', [], 10)]}]}
 
 
@@ -98,6 +99,20 @@ def start_room(rt, now=0):
     assert studio_select(rt, now) == 'playing'
     assert studio_select(rt, now+30) == 'room'
     return rt.room_visit('frame')
+
+
+def test_custom_page_with_room_requirement_does_not_get_a_room_visit():
+    rt = runtime.Runtime()
+    config = configuration()
+    config['modes'][0]['screens'].append({
+        'id': 'room-clock', 'requires': ['hifisync-room'], 'duration': 15,
+        'widgets': [{'type': 'clock'}],
+    })
+    caps = ['hifisync-system', 'hifisync-room']
+    rt.select('frame', config, 'media', '', True, caps, 'rev', 0, studio_music=True, room_signature=('system', 'Room'))
+    state = rt.select('frame', config, 'media', '', True, caps, 'rev', 45, studio_music=True, room_signature=('system', 'Room'))
+    assert state[1] == 'room-clock'
+    assert rt.room_visit('frame') is None
 
 
 def test_room_hold_renews_and_resumes_remaining_page_time():

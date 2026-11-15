@@ -11,12 +11,20 @@ def legacy_config(config):
     result = copy.deepcopy(config)
     for mode in result['modes']:
         screens = []
+        fallback = next(screen for screen in mode['screens'] if not screen['requires'])
         for screen in mode['screens']:
             if KINDS.intersection(screen['requires']):
                 continue
             screen['widgets'] = [widget for widget in screen['widgets'] if widget['type'] not in KINDS]
             if screen['widgets']:
                 screens.append(screen)
+        if not any(not screen['requires'] for screen in screens):
+            # A valid custom template may have only HiFiSync widgets on its
+            # unconditional page. Give the effective layout a public fallback.
+            kind, title = ('media', 'Now Playing') if mode['id'] == 'media' else ('clock', 'Clock')
+            fallback['title'] = title
+            fallback['widgets'] = [{'id': kind, 'type': kind, 'layout': {'x': 0, 'y': 0, 'w': 12, 'h': 12}}]
+            screens.insert(0, fallback)
         mode['screens'] = screens
     return result
 
@@ -29,7 +37,20 @@ def effective_config(config, enabled, *, has_system, has_room):
 
     saved_screens = next(mode['screens'] for mode in config['modes'] if mode['id'] == 'media')
     media_mode = next(mode for mode in result['modes'] if mode['id'] == 'media')
-    screens = media_mode['screens']
+    compatible = {screen['id']: screen for screen in media_mode['screens']}
+    available_kinds = {
+        kind for kind, available in (
+            ('hifisync-system', has_system), ('hifisync-room', has_system and has_room),
+        ) if available
+    }
+    screens = []
+    for saved_screen in saved_screens:
+        if saved_screen['id'] in compatible:
+            screens.append(compatible[saved_screen['id']])
+        elif KINDS.intersection(saved_screen['requires']) <= available_kinds and all(
+            widget['type'] not in KINDS for widget in saved_screen['widgets']
+        ):
+            screens.append(copy.deepcopy(saved_screen))
     anchor = next(
         (screen for screen in screens if not screen['requires'] and any(
             widget['type'] == 'media' for widget in screen['widgets']
@@ -39,11 +60,8 @@ def effective_config(config, enabled, *, has_system, has_room):
     screens.remove(anchor)
     used_ids = {anchor['id'], *(screen['id'] for screen in screens)}
     extra = []
-    for kind, title, available in (
-        ('hifisync-system', 'System', has_system),
-        ('hifisync-room', 'Room', has_system and has_room),
-    ):
-        if not available:
+    for kind, title in (('hifisync-system', 'System'), ('hifisync-room', 'Room')):
+        if kind not in available_kinds:
             continue
         saved = next(
             (screen for screen in saved_screens

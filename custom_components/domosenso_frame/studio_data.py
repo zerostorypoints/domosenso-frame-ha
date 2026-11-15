@@ -83,24 +83,28 @@ class Data:
         entities.update(display[k] for k in ('weather','mode_entity','page_entity') if display.get(k))
         for eid in entities:
             if not connection.user.permissions.check_entity(eid,POLICY_READ):raise ValueError('Source not permitted')
-    def room_access(self, connection, endpoint, runtime_key):
-        """Recheck a currently playing Room immediately before applying a hold."""
-        self.check(connection, endpoint)
+    def music_state(self, endpoint, runtime_key, negotiated):
         sources = endpoint.get('studio', {})
         runtime = sources.get('runtime', {})
-        permitted = lambda eid: connection.user.permissions.check_entity(eid, POLICY_READ)
 
         def plain(entity_id, default=None):
             state = self.hass.states.get(entity_id) if entity_id else None
             return state.state if state and state.state not in ('unknown', 'unavailable') else default
 
         mode = self.runtime.mode(runtime_key, plain(runtime.get('mode'), 'ambient'))
-        has_helper = bool(runtime.get('music_view'))
-        if mode not in ('ambient', 'media') or not music_active(
-            True, endpoint.get('hifisync') is True, has_helper,
+        music = music_active(
+            negotiated, endpoint.get('hifisync') is True, bool(runtime.get('music_view')),
             plain(runtime.get('music_view')) == 'on', plain(sources.get('media', {}).get('entity')),
-        ):
+        )
+        return mode, music
+
+    def room_access(self, connection, endpoint, runtime_key):
+        """Recheck a currently playing Room immediately before applying a hold."""
+        self.check(connection, endpoint)
+        mode, music = self.music_state(endpoint, runtime_key, True)
+        if mode not in ('ambient', 'media') or not music:
             return None
+        permitted = lambda eid: connection.user.permissions.check_entity(eid, POLICY_READ)
         provider = self.hass.data.get('hifisync', {}).get('studio_snapshot_v1')
         return room_signature(projection(endpoint, True, permitted, provider, dt_util.utcnow(), room_identity=True))
 
@@ -198,7 +202,7 @@ class Data:
         mains={k:measure(eid,k) for k,eid in sources.get('mains',{}).items()}
         widgets=readiness(endpoint,hass.states);capabilities=[k for k,v in widgets.items() if v['ready'] and k not in ('clock','navigation','media-controls')]
         if widgets['rooms']['ready']:capabilities.append('temperature')
-        library=hass.data[DOMAIN]['studio_library'];saved_config=library.config(endpoint['id']);runtime=sources.get('runtime',{});mode=self.runtime.mode(runtime_key,plain(runtime.get('mode'),'ambient'));page=plain(runtime.get('page'));music=plain(runtime.get('music_view'))=='on'
+        library=hass.data[DOMAIN]['studio_library'];saved_config=library.config(endpoint['id']);runtime=sources.get('runtime',{});page=plain(runtime.get('page'))
         hifisync_version = hifisync_version or hifisync_studio_version
         enabled = endpoint.get('hifisync') is True
         def current_hifisync():
@@ -208,7 +212,7 @@ class Data:
                 drawings=hifisync_drawings_version or hifisync_studio_version,
                 room_identity=hifisync_studio_version,
             )
-        music=music_active(hifisync_version,enabled,bool(runtime.get('music_view')),music,ms.state if ms else None)
+        mode, music = self.music_state(endpoint, runtime_key, hifisync_version)
         playback=music and (not hifisync_studio_version or mode in ('ambient','media'))
         hifisync=current_hifisync() if playback else None
         if hifisync and playback:
@@ -300,7 +304,12 @@ class Data:
         for sensor in plant_history:
             if sensor:state(sensor)
         if library.config(eid)!=saved_config:raise ValueError('Template changed during request')
-        if playback and current_hifisync()!=hifisync:raise ValueError('HiFiSync projection changed during request')
+        if playback:
+            current_mode, current_music = self.music_state(endpoint, runtime_key, hifisync_version)
+            if not current_music or (hifisync_studio_version and current_mode not in ('ambient', 'media')):
+                raise ValueError('Playback changed during request')
+            if current_hifisync()!=hifisync:
+                raise ValueError('HiFiSync projection changed during request')
         if visit and not self.runtime.permits_room(runtime_key, visit, self.room_access(connection, original, runtime_key)):
             raise ValueError('Room visit changed during request')
         extensions = {'hifisyncStudioVersion': 1} if hifisync_studio_version else {}
