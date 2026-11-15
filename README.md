@@ -7,7 +7,7 @@ arrange screens in Frame Studio and approve Android tablets using a six-digit co
 Works with DomoSenso installations and vanilla Home Assistant. The Android/AI app
 is maintained separately; this repository contains no app binaries or AI models.
 
-**Version 0.4.1 is a pending alpha/pilot release. Requires Home Assistant 2026.9.2 or newer.**
+**Version 0.5.0 is a pending alpha/pilot release. Requires Home Assistant 2026.9.2 or newer.**
 
 This development branch adds component-backed assistant answers and an explicit source-selection
 panel. The published HACS release remains unchanged until this branch is reviewed and released.
@@ -150,3 +150,11 @@ compatible client, Now Playing remains available. Older clients receive a
 filtered template without the new widgets. Revoking pairing, disabling the
 endpoint option, or unloading HiFiSync stops subsequent bridge responses from
 sharing its data. Token and system selection are managed by HiFiSync, not Frame.
+
+### Optional HiFiSync in the regular Ramka dashboard
+
+Ramka 0.21.0 can show the same System and Room drawings beside its original
+Now Playing view. Keep the app paired and select its regular HA dashboard.
+Use the same player mapping and panel switch described above, then opt in
+through the Ramka component inputs. The app keeps the existing dashboard
+and the HiFiSync token stays in the separately installed integration.

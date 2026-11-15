@@ -1,5 +1,10 @@
 # Changes
 
+## 0.5.0 — pending release
+
+- Offer optional HiFiSync pages in the existing Studio layout, with the Studio 0.2.7 renderer.
+- Give opted-in, paired Ramka 0.21.0 dashboards the scoped System and Room drawings for the mapped playing source.
+
 ## 0.4.1 — pending release
 
 - Add opt-in HiFiSync Studio system and room views through the separately installed
