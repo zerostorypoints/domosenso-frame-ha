@@ -2,6 +2,7 @@
 import copy
 import math
 from datetime import datetime
+from uuid import UUID
 
 KINDS = {'hifisync-system', 'hifisync-room'}
 
@@ -135,7 +136,7 @@ def sanitize_drawing(value):
     except (KeyError, TypeError, ValueError, OverflowError):
         return None
 
-def sanitize(value, now, drawings=False):
+def sanitize(value, now, drawings=False, *, room_identity=False):
     """Accept only a bounded, unexpired v1 presentation payload; never pass extras."""
     try:
         if not isinstance(value, dict) or type(value['stale']) is not bool:
@@ -194,26 +195,35 @@ def sanitize(value, now, drawings=False):
                 clean_placements.append({'role': item['role'], 'xM': x, 'yM': y, 'rotationDeg': rotation})
             height=number(room['heightM'], True)
             if height is not None and not .01 <= height <= 200:return None
-            room = {'name': text(room['name']), 'widthM': width, 'lengthM': length, 'heightM': height, 'placements': clean_placements}
+            room_id = {}
+            if room_identity and 'id' in room:
+                raw_id = room['id']
+                if not isinstance(raw_id, str) or len(raw_id) != 36 or str(UUID(raw_id)) != raw_id.lower():
+                    return None
+                room_id['id'] = raw_id.lower()
+            room = {**room_id, 'name': text(room['name']), 'widthM': width, 'lengthM': length, 'heightM': height, 'placements': clean_placements}
         snapshot = {'version': 1, 'revision': text(source['revision']), 'system': {'id': text(system['id']), 'name': text(system['name']), 'components': out, 'rack': clean_rack}, 'room': room}
         return {'snapshot': snapshot, 'stale': value['stale'], 'validUntil': until.isoformat()}
     except (KeyError, TypeError, ValueError, OverflowError, AttributeError):
         return None
 
 
-def projection(endpoint, negotiated, permitted, provider, now, drawings=False):
+def projection(endpoint, negotiated, permitted, provider, now, drawings=False, *, room_identity=False):
     player = endpoint.get('studio', {}).get('media', {}).get('entity')
     if not (negotiated and endpoint.get('hifisync') is True and player and callable(provider) and permitted(player)):
         return None
     try:
-        return sanitize(provider(player), now, drawings=drawings)
+        return sanitize(provider(player), now, drawings=drawings, room_identity=room_identity)
     except Exception:
         return None
 
 
 def room_signature(value):
     if value and (room := value['snapshot']['room']):
-        return (value['snapshot']['system']['id'], room['name'])
+        system_id = value['snapshot']['system']['id']
+        if 'id' in room:
+            return (system_id, 'id', room['id'])
+        return (system_id, 'name', room['name'])
     return None
 
 

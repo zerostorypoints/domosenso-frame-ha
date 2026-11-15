@@ -37,6 +37,22 @@ def test_provider_called_only_for_opted_in_mapped_and_permitted_player():
     assert calls == ['media_player.one']
 
 
+def test_room_identity_is_scoped_to_studio_capability_and_supports_legacy_previews():
+    value = sample()
+    room_id = '12345678-1234-1234-1234-123456789abc'
+    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    fallback = bridge.sanitize(value, now, room_identity=True)
+    assert bridge.room_signature(fallback) == ('s', 'name', 'Room')
+    value['snapshot']['room']['id'] = room_id.upper()
+    old = bridge.sanitize(value, now, drawings=True)
+    assert 'id' not in old['snapshot']['room']
+    studio = bridge.sanitize(value, now, room_identity=True)
+    assert studio['snapshot']['room']['id'] == room_id
+    assert bridge.room_signature(studio) == ('s', 'id', room_id)
+    value['snapshot']['room']['id'] = 'malformed'
+    assert bridge.sanitize(value, now, room_identity=True) is None
+
+
 def test_manual_hifisync_screens_do_not_rotate_into_view():
     runtime_spec = importlib.util.spec_from_file_location('runtime', Path(__file__).parents[1] / 'custom_components/domosenso_frame/studio_runtime.py')
     runtime = importlib.util.module_from_spec(runtime_spec)

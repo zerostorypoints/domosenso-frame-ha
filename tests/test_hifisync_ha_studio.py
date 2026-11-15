@@ -94,6 +94,10 @@ def test_real_ha_negotiation_mapping_and_room_departure(tmp_path):
         def summary(entity):
             read.append(entity)
             return {'status': 'ready', 'systemName': 'Fictional system', 'roomName': 'Fictional room'}
+        provider_snapshot = sample()
+        original_room_id = '00000000-0000-4000-8000-000000000001'
+        other_room_id = '00000000-0000-4000-8000-000000000002'
+        provider_snapshot['snapshot']['room']['id'] = original_room_id
         flags = {'capabilitiesVersion': 1, 'hifisyncStudioVersion': 1}
         try:
             await studio_api.setup(hass, frame.grant, frame.reading, frame.display_snapshot,
@@ -107,7 +111,7 @@ def test_real_ha_negotiation_mapping_and_room_departure(tmp_path):
                 await mapping(panel)
             hass.data['hifisync'] = {
                 'studio_link_v1': summary,
-                'studio_snapshot_v1': lambda eid: sample() if eid == 'media_player.demo' else None,
+                'studio_snapshot_v1': lambda eid: provider_snapshot if eid == 'media_player.demo' else None,
             }
             before = await admin.call(hass, 'studio_library')
             ready = await mapping(admin)
@@ -132,6 +136,7 @@ def test_real_ha_negotiation_mapping_and_room_departure(tmp_path):
                 assert separate['data']['hifisync'] is None
                 older = await legacy.call(hass, 'studio_display', hifisyncVersion=1)
                 assert 'hifisyncStudioVersion' not in older
+                assert 'id' not in older['data']['hifisync']['snapshot']['room']
                 assert not any(page['requires'] for mode in older['config']['modes'] for page in mode['screens'])
 
                 async def action(client, value):
@@ -143,6 +148,7 @@ def test_real_ha_negotiation_mapping_and_room_departure(tmp_path):
                 assert await action(panel, step) == {'ok': True}
                 room = await panel.call(hass, 'studio_display', **flags)
                 visit = room['roomVisitId']
+                assert room['data']['hifisync']['snapshot']['room']['id'] == original_room_id
                 touch = {'kind': 'room_interaction', 'action': 'touch', 'visitId': visit}
                 assert await action(panel, touch) == {'ok': True}
                 assert (await action(other, touch))['error'] == 'studio_room_inactive'
@@ -150,13 +156,24 @@ def test_real_ha_negotiation_mapping_and_room_departure(tmp_path):
                 preview = await admin.call(hass, 'studio_dashboard', endpoint='frame', **flags)
                 assert preview['readOnly'] and 'roomVisitId' not in preview
                 tick[0] += 20
+                provider_snapshot['snapshot']['room']['widthM'] = 4.5
+                provider_snapshot['snapshot']['room']['name'] = 'Room renamed'
+                provider_snapshot['snapshot']['revision'] = 'room edited'
                 assert (await panel.call(hass, 'studio_display', **flags))['roomVisitId'] == visit
+                provider_snapshot['snapshot']['room']['id'] = other_room_id
+                assert (await action(panel, touch))['error'] == 'studio_room_inactive'
+                assert (await panel.call(hass, 'studio_display', **flags))['screen'] == 'home'
+                assert await action(panel, {'kind': 'navigation', 'action': 'previous'}) == {'ok': True}
+                replacement = await panel.call(hass, 'studio_display', **flags)
+                assert replacement['roomVisitId'] != visit
+                assert replacement['data']['hifisync']['snapshot']['room']['id'] == other_room_id
+                touch['visitId'] = replacement['roomVisitId']
+                assert await action(panel, touch) == {'ok': True}
                 assert await action(panel, step) == {'ok': True}
                 assert (await action(panel, touch))['error'] == 'studio_room_inactive'
                 assert (await panel.call(hass, 'studio_display', **flags))['screen'] == 'home'
                 assert await action(panel, {'kind': 'navigation', 'action': 'previous'}) == {'ok': True}
-                visit = (await panel.call(hass, 'studio_display', **flags))['roomVisitId']
-                touch['visitId'] = visit
+                touch['visitId'] = (await panel.call(hass, 'studio_display', **flags))['roomVisitId']
                 panel.user.permissions.check_entity = lambda entity, _: entity != 'media_player.demo'
                 assert (await action(panel, touch))['error'] == 'studio_failed'
                 panel.user.permissions.check_entity = lambda *_: True

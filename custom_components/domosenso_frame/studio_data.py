@@ -102,7 +102,7 @@ class Data:
         ):
             return None
         provider = self.hass.data.get('hifisync', {}).get('studio_snapshot_v1')
-        return room_signature(projection(endpoint, True, permitted, provider, dt_util.utcnow()))
+        return room_signature(projection(endpoint, True, permitted, provider, dt_util.utcnow(), room_identity=True))
 
     async def snapshot(self,connection,endpoint,offset=0,context=None,capabilities_version=False,hifisync_version=False,runtime_key=None,hifisync_drawings_version=False,*,hifisync_studio_version=False,preview=False):
         from .assistant_projection import project, still_current
@@ -203,7 +203,11 @@ class Data:
         enabled = endpoint.get('hifisync') is True
         def current_hifisync():
             provider=hass.data.get('hifisync',{}).get('studio_snapshot_v1')
-            return projection(endpoint,hifisync_version,permitted,provider,dt_util.utcnow(),drawings=hifisync_drawings_version or hifisync_studio_version)
+            return projection(
+                endpoint, hifisync_version, permitted, provider, dt_util.utcnow(),
+                drawings=hifisync_drawings_version or hifisync_studio_version,
+                room_identity=hifisync_studio_version,
+            )
         music=music_active(hifisync_version,enabled,bool(runtime.get('music_view')),music,ms.state if ms else None)
         playback=music and (not hifisync_studio_version or mode in ('ambient','media'))
         hifisync=current_hifisync() if playback else None
