@@ -175,7 +175,9 @@ def profile(hass,connection,msg):
       'endpoints':[{'id':e['id'],'name':e['name'],'dashboard':e['dashboard'],'rooms':[s['label'] for s in e['temperature']],
        **({'assistantMetadataVersions':[2]} if state.get('assistant_metadata_read_enabled') and state.get('assistant_metadata_legacy_enabled') and e['id'] in state.get('assistant_metadata_verified_endpoints', ()) else {}),
        **({'assistantActionMetadataVersions':[2]} if projection_enabled(state, e['id']) else {}),
-       **({'capabilitiesVersion':1} if state.get('studio_ready') else {}),**({'hifisyncVersion':1,'hifisyncDrawingsVersion':1} if state.get('studio_ready') and e.get('hifisync') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else {}),'semanticVersion':e.get('semantic_version',0),'displayVersion':1 if 'display' in e else 0,'studioVersion':2 if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else 0,
+       **({'capabilitiesVersion':1} if state.get('studio_ready') else {}),
+       **({'hifisyncStudioVersion':1} if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else {}),
+       **({'hifisyncVersion':1,'hifisyncDrawingsVersion':1} if state.get('studio_ready') and e.get('hifisync') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else {}),'semanticVersion':e.get('semantic_version',0),'displayVersion':1 if 'display' in e else 0,'studioVersion':2 if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else 0,
        'topics':[t for t,key in [('temperature','temperature'),('air','air'),('calendar','calendars')] if e[key]]} for e in state['endpoints'].values()]})
 
 @command('begin',publicKey=vol.All(str,vol.Length(max=256)),endpoint=LABEL,name=LABEL)

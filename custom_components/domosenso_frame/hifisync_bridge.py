@@ -20,6 +20,85 @@ def legacy_config(config):
     return result
 
 
+def effective_config(config, enabled, *, has_system, has_room):
+    """Compose a display-only Music playlist without editing the saved layout."""
+    result = legacy_config(config)
+    if not enabled:
+        return result
+
+    saved_screens = next(mode['screens'] for mode in config['modes'] if mode['id'] == 'media')
+    media_mode = next(mode for mode in result['modes'] if mode['id'] == 'media')
+    screens = media_mode['screens']
+    anchor = next(
+        (screen for screen in screens if not screen['requires'] and any(
+            widget['type'] == 'media' for widget in screen['widgets']
+        )),
+        None,
+    ) or next(screen for screen in screens if not screen['requires'])
+    screens.remove(anchor)
+    used_ids = {anchor['id'], *(screen['id'] for screen in screens)}
+    extra = []
+    for kind, title, available in (
+        ('hifisync-system', 'System', has_system),
+        ('hifisync-room', 'Room', has_system and has_room),
+    ):
+        if not available:
+            continue
+        saved = next(
+            (screen for screen in saved_screens
+             if screen['id'] not in used_ids and kind in screen['requires']
+             and any(widget['type'] == kind for widget in screen['widgets'])),
+            None,
+        )
+        if saved:
+            screen = copy.deepcopy(saved)
+            screen['requires'] = [kind]
+            screen['widgets'] = [widget for widget in screen['widgets']
+                                 if widget['type'] == kind or widget['type'] not in KINDS]
+        else:
+            screen_id = kind
+            suffix = 1
+            while screen_id in used_ids:
+                screen_id = f'{kind}-{suffix}'
+                suffix += 1
+            screen = {
+                'id': screen_id, 'title': title, 'duration': 15, 'requires': [kind],
+                'widgets': [{'id': kind, 'type': kind, 'layout': {'x': 0, 'y': 0, 'w': 12, 'h': 12}}],
+            }
+        extra.append(screen)
+        used_ids.add(screen['id'])
+    if extra and not anchor['duration']:
+        anchor['duration'] = 15
+    media_mode['screens'] = [anchor, *extra, *screens]
+    return result
+
+
+def add_link_summaries(result, *, installed, provider, permitted):
+    """Attach bounded labels to their media candidates, never to other players."""
+    result['hifisyncInstalled'] = installed
+    if not installed or not callable(provider):
+        return
+    for candidate in result['candidates']['media']:
+        entity_id = candidate['entity']
+        if not permitted(entity_id):
+            continue
+        try:
+            link = provider(entity_id)
+        except Exception:
+            continue
+        if not isinstance(link, dict):
+            continue
+        status = link.get('status')
+        if status not in ('ready', 'stale', 'loading', 'select_system', 'select_player', 'unavailable', 'reauth'):
+            continue
+
+        def label(key):
+            value = link.get(key)
+            return value if status in ('ready', 'stale') and isinstance(value, str) and 1 <= len(value) <= 200 else None
+
+        candidate['hifisyncLink'] = {'status': status, 'systemName': label('systemName'), 'roomName': label('roomName')}
+
+
 def sanitize_drawing(value):
     """Copy a bounded drawing, or omit it when any recognized field is invalid."""
     try:
@@ -130,6 +209,12 @@ def projection(endpoint, negotiated, permitted, provider, now, drawings=False):
         return sanitize(provider(player), now, drawings=drawings)
     except Exception:
         return None
+
+
+def room_signature(value):
+    if value and (room := value['snapshot']['room']):
+        return (value['snapshot']['system']['id'], room['name'])
+    return None
 
 
 def validate_template(config):

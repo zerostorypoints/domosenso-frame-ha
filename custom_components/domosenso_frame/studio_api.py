@@ -6,6 +6,7 @@ from homeassistant.components import websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.helpers.storage import Store
 from homeassistant.core import callback
+from homeassistant.auth.permissions.const import POLICY_READ
 from .studio import Library,Conflict,validate_config
 from .studio_runtime import Runtime,SessionViews,view_key,installed_durations
 from .studio_data import Data
@@ -13,6 +14,7 @@ from .studio_mappings import Mappings,save_mappings_verified,merge_patch,readine
 from .assistant_projection import project
 from .timers import validate_targets
 from .studio_actions import validate_action,perform,takeover
+from .hifisync_bridge import add_link_summaries
 from .layouts import save_verified
 from .assistant_api import inventory_diagnostics
 from .assistant_bindings import catalog as assistant_catalog
@@ -64,13 +66,36 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
     def version1(value):
         if type(value) is not int or value!=1:raise vol.Invalid('Unsupported mapping version')
         return value
-    mapping_fields={vol.Required('version'):version1,vol.Required('endpoint'):vol.All(str,vol.Length(min=1,max=40))}
+    studio_field = {vol.Optional('hifisyncStudioVersion'): version1}
+    mapping_fields={vol.Required('version'):version1,vol.Required('endpoint'):vol.All(str,vol.Length(min=1,max=40)),**studio_field}
+
+    async def with_hifisync_links(h, c, endpoint):
+        from homeassistant.loader import IntegrationNotFound, async_get_integration
+
+        installed = 'hifisync' in h.data
+        if not installed:
+            try:
+                await async_get_integration(h, 'hifisync')
+                installed = True
+            except IntegrationNotFound:
+                pass
+        # Loading an integration manifest may yield while mappings or permission change.
+        admin(c)
+        result = mappings.get(endpoint, h.states)
+        add_link_summaries(result, installed=installed,
+                           provider=h.data.get('hifisync', {}).get('studio_link_v1'),
+                           permitted=lambda entity_id: c.user.permissions.check_entity(entity_id, POLICY_READ))
+        return result
+
     @command('studio_mappings',mapping_fields)
     @websocket_api.require_admin
-    @callback
-    def mapping_get(h,c,msg):
+    @websocket_api.async_response
+    async def mapping_get(h,c,msg):
         try:
-            admin(c);c.send_result(msg['id'],with_assistant_catalog(mappings.get(msg['endpoint'],h.states)))
+            admin(c)
+            eid = msg['endpoint']
+            result = await with_hifisync_links(h, c, eid) if msg.get('hifisyncStudioVersion') else mappings.get(eid,h.states)
+            c.send_result(msg['id'],with_assistant_catalog(result))
         except Exception:deny(c,msg)
     @command('studio_mappings_update',{**mapping_fields,vol.Required('revision'):vol.All(str,vol.Match(r'^[a-f0-9]{64}$')),vol.Required('patch'):dict})
     @websocket_api.require_admin
@@ -98,7 +123,10 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
                 h.bus.async_fire('domosenso_frame_event',{'endpoint':msg['endpoint'],'kind':'assistant_metadata'})
             if 'timers' in msg['patch'] and state.get('timers'):await state['timers'].mapping_changed()
             if 'radar' in msg['patch'] and state.get('radar'):state['radar'].reset(msg['endpoint'])
-            admin(c);c.send_result(msg['id'],with_assistant_catalog(result))
+            admin(c)
+            if msg.get('hifisyncStudioVersion'):
+                result = await with_hifisync_links(h, c, msg['endpoint'])
+            c.send_result(msg['id'],with_assistant_catalog(result))
         except Conflict:deny(c,msg,'mapping_conflict','Source mappings changed. Reload mappings; your template draft is retained.')
         except ValueError as error:deny(c,msg,'mapping_invalid',str(error))
         except Exception:deny(c,msg,'mapping_save_failed','Could not confirm the mapping save. Reload current mappings before retrying.')
@@ -124,24 +152,46 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
         except Conflict:deny(c,msg,'studio_conflict','Library changed. Reload the library; your draft is retained.')
         except ValueError as error:deny(c,msg,'studio_invalid',str(error))
         except Exception:deny(c,msg,'studio_save_failed','Could not persist the template library. Previous layout retained.')
-    @command('studio_dashboard',{vol.Required('endpoint'):str,vol.Optional('capabilitiesVersion'):version1,vol.Optional('hifisyncVersion'):version1,vol.Optional('hifisyncDrawingsVersion'):version1,vol.Optional('offset',default=0):vol.All(int,vol.Range(min=-30,max=30))})
+    @command('studio_dashboard',{vol.Required('endpoint'):str,**studio_field,vol.Optional('capabilitiesVersion'):version1,vol.Optional('hifisyncVersion'):version1,vol.Optional('hifisyncDrawingsVersion'):version1,vol.Optional('offset',default=0):vol.All(int,vol.Range(min=-30,max=30))})
     @websocket_api.async_response
     async def dashboard(h,c,msg):
         try:
-            if msg.get('hifisyncVersion')==1:admin(c)
-            endpoint=state['endpoints'][msg['endpoint']];result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1,msg.get('hifisyncVersion')==1,view_key(endpoint['id'],msg.get('hifisyncVersion')==1,preview=True),msg.get('hifisyncDrawingsVersion')==1)
-            if msg.get('hifisyncVersion')==1:admin(c)
+            studio = msg.get('hifisyncStudioVersion') == 1
+            hifisync = msg.get('hifisyncVersion') == 1
+            if studio or hifisync:
+                admin(c)
+            endpoint = state['endpoints'][msg['endpoint']]
+            result = await data.snapshot(
+                c, endpoint, msg['offset'], c.context(msg), msg.get('capabilitiesVersion') == 1,
+                hifisync, view_key(endpoint['id'], hifisync, preview=True, studio=studio),
+                msg.get('hifisyncDrawingsVersion') == 1,
+                hifisync_studio_version=studio, preview=True,
+            )
+            if studio or hifisync:
+                admin(c)
             result['readOnly']=True;c.send_result(msg['id'],result)
         except Exception:deny(c,msg)
-    @command('studio_display',{vol.Optional('capabilitiesVersion'):version1,vol.Optional('hifisyncVersion'):version1,vol.Optional('hifisyncDrawingsVersion'):version1,vol.Optional('offset',default=0):vol.All(int,vol.Range(min=-30,max=30))})
+    @command('studio_display',{**studio_field,vol.Optional('capabilitiesVersion'):version1,vol.Optional('hifisyncVersion'):version1,vol.Optional('hifisyncDrawingsVersion'):version1,vol.Optional('offset',default=0):vol.All(int,vol.Range(min=-30,max=30))})
     @websocket_api.async_response
     async def display(h,c,msg):
         try:
-            proof,endpoint=grant(h,c);negotiated=msg.get('hifisyncVersion')==1 and endpoint.get('hifisync') is True
-            result=await data.snapshot(c,endpoint,msg['offset'],c.context(msg),msg.get('capabilitiesVersion')==1,msg.get('hifisyncVersion')==1,view_key(endpoint['id'],negotiated),msg.get('hifisyncDrawingsVersion')==1);current_proof,current=grant(h,c)
+            proof,endpoint=grant(h,c)
+            studio = msg.get('hifisyncStudioVersion') == 1
+            hifisync = msg.get('hifisyncVersion') == 1
+            enabled = endpoint.get('hifisync') is True
+            key = view_key(endpoint['id'], hifisync and enabled, studio=studio)
+            def disconnected():
+                views.forget(c)
+                runtime.disconnect(c)
+            c.subscriptions.setdefault('domosenso_frame_studio_view', disconnected)
+            result = await data.snapshot(
+                c, endpoint, msg['offset'], c.context(msg), msg.get('capabilitiesVersion') == 1,
+                hifisync, key, msg.get('hifisyncDrawingsVersion') == 1,
+                hifisync_studio_version=studio,
+            )
+            current_proof,current=grant(h,c)
             if current_proof!=proof or current is not endpoint:raise ValueError('Endpoint changed')
-            views.remember(c,proof,negotiated,endpoint.get('hifisync') is True)
-            c.subscriptions.setdefault('domosenso_frame_studio_view',lambda:views.forget(c))
+            views.remember(c, proof, hifisync, enabled, studio=studio, visit=result.get('roomVisitId'))
             state['studio_clients'][endpoint['id']]=time.monotonic();c.send_result(msg['id'],result)
         except Exception:deny(c,msg)
     @command('studio_action',{vol.Required('action'):validate_action})
@@ -149,8 +199,19 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
     async def action(h,c,msg):
         try:
             proof,endpoint=grant(h,c);key=views.key(c,proof,endpoint.get('hifisync') is True);rt=runtime.endpoints.get(key);now=time.monotonic()
-            if rt and now<rt['shield']:raise ValueError('Touch shield active')
-            await perform(h,c,endpoint,msg['action'],c.context(msg),lambda:grant(h,c),key);c.send_result(msg['id'],{'ok':True})
+            request = msg['action']
+            if request['kind'] == 'room_interaction':
+                visit = request['visitId']
+                signature = data.room_access(c, endpoint, key) if views.saw_room(c, proof, visit) else None
+                if not runtime.permits_room(key, visit, signature) or not runtime.interact_room(
+                    key, c, visit, request['action'], request.get('gestureId'), now,
+                ):
+                    deny(c, msg, 'studio_room_inactive', 'Room visit is no longer active')
+                    return
+            else:
+                if rt and now<rt['shield']:raise ValueError('Touch shield active')
+                await perform(h,c,endpoint,request,c.context(msg),lambda:grant(h,c),key)
+            c.send_result(msg['id'],{'ok':True})
         except Exception:deny(c,msg)
     for handler in (mapping_get,mapping_update,library,update,dashboard,display,action):register_command(hass,handler)
     await register_static_paths(hass,[

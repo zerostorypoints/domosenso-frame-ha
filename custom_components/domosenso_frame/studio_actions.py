@@ -1,11 +1,27 @@
 """Small action surface mapped by the installation, never by a template."""
 import math
+import re
 from .studio_mappings import media_controls
 from homeassistant.auth.permissions.const import POLICY_READ,POLICY_CONTROL
 
 KINDS={'media':{'play_pause','previous','next','volume','source','power'},'light':{'toggle','brightness','all_off'},'cover':{'open','close','stop','open_all','close_all','stop_all'},'navigation':{'controls','ambient','media','calendar','next','previous'},'runtime':{'approach'}}
 
+ROOM_ACTIONS = {'begin', 'progress', 'end', 'touch'}
+ROOM_ID = re.compile(r'[A-Za-z0-9_-]{1,128}')
+
+
 def validate_action(value):
+    if isinstance(value, dict) and value.get('kind') == 'room_interaction':
+        action = value.get('action')
+        if not isinstance(action, str) or action not in ROOM_ACTIONS:
+            raise ValueError('Invalid room interaction')
+        required = {'kind','action','visitId'} if action == 'touch' else {'kind','action','visitId','gestureId'}
+        if set(value) != required or any(
+            not isinstance(value[field], str) or not ROOM_ID.fullmatch(value[field])
+            for field in required - {'kind','action'}
+        ):
+            raise ValueError('Invalid room interaction identifier')
+        return value
     if not isinstance(value,dict) or set(value)-{'kind','action','index','value'}:raise ValueError('Invalid action')
     kind=value.get('kind');action=value.get('action')
     if kind not in KINDS or action not in KINDS[kind]:raise ValueError('Unsupported action')

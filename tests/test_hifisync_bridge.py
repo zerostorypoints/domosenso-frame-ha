@@ -127,3 +127,66 @@ def test_drawing_requires_handshake_and_malformed_data_does_not_discard_snapshot
     for invalid in [{'rackKind':'other'}, {'rackKind':'spk','widthCm':1001}, {'rackKind':'spk','drivers':[{'role':'x','size':True,'count':1}]}, {'rackKind':'spk','floorstanding':1}]:
         component['drawing'] = invalid
         assert 'drawing' not in bridge.sanitize(value, now, drawings=True)['snapshot']['system']['components'][0]
+
+
+def page(id, *types, requires=(), duration=0):
+    return {
+        'id': id,
+        'title': id,
+        'duration': duration,
+        'requires': list(requires),
+        'widgets': [{'id': kind, 'type': kind, 'layout': {'x': 0, 'y': 0, 'w': 12, 'h': 12}} for kind in types],
+    }
+
+
+def test_effective_playlist_holds_saved_template_revision_and_keeps_all_sixteen_pages():
+    import copy
+
+    pages = [page('custom-before', 'clock'), page('music', 'media')]
+    pages.extend(page(f'custom-{i}', 'clock') for i in range(14))
+    template = {'modes': [{'id': 'media', 'screens': pages}]}
+    before = copy.deepcopy(template)
+    result = bridge.effective_config(template, True, has_system=True, has_room=True)
+    screens = result['modes'][0]['screens']
+    assert [s['id'] for s in screens] == ['music', 'hifisync-system', 'hifisync-room', 'custom-before', *[f'custom-{i}' for i in range(14)]]
+    assert [p['duration'] for p in screens[:3]] == [15, 15, 15]
+    assert template == before
+
+
+def test_effective_playlist_reuses_saved_pilot_page_once_and_missing_room_does_not_show():
+    now_playing = page('music', 'media', duration=42)
+    system = page('pilot-system', 'hifisync-system', requires=['hifisync-system'], duration=34)
+    room = page('pilot-room', 'hifisync-room', requires=['hifisync-room'], duration=37)
+    template = {'modes': [{'id': 'media', 'screens': [now_playing, system, room, page('duplicate', 'hifisync-system', requires=['hifisync-system'])]}]}
+    assert bridge.effective_config(template, True, has_system=True, has_room=True)['modes'][0]['screens'] == [now_playing, system, room]
+    assert bridge.effective_config(template, True, has_system=True, has_room=False)['modes'][0]['screens'] == [now_playing, system]
+    assert bridge.effective_config(template, False, has_system=True, has_room=True)['modes'][0]['screens'] == [now_playing]
+
+
+def test_effective_playlist_uses_first_unconditional_page_with_no_now_playing_and_avoids_id_collisions():
+    custom = [page('hifisync-system', 'clock', requires=['weather']), page('custom-first', 'clock')]
+    template = {'modes': [{'id': 'media', 'screens': custom}]}
+    screens = bridge.effective_config(template, True, has_system=True, has_room=False)['modes'][0]['screens']
+    assert screens[0]['id'] == 'custom-first'
+    assert screens[1]['widgets'][0]['type'] == 'hifisync-system'
+    assert screens[1]['id'] != 'hifisync-system'
+    assert screens[2] == custom[0]
+    assert template['modes'][0]['screens'] == custom
+
+
+def test_negotiated_summary_is_bounded_by_player_permission_and_hides_extra_data():
+    result = {'candidates': {'media': [{'entity': 'media_player.one'}, {'entity': 'media_player.forbidden'}, {'entity': 'media_player.unmatched'}]}}
+    calls = []
+
+    def provider(entity):
+        calls.append(entity)
+        return {'status': 'ready', 'systemName': 'System', 'roomName': 'Room', 'token': 'secret'} if entity == 'media_player.one' else None
+
+    bridge.add_link_summaries(result, installed=True, provider=provider, permitted=lambda id: id != 'media_player.forbidden')
+    assert result['hifisyncInstalled'] is True
+    assert result['candidates']['media'][0]['hifisyncLink'] == {'status': 'ready', 'systemName': 'System', 'roomName': 'Room'}
+    assert all('hifisyncLink' not in row for row in result['candidates']['media'][1:])
+    assert calls == ['media_player.one', 'media_player.unmatched']
+    absent = {'candidates': {'media': [{'entity': 'media_player.one'}]}}
+    bridge.add_link_summaries(absent, installed=False, provider=None, permitted=lambda _: True)
+    assert absent == {'hifisyncInstalled': False, 'candidates': {'media': [{'entity': 'media_player.one'}]}}

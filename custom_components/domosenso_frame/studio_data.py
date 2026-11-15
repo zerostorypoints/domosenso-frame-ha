@@ -14,7 +14,7 @@ from homeassistant.auth.permissions.const import POLICY_READ
 from homeassistant.util import dt as dt_util
 from .studio_sources import source_entities
 from .studio_mappings import readiness,media_controls
-from .hifisync_bridge import legacy_config, projection, music_active
+from .hifisync_bridge import effective_config, legacy_config, music_active, projection, room_signature
 
 DOMAIN='domosenso_frame'
 
@@ -83,7 +83,28 @@ class Data:
         entities.update(display[k] for k in ('weather','mode_entity','page_entity') if display.get(k))
         for eid in entities:
             if not connection.user.permissions.check_entity(eid,POLICY_READ):raise ValueError('Source not permitted')
-    async def snapshot(self,connection,endpoint,offset=0,context=None,capabilities_version=False,hifisync_version=False,runtime_key=None,hifisync_drawings_version=False):
+    def room_access(self, connection, endpoint, runtime_key):
+        """Recheck a currently playing Room immediately before applying a hold."""
+        self.check(connection, endpoint)
+        sources = endpoint.get('studio', {})
+        runtime = sources.get('runtime', {})
+        permitted = lambda eid: connection.user.permissions.check_entity(eid, POLICY_READ)
+
+        def plain(entity_id, default=None):
+            state = self.hass.states.get(entity_id) if entity_id else None
+            return state.state if state and state.state not in ('unknown', 'unavailable') else default
+
+        mode = self.runtime.mode(runtime_key, plain(runtime.get('mode'), 'ambient'))
+        has_helper = bool(runtime.get('music_view'))
+        if mode not in ('ambient', 'media') or not music_active(
+            True, endpoint.get('hifisync') is True, has_helper,
+            plain(runtime.get('music_view')) == 'on', plain(sources.get('media', {}).get('entity')),
+        ):
+            return None
+        provider = self.hass.data.get('hifisync', {}).get('studio_snapshot_v1')
+        return room_signature(projection(endpoint, True, permitted, provider, dt_util.utcnow()))
+
+    async def snapshot(self,connection,endpoint,offset=0,context=None,capabilities_version=False,hifisync_version=False,runtime_key=None,hifisync_drawings_version=False,*,hifisync_studio_version=False,preview=False):
         from .assistant_projection import project, still_current
         from .assistant_api import active_artifacts
         hass=self.hass;original=endpoint;runtime_key=runtime_key or endpoint['id'];self.check(connection,original)
@@ -177,24 +198,35 @@ class Data:
         mains={k:measure(eid,k) for k,eid in sources.get('mains',{}).items()}
         widgets=readiness(endpoint,hass.states);capabilities=[k for k,v in widgets.items() if v['ready'] and k not in ('clock','navigation','media-controls')]
         if widgets['rooms']['ready']:capabilities.append('temperature')
-        library=hass.data[DOMAIN]['studio_library'];saved_config=library.config(endpoint['id']);config=saved_config if hifisync_version else legacy_config(saved_config);runtime=sources.get('runtime',{});mode=self.runtime.mode(runtime_key,plain(runtime.get('mode'),'ambient'));page=plain(runtime.get('page'));music=plain(runtime.get('music_view'))=='on'
+        library=hass.data[DOMAIN]['studio_library'];saved_config=library.config(endpoint['id']);runtime=sources.get('runtime',{});mode=self.runtime.mode(runtime_key,plain(runtime.get('mode'),'ambient'));page=plain(runtime.get('page'));music=plain(runtime.get('music_view'))=='on'
+        hifisync_version = hifisync_version or hifisync_studio_version
+        enabled = endpoint.get('hifisync') is True
         def current_hifisync():
             provider=hass.data.get('hifisync',{}).get('studio_snapshot_v1')
-            return projection(endpoint,hifisync_version,permitted,provider,dt_util.utcnow(),drawings=hifisync_drawings_version)
-        music=music_active(hifisync_version,endpoint.get('hifisync') is True,bool(runtime.get('music_view')),music,ms.state if ms else None)
-        playback=music
+            return projection(endpoint,hifisync_version,permitted,provider,dt_util.utcnow(),drawings=hifisync_drawings_version or hifisync_studio_version)
+        music=music_active(hifisync_version,enabled,bool(runtime.get('music_view')),music,ms.state if ms else None)
+        playback=music and (not hifisync_studio_version or mode in ('ambient','media'))
         hifisync=current_hifisync() if playback else None
         if hifisync and playback:
             capabilities.append('hifisync-system')
             if hifisync['snapshot']['room'] is not None:capabilities.append('hifisync-room')
+        signature = room_signature(hifisync) if hifisync_studio_version else None
+        if hifisync_studio_version:
+            config = effective_config(saved_config, enabled, has_system=bool(hifisync), has_room=bool(signature))
+        else:
+            config = saved_config if hifisync_version else legacy_config(saved_config)
+        studio_music = hifisync_studio_version and enabled and (mode == 'media' or (mode == 'ambient' and music))
         applied=library.saved['applied'].get(endpoint['id']);revision=str(applied['revision'])+applied['templateId'] if applied else 'classic'
-        if (applied and applied.get('runtimeOwned')) or not runtime.get('scripts') or runtime_key in self.runtime.navigation:
-            active,screen,elapsed,shield=self.runtime.select(runtime_key,config,mode,page,music,capabilities,revision,paused=plain(runtime.get('paused'))=='on')
+        if studio_music or (applied and applied.get('runtimeOwned')) or not runtime.get('scripts') or runtime_key in self.runtime.navigation:
+            active,screen,elapsed,shield=self.runtime.select(runtime_key,config,mode,page,music,capabilities,revision,paused=plain(runtime.get('paused'))=='on',studio_music=studio_music,room_signature=signature)
         else:
             # Until explicit Apply, preserve the old HA-selected layout/page and its scheduler.
             active=base['mode'] if base['mode'] in ('controls','ambient','media') else 'ambient'
             screens=next(m['screens'] for m in config['modes'] if m['id']==active)
             screen=base['screen'] if any(s['id']==base['screen'] for s in screens) else screens[0]['id'];elapsed=shield=0
+            if hifisync_studio_version:
+                self.runtime.reset(runtime_key)
+        visit = self.runtime.room_visit(runtime_key) if signature and studio_music and not preview else None
         uid=connection.user.id;eid=endpoint['id'];generation=(id(original),metadata_revision)
         async def forecast():
             weather=endpoint.get('display',{}).get('weather')
@@ -265,4 +297,9 @@ class Data:
             if sensor:state(sensor)
         if library.config(eid)!=saved_config:raise ValueError('Template changed during request')
         if playback and current_hifisync()!=hifisync:raise ValueError('HiFiSync projection changed during request')
-        return {'version':2,'config':config,'mode':active,'screen':screen,'connected':True,'fetchedAt':dt_util.utcnow().isoformat(),'timezone':hass.config.time_zone,'capabilities':list(set(capabilities)),'off':mode=='off','wind':plain(sources.get('wind')) in ('on','true'),'readOnly':False,'data':{**({'hifisync':hifisync} if hifisync_version else {}),'weather':weather,'rooms':rooms,'air':base['air'],'assessment':base['assessment'],'status':statuses,'plants':plants,'media':media,'mains':mains,'history':history_data,'calendar':results[1],'photos':photo,**controls,'runtime':{'shieldUntil':(now+timedelta(seconds=shield)).isoformat() if shield else None,'approachEnabled':plain(runtime.get('approach'))=='on' if runtime.get('approach') else None}}}
+        if visit and not self.runtime.permits_room(runtime_key, visit, self.room_access(connection, original, runtime_key)):
+            raise ValueError('Room visit changed during request')
+        extensions = {'hifisyncStudioVersion': 1} if hifisync_studio_version else {}
+        if visit:
+            extensions['roomVisitId'] = visit
+        return {'version':2,**extensions,'config':config,'mode':active,'screen':screen,'connected':True,'fetchedAt':dt_util.utcnow().isoformat(),'timezone':hass.config.time_zone,'capabilities':list(set(capabilities)),'off':mode=='off','wind':plain(sources.get('wind')) in ('on','true'),'readOnly':False,'data':{**({'hifisync':hifisync} if hifisync_version else {}),'weather':weather,'rooms':rooms,'air':base['air'],'assessment':base['assessment'],'status':statuses,'plants':plants,'media':media,'mains':mains,'history':history_data,'calendar':results[1],'photos':photo,**controls,'runtime':{'shieldUntil':(now+timedelta(seconds=shield)).isoformat() if shield else None,'approachEnabled':plain(runtime.get('approach'))=='on' if runtime.get('approach') else None}}}
