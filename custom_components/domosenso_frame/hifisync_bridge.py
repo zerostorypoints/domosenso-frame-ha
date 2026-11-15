@@ -2,6 +2,7 @@
 import copy
 import math
 from datetime import datetime
+from uuid import UUID
 
 KINDS = {'hifisync-system', 'hifisync-room'}
 
@@ -10,14 +11,119 @@ def legacy_config(config):
     result = copy.deepcopy(config)
     for mode in result['modes']:
         screens = []
+        fallback = next(screen for screen in mode['screens'] if not screen['requires'])
         for screen in mode['screens']:
             if KINDS.intersection(screen['requires']):
                 continue
             screen['widgets'] = [widget for widget in screen['widgets'] if widget['type'] not in KINDS]
             if screen['widgets']:
                 screens.append(screen)
+        if not any(not screen['requires'] for screen in screens):
+            # A valid custom template may have only HiFiSync widgets on its
+            # unconditional page. Give the effective layout a public fallback.
+            kind, title = ('media', 'Now Playing') if mode['id'] == 'media' else ('clock', 'Clock')
+            fallback['title'] = title
+            fallback['widgets'] = [{'id': kind, 'type': kind, 'layout': {'x': 0, 'y': 0, 'w': 12, 'h': 12}}]
+            screens.insert(0, fallback)
         mode['screens'] = screens
     return result
+
+
+def full_screen(used_ids, base_id, title, widget_type, requires):
+    screen_id = base_id
+    suffix = 1
+    while screen_id in used_ids:
+        screen_id = f'{base_id}-{suffix}'
+        suffix += 1
+    return {
+        'id': screen_id, 'title': title, 'duration': 15, 'requires': requires,
+        'widgets': [{'id': widget_type, 'type': widget_type, 'layout': {'x': 0, 'y': 0, 'w': 12, 'h': 12}}],
+    }
+
+
+def effective_config(config, enabled, *, has_system, has_room):
+    """Compose a display-only Music playlist without editing the saved layout."""
+    result = legacy_config(config)
+    if not enabled:
+        return result
+
+    saved_screens = next(mode['screens'] for mode in config['modes'] if mode['id'] == 'media')
+    media_mode = next(mode for mode in result['modes'] if mode['id'] == 'media')
+    compatible = {screen['id']: screen for screen in media_mode['screens']}
+    available_kinds = {
+        kind for kind, available in (
+            ('hifisync-system', has_system), ('hifisync-room', has_system and has_room),
+        ) if available
+    }
+    screens = []
+    for saved_screen in saved_screens:
+        if saved_screen['id'] in compatible:
+            screens.append(compatible[saved_screen['id']])
+        elif KINDS.intersection(saved_screen['requires']) <= available_kinds and all(
+            widget['type'] not in KINDS for widget in saved_screen['widgets']
+        ):
+            screens.append(copy.deepcopy(saved_screen))
+    anchor = next(
+        (screen for screen in screens if not screen['requires'] and any(
+            widget['type'] == 'media' for widget in screen['widgets']
+        )),
+        None,
+    )
+    used_ids = {screen['id'] for screen in screens}
+    if anchor is None:
+        anchor = full_screen(used_ids, 'now-playing', 'Now Playing', 'media', [])
+        used_ids.add(anchor['id'])
+    else:
+        screens.remove(anchor)
+    extra = []
+    for kind, title in (('hifisync-system', 'System'), ('hifisync-room', 'Room')):
+        if kind not in available_kinds:
+            continue
+        saved = next(
+            (screen for screen in saved_screens
+             if screen['id'] not in used_ids and kind in screen['requires']
+             and any(widget['type'] == kind for widget in screen['widgets'])),
+            None,
+        )
+        if saved:
+            screen = copy.deepcopy(saved)
+            screen['requires'] = [kind]
+            screen['widgets'] = [widget for widget in screen['widgets']
+                                 if widget['type'] == kind or widget['type'] not in KINDS]
+        else:
+            screen = full_screen(used_ids, kind, title, kind, [kind])
+        extra.append(screen)
+        used_ids.add(screen['id'])
+    if extra and not anchor['duration']:
+        anchor['duration'] = 15
+    media_mode['screens'] = [anchor, *extra, *screens]
+    return result
+
+
+def add_link_summaries(result, *, installed, provider, permitted):
+    """Attach bounded labels to their media candidates, never to other players."""
+    result['hifisyncInstalled'] = installed
+    if not installed or not callable(provider):
+        return
+    for candidate in result['candidates']['media']:
+        entity_id = candidate['entity']
+        if not permitted(entity_id):
+            continue
+        try:
+            link = provider(entity_id)
+        except Exception:
+            continue
+        if not isinstance(link, dict):
+            continue
+        status = link.get('status')
+        if status not in ('ready', 'stale', 'loading', 'select_system', 'select_player', 'unavailable', 'reauth'):
+            continue
+
+        def label(key):
+            value = link.get(key)
+            return value if status in ('ready', 'stale') and isinstance(value, str) and 1 <= len(value) <= 200 else None
+
+        candidate['hifisyncLink'] = {'status': status, 'systemName': label('systemName'), 'roomName': label('roomName')}
 
 
 def sanitize_drawing(value):
@@ -56,7 +162,7 @@ def sanitize_drawing(value):
     except (KeyError, TypeError, ValueError, OverflowError):
         return None
 
-def sanitize(value, now, drawings=False):
+def sanitize(value, now, drawings=False, *, room_identity=False):
     """Accept only a bounded, unexpired v1 presentation payload; never pass extras."""
     try:
         if not isinstance(value, dict) or type(value['stale']) is not bool:
@@ -115,21 +221,36 @@ def sanitize(value, now, drawings=False):
                 clean_placements.append({'role': item['role'], 'xM': x, 'yM': y, 'rotationDeg': rotation})
             height=number(room['heightM'], True)
             if height is not None and not .01 <= height <= 200:return None
-            room = {'name': text(room['name']), 'widthM': width, 'lengthM': length, 'heightM': height, 'placements': clean_placements}
+            room_id = {}
+            if room_identity and 'id' in room:
+                raw_id = room['id']
+                if not isinstance(raw_id, str) or len(raw_id) != 36 or str(UUID(raw_id)) != raw_id.lower():
+                    return None
+                room_id['id'] = raw_id.lower()
+            room = {**room_id, 'name': text(room['name']), 'widthM': width, 'lengthM': length, 'heightM': height, 'placements': clean_placements}
         snapshot = {'version': 1, 'revision': text(source['revision']), 'system': {'id': text(system['id']), 'name': text(system['name']), 'components': out, 'rack': clean_rack}, 'room': room}
         return {'snapshot': snapshot, 'stale': value['stale'], 'validUntil': until.isoformat()}
     except (KeyError, TypeError, ValueError, OverflowError, AttributeError):
         return None
 
 
-def projection(endpoint, negotiated, permitted, provider, now, drawings=False):
+def projection(endpoint, negotiated, permitted, provider, now, drawings=False, *, room_identity=False):
     player = endpoint.get('studio', {}).get('media', {}).get('entity')
     if not (negotiated and endpoint.get('hifisync') is True and player and callable(provider) and permitted(player)):
         return None
     try:
-        return sanitize(provider(player), now, drawings=drawings)
+        return sanitize(provider(player), now, drawings=drawings, room_identity=room_identity)
     except Exception:
         return None
+
+
+def room_signature(value):
+    if value and (room := value['snapshot']['room']):
+        system_id = value['snapshot']['system']['id']
+        if 'id' in room:
+            return (system_id, 'id', room['id'])
+        return (system_id, 'name', room['name'])
+    return None
 
 
 def validate_template(config):

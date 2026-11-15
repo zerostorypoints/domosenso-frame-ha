@@ -14,7 +14,8 @@ sources = load('studio_sources')
 
 def configuration(system=15, room=15):
     def screen(id, requires, duration):
-        return {'id': id, 'requires': requires, 'duration': duration, 'widgets': []}
+        return {'id': id, 'requires': requires, 'duration': duration,
+                'widgets': [{'type': kind} for kind in requires]}
     return {'modes': [{'id': 'media', 'screens': [screen('playing', [], 15), screen('system', ['hifisync-system'], system), screen('room', ['hifisync-room'], room)]}, {'id': 'ambient', 'screens': [screen('ambient', [], 10), screen('other', [], 10)]}]}
 
 
@@ -88,3 +89,105 @@ def test_zero_duration_pages_remain_manual_after_long_poll_gap():
     rt=runtime.Runtime();config=configuration(0,0)
     assert select(rt, 0, config=config)=='playing'
     assert select(rt, 200, config=config)=='playing'
+
+
+def studio_select(rt, now, *, caps=('hifisync-system','hifisync-room'), paused=False, room_signature=('demo-system', 'Room')):
+    return rt.select('frame', configuration(), 'media', '', True, caps, 'rev', now, paused=paused, studio_music=True, room_signature=room_signature)[1]
+
+
+def start_room(rt, now=0):
+    assert studio_select(rt, now) == 'playing'
+    assert studio_select(rt, now+30) == 'room'
+    return rt.room_visit('frame')
+
+
+def test_custom_page_with_room_requirement_does_not_get_a_room_visit():
+    rt = runtime.Runtime()
+    config = configuration()
+    config['modes'][0]['screens'].append({
+        'id': 'room-clock', 'requires': ['hifisync-room'], 'duration': 15,
+        'widgets': [{'type': 'clock'}],
+    })
+    caps = ['hifisync-system', 'hifisync-room']
+    rt.select('frame', config, 'media', '', True, caps, 'rev', 0, studio_music=True, room_signature=('system', 'Room'))
+    state = rt.select('frame', config, 'media', '', True, caps, 'rev', 45, studio_music=True, room_signature=('system', 'Room'))
+    assert state[1] == 'room-clock'
+    assert rt.room_visit('frame') is None
+
+
+def test_room_hold_renews_and_resumes_remaining_page_time():
+    rt = runtime.Runtime()
+    visit = start_room(rt)
+    client = object()
+    assert rt.interact_room('frame', client, visit, 'touch', now=44)
+    assert studio_select(rt, 73) == 'room'
+    assert rt.interact_room('frame', client, visit, 'touch', now=73)
+    assert studio_select(rt, 103) == 'room'
+    assert rt.room_visit('frame') == visit
+    assert studio_select(rt, 104) == 'playing'
+
+
+def test_room_held_gesture_renews_before_end_and_watchdog_expires_if_end_is_lost():
+    rt = runtime.Runtime()
+    visit = start_room(rt)
+    client = object()
+    assert rt.interact_room('frame', client, visit, 'begin', 'drag', now=44)
+    assert rt.interact_room('frame', client, visit, 'progress', 'drag', now=71)
+    assert studio_select(rt, 89) == 'room'
+    assert not rt.interact_room('frame', client, visit, 'end', 'earlier', now=89)
+    assert rt.interact_room('frame', client, visit, 'end', 'drag', now=89)
+    assert studio_select(rt, 119) == 'room'
+    assert studio_select(rt, 120) == 'playing'
+
+    rt = runtime.Runtime()
+    visit = start_room(rt)
+    assert rt.interact_room('frame', client, visit, 'begin', 'drag', now=44)
+    assert studio_select(rt, 75) == 'playing'
+
+
+@pytest.mark.parametrize('delta,next_page', [(1, 'playing'), (-1, 'system')])
+def test_manual_swipe_clears_hold_and_invalidates_room_visit(delta, next_page):
+    rt = runtime.Runtime()
+    visit = start_room(rt)
+    client = object()
+    assert rt.interact_room('frame', client, visit, 'touch', now=40)
+    rt.step('frame', delta, 41)
+    assert studio_select(rt, 55) == next_page
+    assert rt.room_visit('frame') is None
+    rt.step('frame', -delta, 55)
+    assert studio_select(rt, 56) == 'room'
+    assert rt.room_visit('frame') != visit
+    assert not rt.interact_room('frame', client, visit, 'touch', now=57)
+
+
+def test_manual_pause_and_disconnect_do_not_extend_or_override_one_another():
+    rt = runtime.Runtime()
+    visit = start_room(rt)
+    client = object()
+    assert rt.interact_room('frame', client, visit, 'touch', now=44)
+    assert studio_select(rt, 45, paused=True) == 'room'
+    rt.disconnect(client, now=46)
+    assert studio_select(rt, 100, paused=True) == 'room'
+    assert studio_select(rt, 100) == 'room'
+    assert studio_select(rt, 115) == 'playing'
+
+    rt = runtime.Runtime()
+    visit = start_room(rt)
+    assert rt.interact_room('frame', client, visit, 'begin', 'drag', now=44)
+    rt.disconnect(client, now=46)
+    assert studio_select(rt, 46) == 'room'
+    assert studio_select(rt, 47) == 'playing'
+
+
+def test_removed_room_and_reselected_projection_invalidate_old_visit():
+    rt = runtime.Runtime()
+    visit = start_room(rt)
+    client = object()
+    assert rt.interact_room('frame', client, visit, 'touch', now=40)
+    assert studio_select(rt, 41, caps=('hifisync-system',), room_signature=None) == 'playing'
+    assert not rt.interact_room('frame', client, visit, 'touch', now=42)
+    assert studio_select(rt, 43) == 'playing'
+    assert studio_select(rt, 73) == 'room'
+    assert rt.room_visit('frame') != visit
+    assert studio_select(rt, 74, room_signature=('different-system', 'Room')) == 'playing'
+    assert rt.room_visit('frame') is None
