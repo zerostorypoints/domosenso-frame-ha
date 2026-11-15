@@ -37,7 +37,7 @@ SOURCE=vol.Schema({vol.Required('entity'):cv.entity_id,vol.Required('label'):LAB
 DISPLAY=vol.Schema({vol.Optional('locale',default='en'):vol.In(['en','de','pl']),vol.Optional('config'):validate_config,vol.Optional('weather'):cv.entity_id,vol.Optional('status',default=[]):vol.All([vol.Schema({vol.Required('entity'):cv.entity_id,vol.Required('label'):LABEL})],vol.Length(max=64)),vol.Optional('mode_entity'):cv.entity_id,vol.Optional('page_entity'):cv.entity_id})
 ENDPOINT=vol.Schema({vol.Required('id'):vol.Match(r'^[a-z][a-z0-9_-]{0,39}$'),vol.Required('name'):LABEL,
     vol.Optional('semantic_version'):vol.In([1]),vol.Optional('metadata_source'):vol.Schema({'component':LABEL,'revision':vol.All(str,vol.Length(max=160))}),
-    vol.Optional('timers'):validate_timers,vol.Optional('radar'):validate_radar,vol.Optional('display'):DISPLAY,vol.Optional('studio'):validate_sources,
+    vol.Optional('hifisync',default=False):cv.boolean,vol.Optional('timers'):validate_timers,vol.Optional('radar'):validate_radar,vol.Optional('display'):DISPLAY,vol.Optional('studio'):validate_sources,
     vol.Required('dashboard'):vol.All(str,vol.Match(r'^/(?!/|auth/|api/)[A-Za-z0-9_/-]+$')),
     vol.Optional('temperature',default=[]):vol.All([SOURCE],vol.Length(max=64)),
     vol.Optional('air',default=[]):vol.All([SOURCE],vol.Length(max=64)),
@@ -151,7 +151,7 @@ async def _async_setup_bridge(hass,settings,source,entry_id=None):
     state['radar_cancel']=hass.bus.async_listen('state_changed',radar_changed)
     for eid in endpoints:radar.refresh(eid)
     for command in [layout_get,layout_save,profile,begin,finish,status,data,display,dashboard,subscribe,devices,approve,revoke,remove_device,screen]:register_command(hass,command)
-    await register_static_paths(hass,[StaticPathConfig('/domosenso_frame/timer-panel.js',str(Path(__file__).with_name('timer-panel.js')),False),StaticPathConfig('/domosenso_frame/assistant-panel.js',str(Path(__file__).with_name('assistant-panel.js')),False),StaticPathConfig('/domosenso_frame/panel.js',str(Path(__file__).with_name('panel.js')),False),StaticPathConfig('/domosenso_frame/editor.js',str(Path(__file__).with_name('editor.js')),False),StaticPathConfig('/domosenso_frame/editor-model.js',str(Path(__file__).with_name('editor-model.js')),False),StaticPathConfig('/domosenso_frame/ui/0.1.0',str(Path(__file__).parent/'ui/0.1.0'),False)])
+    await register_static_paths(hass,[StaticPathConfig('/domosenso_frame/hifisync-panel.js',str(Path(__file__).with_name('hifisync-panel.js')),False),StaticPathConfig('/domosenso_frame/timer-panel.js',str(Path(__file__).with_name('timer-panel.js')),False),StaticPathConfig('/domosenso_frame/assistant-panel.js',str(Path(__file__).with_name('assistant-panel.js')),False),StaticPathConfig('/domosenso_frame/panel.js',str(Path(__file__).with_name('panel.js')),False),StaticPathConfig('/domosenso_frame/editor.js',str(Path(__file__).with_name('editor.js')),False),StaticPathConfig('/domosenso_frame/editor-model.js',str(Path(__file__).with_name('editor-model.js')),False),StaticPathConfig('/domosenso_frame/ui/0.1.0',str(Path(__file__).parent/'ui/0.1.0'),False)])
     frontend.async_register_built_in_panel(hass,'custom',sidebar_title='DomoSenso Frame',sidebar_icon='mdi:tablet-dashboard',frontend_url_path=DOMAIN,require_admin=True,
       config={'_panel_custom':{'name':'domosenso-frame-panel','module_url':'/domosenso_frame/panel.js','embed_iframe':False,'trust_external':False}})
     return True
@@ -175,7 +175,9 @@ def profile(hass,connection,msg):
       'endpoints':[{'id':e['id'],'name':e['name'],'dashboard':e['dashboard'],'rooms':[s['label'] for s in e['temperature']],
        **({'assistantMetadataVersions':[2]} if state.get('assistant_metadata_read_enabled') and state.get('assistant_metadata_legacy_enabled') and e['id'] in state.get('assistant_metadata_verified_endpoints', ()) else {}),
        **({'assistantActionMetadataVersions':[2]} if projection_enabled(state, e['id']) else {}),
-       **({'capabilitiesVersion':1} if state.get('studio_ready') else {}),'semanticVersion':e.get('semantic_version',0),'displayVersion':1 if 'display' in e else 0,'studioVersion':2 if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else 0,
+       **({'capabilitiesVersion':1} if state.get('studio_ready') else {}),
+       **({'hifisyncStudioVersion':1} if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else {}),
+       **({'hifisyncVersion':1,'hifisyncDrawingsVersion':1} if state.get('studio_ready') and e.get('hifisync') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else {}),'semanticVersion':e.get('semantic_version',0),'displayVersion':1 if 'display' in e else 0,'studioVersion':2 if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else 0,
        'topics':[t for t,key in [('temperature','temperature'),('air','air'),('calendar','calendars')] if e[key]]} for e in state['endpoints'].values()]})
 
 @command('begin',publicKey=vol.All(str,vol.Length(max=256)),endpoint=LABEL,name=LABEL)
