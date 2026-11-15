@@ -1,5 +1,18 @@
 # Upgrade notes
 
+## Optional HiFiSync music screens (0.5.0 candidate)
+
+Use HiFiSync for Home Assistant 0.2.0 or later, a compatible Frame app and
+the matching Studio 0.2.7 bundle. Keep the existing integration entry,
+device pairing, source mappings and saved templates during the update.
+
+In Studio's Music Sources, select the player already linked to HiFiSync
+and review the displayed system and room. Enable **Show System and Room**
+and save the panel's sources. Turn it off there to remove these pages.
+Older Studio clients retain their supported layout and existing pilot
+templates. Reauthenticate or choose a replacement system in the HiFiSync
+integration when its link status calls for repair.
+
 ## Shared timers (development)
 
 Existing assistant v1 read metadata and routes remain supported. The compiler keeps

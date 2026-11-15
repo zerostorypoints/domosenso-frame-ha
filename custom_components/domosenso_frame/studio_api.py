@@ -216,5 +216,5 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
     for handler in (mapping_get,mapping_update,library,update,dashboard,display,action):register_command(hass,handler)
     await register_static_paths(hass,[
         StaticPathConfig(f'/domosenso_frame/ui/{version}',str(Path(__file__).parent/'ui'/version),False)
-        for version in ('0.2.0','0.2.1','0.2.2','0.2.4','0.2.6')
+        for version in ('0.2.0','0.2.1','0.2.2','0.2.4','0.2.6','0.2.7')
     ])
