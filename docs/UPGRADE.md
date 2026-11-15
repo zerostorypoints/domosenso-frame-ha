@@ -13,6 +13,11 @@ Older Studio clients retain their supported layout and existing pilot
 templates. Reauthenticate or choose a replacement system in the HiFiSync
 integration when its link status calls for repair.
 
+A regular Ramka dashboard on catalog 0.21.0 can opt into the paired
+`domosenso_frame/lovelace_music` route. Keep its device grant and turn on
+**Show System and Room** for the matching player. The dashboard loads the
+versioned Studio 0.2.7 renderer from the same HA instance.
+
 ## Shared timers (development)
 
 Existing assistant v1 read metadata and routes remain supported. The compiler keeps

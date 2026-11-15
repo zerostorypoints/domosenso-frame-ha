@@ -4,9 +4,11 @@ import time
 import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.components.http import StaticPathConfig
+from homeassistant.const import STATE_PLAYING
 from homeassistant.helpers.storage import Store
 from homeassistant.core import callback
 from homeassistant.auth.permissions.const import POLICY_READ
+from homeassistant.util import dt as dt_util
 from .studio import Library,Conflict,validate_config
 from .studio_runtime import Runtime,SessionViews,view_key,installed_durations
 from .studio_data import Data
@@ -14,7 +16,7 @@ from .studio_mappings import Mappings,save_mappings_verified,merge_patch,readine
 from .assistant_projection import project
 from .timers import validate_targets
 from .studio_actions import validate_action,perform,takeover
-from .hifisync_bridge import add_link_summaries
+from .hifisync_bridge import add_link_summaries, projection
 from .layouts import save_verified
 from .assistant_api import inventory_diagnostics
 from .assistant_bindings import catalog as assistant_catalog
@@ -194,6 +196,30 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
             views.remember(c, proof, hifisync, enabled, studio=studio, visit=result.get('roomVisitId'))
             state['studio_clients'][endpoint['id']]=time.monotonic();c.send_result(msg['id'],result)
         except Exception:deny(c,msg)
+
+    @command('lovelace_music', {vol.Required('entity'): vol.All(str, vol.Length(min=1, max=255))})
+    @callback
+    def lovelace_music(h, c, msg):
+        """Return the diagrams available to the paired Lovelace dashboard."""
+        try:
+            _, endpoint = grant(h, c)
+        except ValueError:
+            deny(c, msg, 'frame_denied')
+            return
+        player = msg['entity']
+        configured = endpoint.get('studio', {}).get('media', {}).get('entity')
+        player_state = h.states.get(player) if player == configured else None
+        result = None
+        if player_state is not None and player_state.state == STATE_PLAYING:
+            provider = h.data.get('hifisync', {}).get('studio_snapshot_v1')
+            hifisync = projection(
+                endpoint, True, lambda entity: c.user.permissions.check_entity(entity, POLICY_READ),
+                provider, dt_util.utcnow(), drawings=True, room_identity=True,
+            )
+            if hifisync is not None:
+                result = {'hifisync': hifisync}
+        c.send_result(msg['id'], result)
+
     @command('studio_action',{vol.Required('action'):validate_action})
     @websocket_api.async_response
     async def action(h,c,msg):
@@ -213,7 +239,7 @@ async def setup(hass,grant,reading,display_snapshot,register_command,register_st
                 await perform(h,c,endpoint,request,c.context(msg),lambda:grant(h,c),key)
             c.send_result(msg['id'],{'ok':True})
         except Exception:deny(c,msg)
-    for handler in (mapping_get,mapping_update,library,update,dashboard,display,action):register_command(hass,handler)
+    for handler in (mapping_get,mapping_update,library,update,dashboard,display,lovelace_music,action):register_command(hass,handler)
     await register_static_paths(hass,[
         StaticPathConfig(f'/domosenso_frame/ui/{version}',str(Path(__file__).parent/'ui'/version),False)
         for version in ('0.2.0','0.2.1','0.2.2','0.2.4','0.2.6','0.2.7')
