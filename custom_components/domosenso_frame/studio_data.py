@@ -92,9 +92,10 @@ class Data:
             return state.state if state and state.state not in ('unknown', 'unavailable') else default
 
         mode = self.runtime.mode(runtime_key, plain(runtime.get('mode'), 'ambient'))
+        music_view = plain(runtime.get('music_view'))
         music = music_active(
-            negotiated, endpoint.get('hifisync') is True, bool(runtime.get('music_view')),
-            plain(runtime.get('music_view')) == 'on', plain(sources.get('media', {}).get('entity')),
+            negotiated, endpoint.get('hifisync') is True, music_view is not None,
+            music_view == 'on', plain(sources.get('media', {}).get('entity')),
         )
         return mode, music
 

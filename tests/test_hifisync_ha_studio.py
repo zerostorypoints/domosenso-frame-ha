@@ -64,7 +64,7 @@ def test_real_ha_negotiation_mapping_and_room_departure(tmp_path):
         endpoints = {
             eid: {
                 'id': eid, 'display': {'locale': 'en', 'status': []},
-                'studio': {'media': {'entity': 'media_player.demo'}, 'runtime': {'scripts': {'media': 'script.demo_music'}}},
+                'studio': {'media': {'entity': 'media_player.demo'}, 'runtime': {'scripts': {'media': 'script.demo_music'}, 'music_view': 'binary_sensor.demo_music_view'}},
                 'calendars': [], 'temperature': [], 'air': [],
             }
             for eid in ('frame', 'other')
@@ -127,10 +127,14 @@ def test_real_ha_negotiation_mapping_and_room_departure(tmp_path):
 
             with patch.object(studio_api, 'time', clock), patch.object(studio_runtime, 'time', clock):
                 hass.states.async_set('media_player.demo', 'playing')
+                hass.states.async_set('binary_sensor.demo_music_view', 'off')
+                disabled = await panel.call(hass, 'studio_display', **flags)
+                assert disabled['mode'] != 'media' and disabled['data']['hifisync'] is None
+                hass.states.async_set('binary_sensor.demo_music_view', 'unavailable')
                 display = await panel.call(hass, 'studio_display', **flags)
                 assert display['mode'] == 'media' and display['hifisyncStudioVersion'] == 1
                 screens = next(mode['screens'] for mode in display['config']['modes'] if mode['id'] == 'media')
-                assert [page['id'] for page in screens] == ['home', 'hifisync-system', 'hifisync-room']
+                assert [page['id'] for page in screens] == ['now-playing', 'hifisync-system', 'hifisync-room', 'home']
                 assert 'roomVisitId' not in display
                 separate = await other.call(hass, 'studio_display', **flags)
                 assert separate['data']['hifisync'] is None
@@ -180,8 +184,11 @@ def test_real_ha_negotiation_mapping_and_room_departure(tmp_path):
                 assert (await panel.call(hass, 'studio_display', **flags))['roomVisitId'] == visit
                 provider_snapshot['snapshot']['room']['id'] = other_room_id
                 assert (await action(panel, touch))['error'] == 'studio_room_inactive'
+                assert (await panel.call(hass, 'studio_display', **flags))['screen'] == 'now-playing'
+                previous = {'kind': 'navigation', 'action': 'previous'}
+                assert await action(panel, previous) == {'ok': True}
                 assert (await panel.call(hass, 'studio_display', **flags))['screen'] == 'home'
-                assert await action(panel, {'kind': 'navigation', 'action': 'previous'}) == {'ok': True}
+                assert await action(panel, previous) == {'ok': True}
                 replacement = await panel.call(hass, 'studio_display', **flags)
                 assert replacement['roomVisitId'] != visit
                 assert replacement['data']['hifisync']['snapshot']['room']['id'] == other_room_id
@@ -198,7 +205,7 @@ def test_real_ha_negotiation_mapping_and_room_departure(tmp_path):
                 hass.data['hifisync'].pop('studio_snapshot_v1')
                 assert (await action(panel, touch))['error'] == 'studio_room_inactive'
                 fallback = await panel.call(hass, 'studio_display', **flags)
-                assert fallback['screen'] == 'home' and fallback['data']['hifisync'] is None
+                assert fallback['screen'] == 'now-playing' and fallback['data']['hifisync'] is None
                 assert 'roomVisitId' not in fallback
         finally:
             for client in (panel, other, legacy):
