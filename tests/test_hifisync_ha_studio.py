@@ -214,3 +214,83 @@ def test_real_ha_negotiation_mapping_and_room_departure(tmp_path):
             await hass.async_stop(force=True)
 
     asyncio.run(run())
+
+
+def test_lovelace_music_only_exposes_the_paired_panels_active_player(tmp_path):
+    async def run():
+        hass = HomeAssistant(str(tmp_path))
+        loader.async_setup(hass)
+        device_registry.async_setup(hass)
+        await device_registry.async_load(hass)
+        await entity_registry.async_load(hass)
+
+        async def unused(*_):
+            pass
+
+        player = 'media_player.demo'
+        other_player = 'media_player.other'
+        endpoints = {
+            eid: {
+                'id': eid, 'display': {'locale': 'en', 'status': []},
+                'studio': {'media': {'entity': player}},
+                'calendars': [], 'temperature': [], 'air': [], 'hifisync': enabled,
+            }
+            for eid, enabled in (('music-frame', True), ('other-frame', False))
+        }
+        panel = Connection('panel')
+        other = Connection('other')
+        unpaired = Connection('panel', admin=True)
+        devices = {
+            client.user.id: {'state': 'approved', 'user': client.user.id, 'endpoint': eid}
+            for client, eid in ((panel, 'music-frame'), (other, 'other-frame'))
+        }
+        grants = Grants('fictional', devices)
+        for client, eid in ((panel, 'music-frame'), (other, 'other-frame')):
+            grants.sessions[client] = (client.user.id, client.user.id, eid)
+
+        provider_calls = []
+        payload = sample()
+        room_id = '00000000-0000-4000-8000-000000000001'
+        payload['snapshot']['room']['id'] = room_id
+
+        def provider(entity):
+            provider_calls.append(entity)
+            return payload
+
+        hass.data[frame.DOMAIN] = {
+            'endpoints': endpoints, 'grants': grants, 'layouts': Layouts(endpoints, {}, unused),
+        }
+        hass.data['hifisync'] = {'studio_snapshot_v1': provider}
+        hass.states.async_set(player, 'paused')
+        hass.states.async_set(other_player, 'playing')
+
+        try:
+            await studio_api.setup(hass, frame.grant, frame.reading, frame.display_snapshot,
+                                   websocket_api.async_register_command, unused)
+            assert await panel.call(hass, 'lovelace_music', entity=player) is None
+            hass.states.async_set(player, 'playing')
+            assert await panel.call(hass, 'lovelace_music', entity=other_player) is None
+            assert await other.call(hass, 'lovelace_music', entity=player) is None
+            assert (await unpaired.call(hass, 'lovelace_music', entity=player)).get('error')
+            panel.user.permissions.check_entity = lambda *_: False
+            assert await panel.call(hass, 'lovelace_music', entity=player) is None
+            assert provider_calls == []
+            panel.user.permissions.check_entity = lambda *_: True
+
+            result = await panel.call(hass, 'lovelace_music', entity=player)
+            assert set(result) == {'hifisync'}
+            assert result['hifisync']['snapshot']['room']['id'] == room_id
+            assert result['hifisync']['snapshot']['system']['name'] == 'System'
+            assert 'secret' not in str(result)
+            assert provider_calls == [player]
+
+            payload['validUntil'] = '2000-01-01T00:00:00+00:00'
+            assert await panel.call(hass, 'lovelace_music', entity=player) is None
+            hass.data.pop('hifisync')
+            assert await panel.call(hass, 'lovelace_music', entity=player) is None
+            devices[panel.user.id]['state'] = 'revoked'
+            assert (await panel.call(hass, 'lovelace_music', entity=player)).get('error')
+        finally:
+            await hass.async_stop(force=True)
+
+    asyncio.run(run())
