@@ -1,0 +1,13 @@
+{
+  "name": "@domosenso/frame-ui",
+  "version": "0.2.6",
+  "contract": 2,
+  "sourceRevision": "ba01c74833d2de17e20658c9b528c8088c12118a",
+  "files": {
+    "frame-ui.js": "6203699f115ee8b0c838574e95a570c46d537aeafe1fbd0bdb8ccca29c48c598",
+    "ha-card.js": "5768ec81abe010a1fdb423804065853088b3e1c1f214998319d79a07abf4b63c",
+    "schema.json": "5486b4605bafacfdf8cd929fd480b2100c31d60c733d9ad3462eb18488cb105b"
+  },
+  "contentHash": "19904e6c0f3ef41659973e0df63b24ef05f8882e2dd42b7f98a6d9e659dae563",
+  "sourceDirty": false
+}

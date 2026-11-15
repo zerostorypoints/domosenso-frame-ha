@@ -1,4 +1,4 @@
-import './ui/0.2.4/studio.js';
+import './ui/0.2.6/studio.js';
 import './assistant-panel.js';
 import './timer-panel.js';
 import './hifisync-panel.js';
