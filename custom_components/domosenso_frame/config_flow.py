@@ -92,7 +92,8 @@ class FrameConfigFlow(config_entries.ConfigFlow,domain=DOMAIN):
 
 
 def _number(lo,hi,step=1,unit=None):
-    return selector.NumberSelector(selector.NumberSelectorConfig(min=lo,max=hi,step=step,mode=selector.NumberSelectorMode.BOX,unit_of_measurement=unit))
+    # NumberSelectorConfig rejects unit_of_measurement=None; leave it out for unitless numbers.
+    return selector.NumberSelector(selector.NumberSelectorConfig(min=lo,max=hi,step=step,mode=selector.NumberSelectorMode.BOX,**({'unit_of_measurement':unit} if unit else {})))
 
 class AlbumsOptionsFlow(config_entries.OptionsFlow):
     """Album actions run on the loaded manager; only settings change the entry options."""
