@@ -78,6 +78,7 @@ class _Run:
     added: int = 0
     removed: int = 0
     renamed: bool = False
+    created: bool = False
     mode: str | None = None
     heic_converted: bool = False
     heic_thumbs: bool = False
@@ -110,7 +111,8 @@ async def sync_album(record: AlbumRecord, client: ShareClient, photo_dir: Path, 
             _fail(run, 'error', 'write_failed')
     except _BAD_RESPONSE:
         _fail(run, 'error', 'unexpected_response')
-    return SyncResult(run.rec, run.added, run.removed, bool(run.added or run.removed or run.renamed))
+    changed = bool(run.added or run.removed or run.renamed or run.created)
+    return SyncResult(run.rec, run.added, run.removed, changed)
 
 
 def _fail(run: _Run, status: str, error: str | None = None) -> None:
@@ -123,7 +125,8 @@ async def _sync(run: _Run, client: ShareClient, tz: tzinfo, confirm: bool) -> No
     rec, now = run.rec, run.now
     await client.login()
     remote = await client.album()
-    if (album_plan.VERSION_TRACKS_CONTENT and rec.get('path') and remote.id == rec.get('remote_album_id')
+    if (album_plan.VERSION_TRACKS_CONTENT and not confirm and rec.get('status') == 'ok' and rec.get('path')
+            and remote.id == rec.get('remote_album_id')
             and remote.version == rec.get('version') and not rec.get('skipped')
             and now - (rec.get('last_full_list') or 0) < run.options.full_list_every):
         rec.update(status='ok', error=None, last_sync=now)
@@ -135,11 +138,11 @@ async def _sync(run: _Run, client: ShareClient, tz: tzinfo, confirm: bool) -> No
     if plan.hold:
         rec.update(status='awaiting_confirmation', error=None)
         return
-    run.folder = await run.io(_place_folder, run, remote, tz)
     run.marker = {'album_id': rec['id'], 'remote_album_id': remote.id,
                   'source_host': urlsplit(parse_share_url(rec['url']).origin).netloc,
                   'version': remote.version, 'items': {str(k): v for k, v in local.items()},
                   'last_sync': now}
+    run.folder = await run.io(_place_folder, run, remote, tz)
     await _download(run, client, plan.download)
     await _delete(run, plan.delete)
     await run.io(write_marker, run.folder, run.marker)
@@ -160,22 +163,33 @@ def _inside(photo_dir: Path, path: str) -> bool:
 
 
 def _local_items(photo_dir: Path, rec: dict) -> dict[int, str]:
+    """Marker entries whose file is still there; a missing file is fetched again."""
     path = rec.get('path')
     marker = read_marker(photo_dir / path) if path else None
     if not marker or marker.get('album_id') != rec['id'] or not isinstance(marker.get('items'), dict):
         return {}
+    folder = photo_dir / path
     return {int(k): v for k, v in marker['items'].items()
-            if isinstance(v, str) and v and PurePosixPath(v).name == v}
+            if isinstance(v, str) and v and PurePosixPath(v).name == v and (folder / v).is_file()}
+
+
+def _rename_target(photo_dir: Path, path: str, wanted: str) -> str:
+    """First of wanted, wanted-2, ... that is free; the current path if it comes first."""
+    candidate, n = wanted, 1
+    while candidate != path and (photo_dir / candidate).exists():
+        n += 1
+        candidate = f'{wanted}-{n}'
+    return candidate
 
 
 def _place_folder(run: _Run, remote: RemoteAlbum, tz: tzinfo) -> Path:
-    """Pick (first sync), follow a remote rename, then create the album folder."""
+    """Pick (first sync), follow a remote rename, then create the album folder and its marker."""
     rec, photo_dir, own = run.rec, run.photo_dir, run.rec['id']
     path = rec.get('path')
     if not path:
         path = rec.get('path_override') or initial_path(remote.name, remote.start_time, tz)
     elif not rec.get('path_override') and rec.get('name') not in (None, remote.name):
-        new = resolve_path(photo_dir, str(PurePosixPath(path).with_name(sanitize_name(remote.name))), own)
+        new = _rename_target(photo_dir, path, str(PurePosixPath(path).with_name(sanitize_name(remote.name))))
         old = photo_dir / path
         if new != path and (not old.exists() or _owned(old, own)):
             if old.exists():
@@ -187,8 +201,11 @@ def _place_folder(run: _Run, remote: RemoteAlbum, tz: tzinfo) -> Path:
         raise _InvalidPath(path)
     path = resolve_path(photo_dir, path, own)
     rec['path'] = path
-    (photo_dir / path).mkdir(parents=True, exist_ok=True)
-    return photo_dir / path
+    folder = photo_dir / path
+    run.created = not folder.exists()
+    folder.mkdir(parents=True, exist_ok=True)
+    write_marker(folder, run.marker)
+    return folder
 
 
 async def _download(run: _Run, client: ShareClient, items: list[RemoteItem]) -> None:
@@ -218,18 +235,23 @@ async def _download(run: _Run, client: ShareClient, items: list[RemoteItem]) -> 
 
 async def _convert(run: _Run, client: ShareClient, item: RemoteItem, raw: bytes) -> bytes | None:
     """Return screen-ready JPEG, or None when the image cannot be decoded."""
-    opts = run.options
     try:
+        data = await _normalize(run, raw)
+    except album_image.HeifUnavailable:
+        run.heic_thumbs = True
+        thumb = await client.thumbnail(item)  # client errors take the album-level path
         try:
-            data = await run.io(album_image.normalize, raw, opts.max_edge, opts.quality)
-        except album_image.HeifUnavailable:
-            run.heic_thumbs = True
-            return await run.io(album_image.normalize, await client.thumbnail(item), opts.max_edge,
-                                opts.quality)
+            return await _normalize(run, thumb)
+        except (album_image.HeifUnavailable, *_BAD_IMAGE):
+            return None
     except _BAD_IMAGE:
         return None
     run.heic_converted |= album_image.is_heif(raw)
     return data
+
+
+async def _normalize(run: _Run, raw: bytes) -> bytes:
+    return await run.io(album_image.normalize, raw, run.options.max_edge, run.options.quality)
 
 
 async def _delete(run: _Run, names: list[str]) -> None:
@@ -237,6 +259,7 @@ async def _delete(run: _Run, names: list[str]) -> None:
         await run.io(remove_photo, run.folder, name)
         run.marker['items'] = {k: v for k, v in run.marker['items'].items() if v != name}
         run.removed += 1
+        await run.io(write_marker, run.folder, run.marker)
 
 
 async def remove_album(record: AlbumRecord, photo_dir: Path, run_blocking: RunBlocking) -> None:

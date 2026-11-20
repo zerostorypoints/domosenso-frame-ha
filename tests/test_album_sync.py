@@ -358,3 +358,107 @@ def test_write_error_is_reported_and_marker_kept(tmp_path, monkeypatch):
     res = sync(rec, FakeClient([item(1), item(2)]), tmp_path)
     assert (res.record['status'], res.record['error'], res.record['photos']) == ('error', 'write_failed', 1)
     assert marker(tmp_path / rec['path'])['items'] == {'1': 'IMG_0001_1.jpg'}
+
+
+def _album_dirs(tmp_path):
+    return sorted(p.name for p in (tmp_path / '2007/12').iterdir())
+
+
+def test_first_sync_failure_leaves_owned_folder_and_resumes_there(tmp_path):
+    client = FakeClient([item(1), item(2)], originals={1: album_share.Unreachable('reset')})
+    res = sync(record(), client, tmp_path)
+    assert res.record['status'] == 'unreachable' and res.record['path'] == '2007/12/trip'
+    assert marker(tmp_path / '2007/12/trip')['album_id'] == 'a1'
+    res = sync(res.record, FakeClient([item(1), item(2)]), tmp_path)
+    assert (res.record['status'], res.record['path'], res.added) == ('ok', '2007/12/trip', 2)
+    assert _album_dirs(tmp_path) == ['trip']
+
+
+def test_repeated_disk_full_first_syncs_make_one_folder(tmp_path, monkeypatch):
+    monkeypatch.setattr(album_sync, 'free_bytes', lambda path: 10)
+    rec = record()
+    for _ in range(3):
+        rec = sync(rec, FakeClient([item(1)]), tmp_path).record
+        assert rec['status'] == 'disk_full'
+    assert _album_dirs(tmp_path) == ['trip'] and rec['path'] == '2007/12/trip'
+
+
+def test_hold_is_not_cleared_by_listing_skip(tmp_path, monkeypatch):
+    monkeypatch.setattr(album_plan, 'VERSION_TRACKS_CONTENT', True)
+    rec = sync(record(), FakeClient([item(1), item(2), item(3)]), tmp_path, now=1000).record
+    rec = sync(rec, FakeClient([item(1)]), tmp_path, now=1000 + 86400).record
+    assert rec['status'] == 'awaiting_confirmation'
+    client = FakeClient([item(1)])
+    res = sync(rec, client, tmp_path, now=1000 + 86401)
+    assert 'items' in client.calls and res.record['status'] == 'awaiting_confirmation'
+    client = FakeClient([item(1)])
+    res = sync(res.record, client, tmp_path, now=1000 + 86402, confirm=True)
+    assert 'items' in client.calls and (res.record['status'], res.removed) == ('ok', 2)
+
+
+def test_listing_skip_only_after_ok(tmp_path, monkeypatch):
+    monkeypatch.setattr(album_plan, 'VERSION_TRACKS_CONTENT', True)
+    rec = sync(record(), FakeClient([item(1)]), tmp_path, now=1000).record
+    client = FakeClient([item(1)])
+    sync(rec | {'status': 'unreachable'}, client, tmp_path, now=2000)
+    assert 'items' in client.calls
+
+
+def test_marker_rewritten_after_each_delete(tmp_path, monkeypatch):
+    rec = sync(record(), FakeClient([item(n) for n in range(1, 5)]), tmp_path).record
+    real, calls = album_sync.remove_photo, []
+
+    def flaky(folder, name):
+        calls.append(name)
+        if len(calls) == 2:
+            raise PermissionError(13, 'read-only')
+        real(folder, name)
+    monkeypatch.setattr(album_sync, 'remove_photo', flaky)
+    res = sync(rec, FakeClient([item(1), item(2)]), tmp_path)
+    assert (res.record['status'], res.record['error'], res.removed) == ('error', 'write_failed', 1)
+    assert calls == ['IMG_0003_3.jpg', 'IMG_0004_4.jpg']
+    assert set(marker(tmp_path / rec['path'])['items']) == {'1', '2', '4'}
+
+
+def test_locally_missing_file_is_fetched_again(tmp_path):
+    rec = sync(record(), FakeClient([item(1), item(2)]), tmp_path).record
+    (tmp_path / rec['path'] / 'IMG_0001_1.jpg').unlink()
+    res = sync(rec, FakeClient([item(1), item(2)]), tmp_path)
+    assert res.added == 1 and photos(tmp_path / rec['path']) == ['IMG_0001_1.jpg', 'IMG_0002_2.jpg']
+
+
+def test_locally_missing_files_do_not_dilute_the_hold(tmp_path):
+    rec = sync(record(), FakeClient([item(n) for n in range(1, 5)]), tmp_path).record
+    for n in (1, 2):
+        (tmp_path / rec['path'] / f'IMG_000{n}_{n}.jpg').unlink()
+    res = sync(rec, FakeClient([item(1), item(2)]), tmp_path)
+    assert res.record['status'] == 'awaiting_confirmation'
+    assert photos(tmp_path / rec['path']) == ['IMG_0003_3.jpg', 'IMG_0004_4.jpg']
+
+
+def test_remote_rename_onto_existing_own_folder_takes_next_suffix(tmp_path):
+    rec = sync(record(), FakeClient([item(1)]), tmp_path).record
+    stale = tmp_path / '2007/12/lake'
+    stale.mkdir()
+    (stale / '.sync.json').write_text(json.dumps({'album_id': 'a1', 'items': {}}))
+    (stale / 'old.jpg').write_bytes(b'x')
+    res = sync(rec, FakeClient([item(1)], name='lake'), tmp_path)
+    assert (res.record['status'], res.record['path']) == ('ok', '2007/12/lake-2')
+    assert photos(tmp_path / '2007/12/lake-2') == ['IMG_0001_1.jpg']
+
+
+def test_thumbnail_client_error_in_heif_fallback_is_album_error(tmp_path, monkeypatch):
+    def unavailable():
+        raise album_image.HeifUnavailable('no libheif')
+    monkeypatch.setattr(album_image, '_register_heif', unavailable)
+    client = FakeClient([item(1)], originals={1: HEIC}, thumbs={1: ValueError('bad reply')})
+    res = sync(record(), client, tmp_path)
+    assert (res.record['status'], res.record['error']) == ('error', 'unexpected_response')
+    assert res.record['skipped'] == []
+
+
+def test_first_sync_of_empty_album_is_a_change(tmp_path):
+    res = sync(record(), FakeClient([]), tmp_path)
+    assert (res.record['status'], res.changed) == ('ok', True)
+    assert marker(tmp_path / '2007/12/trip')['items'] == {}
+    assert sync(res.record, FakeClient([]), tmp_path).changed is False
