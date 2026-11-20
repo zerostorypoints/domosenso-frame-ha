@@ -1,0 +1,94 @@
+import io
+import sys
+
+import pytest
+from PIL import Image
+
+import importlib
+import types
+from pathlib import Path
+import sys
+
+pkg = types.ModuleType('album_image_pkg')
+pkg.__path__ = [str(Path(__file__).parents[1] / 'custom_components/domosenso_frame')]
+sys.modules[pkg.__name__] = pkg
+album_image = importlib.import_module('album_image_pkg.album_image')
+
+DATE, MODEL = 36867, 0x0110
+
+
+def _jpeg(size, orientation=None, exif=True):
+    img = Image.new('RGB', size, (200, 30, 30))
+    ex = Image.Exif()
+    if exif:
+        ex[MODEL] = 'Cam One'
+        ex.get_ifd(0x8769)[DATE] = '2026:05:01 10:00:00'
+        if orientation:
+            ex[0x0112] = orientation
+    buf = io.BytesIO()
+    img.save(buf, format='JPEG', **({'exif': ex.tobytes()} if exif else {}))
+    return buf.getvalue()
+
+
+def _open(data):
+    img = Image.open(io.BytesIO(data))
+    assert img.format == 'JPEG'
+    return img
+
+
+def test_downscales_and_keeps_exif():
+    img = _open(album_image.normalize(_jpeg((4000, 3000)), 2560, 85))
+    assert img.size == (2560, 1920)
+    exif = img.getexif()
+    assert exif[MODEL] == 'Cam One'
+    assert exif.get_ifd(0x8769)[DATE] == '2026:05:01 10:00:00'
+
+
+def test_never_upscales():
+    assert _open(album_image.normalize(_jpeg((800, 600)), 2560, 85)).size == (800, 600)
+
+
+def test_orientation_applied():
+    img = _open(album_image.normalize(_jpeg((300, 200), orientation=6), 2560, 85))
+    assert img.size == (200, 300)
+    assert img.getexif()[0x0112] == 1
+
+
+def test_no_exif_stays_without_exif():
+    assert len(_open(album_image.normalize(_jpeg((100, 80), exif=False), 2560, 85)).getexif()) == 0
+
+
+def test_converts_non_rgb_modes():
+    buf = io.BytesIO()
+    Image.new('RGBA', (50, 40), (1, 2, 3, 128)).save(buf, format='PNG')
+    assert _open(album_image.normalize(buf.getvalue(), 2560, 85)).mode == 'RGB'
+
+
+def _heic():
+    import pillow_heif
+    pillow_heif.register_heif_opener()
+    ex = Image.Exif()
+    ex[MODEL] = 'Phone X'
+    buf = io.BytesIO()
+    Image.new('RGB', (64, 48), (10, 120, 10)).save(buf, format='HEIF', exif=ex.tobytes())
+    return buf.getvalue()
+
+
+def test_is_heif():
+    assert album_image.is_heif(_heic())
+    assert not album_image.is_heif(_jpeg((10, 10)))
+    assert not album_image.is_heif(b'')
+
+
+def test_heic_converted_with_exif():
+    img = _open(album_image.normalize(_heic(), 2560, 85))
+    assert img.size == (64, 48)
+    assert img.getexif()[MODEL] == 'Phone X'
+
+
+def test_heic_without_plugin(monkeypatch):
+    data = _heic()
+    monkeypatch.setitem(sys.modules, 'pillow_heif', None)
+    monkeypatch.setattr(album_image, '_heif_ready', False)
+    with pytest.raises(album_image.HeifUnavailable):
+        album_image.normalize(data, 2560, 85)

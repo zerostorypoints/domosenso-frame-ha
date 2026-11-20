@@ -2,3 +2,5 @@ pytest==9.1.1
 PyYAML==6.0.3
 jsonschema==4.26.0
 voluptuous==0.16.0
+Pillow==12.3.0
+pillow-heif==1.8.1

@@ -1,12 +1,12 @@
 """Folder layout and file names for album sync."""
 from __future__ import annotations
 
-import json
 import re
 import unicodedata
 from datetime import datetime, tzinfo
 from pathlib import Path
 
+from .album_files import read_marker
 from .album_share import RemoteItem
 
 _BAD = re.compile(r'[/\\\x00-\x1f\x7f]')
@@ -24,17 +24,14 @@ def initial_path(name: str, start_time: int, tz: tzinfo) -> str:
     return f'{datetime.fromtimestamp(start_time, tz):%Y/%m}/{sanitize_name(name)}'
 
 
-def _marker_album_id(folder: Path) -> str | None:
-    try:
-        value = json.loads((folder / '.sync.json').read_text(encoding='utf-8')).get('album_id')
-    except (OSError, ValueError, AttributeError):
-        return None
+def _owner(folder: Path) -> str | None:
+    value = (read_marker(folder) or {}).get('album_id')
     return value if isinstance(value, str) else None
 
 
 def resolve_path(photo_dir: Path, wanted: str, own_album_id: str) -> str:
     candidate, n = wanted, 1
-    while (photo_dir / candidate).exists() and _marker_album_id(photo_dir / candidate) != own_album_id:
+    while (photo_dir / candidate).exists() and _owner(photo_dir / candidate) != own_album_id:
         n += 1
         candidate = f'{wanted}-{n}'
     return candidate
