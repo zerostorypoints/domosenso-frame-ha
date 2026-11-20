@@ -64,6 +64,8 @@ def _exif_candidates(exif: Image.Exif):
         yield {}
         return
     exif[ORIENTATION] = 1
+    exif.get_ifd(GPS_IFD).clear()  # never publish location: files are served unauthenticated
+    exif.pop(GPS_IFD, None)
     full = exif.tobytes()
     if len(full) <= MAX_EXIF:
         yield {'exif': full}
@@ -85,9 +87,5 @@ def _rebuilt(exif: Image.Exif, drop_maker_note: bool = False, keep: bool = False
         if drop_maker_note and tag == MAKER_NOTE:
             continue
         new.get_ifd(EXIF_IFD)[tag] = value
-    if not keep:
-        gps = exif.get_ifd(GPS_IFD)
-        if gps:
-            new.get_ifd(GPS_IFD).update(gps)
     new[ORIENTATION] = 1
     return new

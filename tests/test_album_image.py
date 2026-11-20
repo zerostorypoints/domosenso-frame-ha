@@ -130,3 +130,26 @@ def test_oversized_exif_without_maker_note_falls_back_to_key_tags():
     assert exif[MODEL] == 'Cam One'
     assert exif.get_ifd(0x8769)[DATE] == '2026:05:01 10:00:00'
     assert 0x010E not in exif
+
+
+def _gps_source(extra=None):
+    ex = Image.Exif()
+    ex[MODEL] = 'Cam One'
+    ex.get_ifd(0x8769)[DATE] = '2026:05:01 10:00:00'
+    ex.get_ifd(0x8825)[1] = 'N'
+    ex.get_ifd(0x8825)[2] = (47.0, 22.0, 0.0)
+    for tag, value in (extra or {}).items():
+        ex[tag] = value
+    src = io.BytesIO()
+    Image.new('RGB', (300, 200)).save(src, format='PNG', exif=ex.tobytes())
+    return src.getvalue()
+
+
+@pytest.mark.parametrize('extra', [None, {0x010E: 'x' * 70000}])
+def test_gps_is_never_written(extra):
+    src = _gps_source(extra)
+    assert 0x8825 in Image.open(io.BytesIO(src)).getexif()
+    exif = _open(album_image.normalize(src, 2560, 85)).getexif()
+    assert 0x8825 not in exif
+    assert not exif.get_ifd(0x8825)
+    assert exif.get_ifd(0x8769)[DATE] == '2026:05:01 10:00:00'
