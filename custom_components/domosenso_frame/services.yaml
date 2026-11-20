@@ -1,0 +1,51 @@
+album_add:
+  name: Add album
+  description: Adds a shared Synology Photos album and runs its first sync.
+  fields:
+    url:
+      name: Share link
+      description: Synology Photos share link.
+      required: true
+      example: "https://photos.example.com/mo/sharing/AbCdEf123"
+      selector:
+        text:
+          type: url
+    password:
+      name: Password
+      description: Password of the share link, if it has one.
+      selector:
+        text:
+          type: password
+    path:
+      name: Folder
+      description: Folder inside the photo folder; empty uses year/month/album name.
+      example: "2026/11/Holiday"
+      selector:
+        text:
+album_remove:
+  name: Remove album
+  description: Removes an album and deletes its folder.
+  fields:
+    album_id:
+      name: Album ID
+      description: ID from the albums attribute of sensor.domosenso_frame_albums.
+      required: true
+      example: "0123456789abcdef"
+      selector:
+        text:
+album_sync:
+  name: Sync albums
+  description: Syncs one album or all albums now.
+  fields:
+    album_id:
+      name: Album ID
+      description: ID of the album to sync; empty syncs all.
+      example: "0123456789abcdef"
+      selector:
+        text:
+    confirm_deletions:
+      name: Confirm deletions
+      description: Delete photos that a held sync kept because more than half disappeared.
+      default: false
+      selector:
+        boolean:

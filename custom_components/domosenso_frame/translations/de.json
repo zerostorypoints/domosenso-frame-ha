@@ -3,6 +3,14 @@
     "step": {
       "user": {
         "title": "DomoSenso Frame einrichten",
+        "description": "Wählen Sie, was hinzugefügt werden soll. Die Bridge stellt den Frame-Endpunkt für die Android-App bereit; Alben synchronisieren geteilte Synology-Photos-Alben in einen Fotoordner für Ramka.",
+        "menu_options": {
+          "bridge": "Frame-Bridge",
+          "albums": "Fotoalben"
+        }
+      },
+      "bridge": {
+        "title": "DomoSenso Frame einrichten",
         "description": "Erstellen Sie einen Frame-Endpunkt für die Android-App. Ein eigenes Dashboard oder YAML ist nicht erforderlich. Quellen können Sie später in der Seitenleiste unter DomoSenso Frame ändern.",
         "data": {
           "name": "Name des Frames",
@@ -23,15 +31,153 @@
           "radar_near_m": "Nahbereich (m)",
           "radar_off_delay_s": "Verzögerung bei Abwesenheit (Sekunden)"
         }
+      },
+      "albums": {
+        "title": "Fotoalben einrichten",
+        "description": "Geteilte Alben werden als bildschirmgrosse JPEG-Dateien in diesen Ordner kopiert. Liegt er unter /config/www, ist sein Inhalt ohne Anmeldung lesbar; fügen Sie also nur Alben hinzu, die dort sichtbar sein dürfen. Alben fügen Sie danach über Konfigurieren hinzu.",
+        "data": {
+          "photo_dir": "Fotoordner"
+        }
       }
     },
     "error": {
       "invalid_settings": "Geben Sie einen Namen mit 1–80 Zeichen ein und wählen Sie eine unterstützte Sprache.",
-      "invalid_sources": "Wählen Sie vorhandene Quellen des passenden Typs: höchstens 32 Temperatur- und 32 Luftsensoren sowie 16 Kalender, ohne doppelte Einträge."
+      "invalid_sources": "Wählen Sie vorhandene Quellen des passenden Typs: höchstens 32 Temperatur- und 32 Luftsensoren sowie 16 Kalender, ohne doppelte Einträge.",
+      "invalid_photo_dir": "Geben Sie den absoluten Pfad eines vorhandenen Ordners ein, zum Beispiel /config/www/ramka."
     },
     "abort": {
-      "already_configured": "DomoSenso Frame ist bereits eingerichtet. Öffnen Sie DomoSenso Frame in der Seitenleiste, um Quellen zu ändern oder ein Tablet zu koppeln.",
+      "already_configured": "Dieser Teil von DomoSenso Frame ist bereits eingerichtet. Für die Bridge öffnen Sie DomoSenso Frame in der Seitenleiste, um Quellen zu ändern oder ein Tablet zu koppeln. Für Alben verwenden Sie Konfigurieren beim Eintrag der Alben.",
       "yaml_configured": "DomoSenso Frame ist über YAML eingerichtet. Vorhandene Endpunkte und Freigaben bleiben erhalten. Öffnen Sie DomoSenso Frame in der Seitenleiste und verwenden Sie Map sources oder Devices and pairing. Die Einrichtung ersetzt kein YAML."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Fotoalben",
+        "description": "Ein geteiltes Album hinzufügen oder entfernen, jetzt synchronisieren oder Einstellungen ändern.",
+        "menu_options": {
+          "add_album": "Album hinzufügen",
+          "remove_album": "Album entfernen",
+          "sync_now": "Jetzt synchronisieren",
+          "settings": "Einstellungen"
+        }
+      },
+      "add_album": {
+        "title": "Album hinzufügen",
+        "description": "Fügen Sie einen Freigabelink von Synology Photos ein. Die erste Synchronisierung startet sofort und kann bei grossen Alben eine Weile dauern.",
+        "data": {
+          "url": "Freigabelink",
+          "password": "Passwort des Links (falls vorhanden)",
+          "path": "Ordner im Fotoordner (optional)"
+        },
+        "data_description": {
+          "path": "Leer lassen für Jahr/Monat/Albumname, zum Beispiel 2026/11/Ferien."
+        }
+      },
+      "remove_album": {
+        "title": "Album entfernen",
+        "description": "Der Ordner des Albums und seine Fotos werden gelöscht. Das geteilte Album selbst bleibt unverändert.",
+        "data": {
+          "album_id": "Album"
+        }
+      },
+      "sync_now": {
+        "title": "Jetzt synchronisieren",
+        "description": "Ohne Auswahl werden alle Alben synchronisiert. Die Synchronisierung läuft im Hintergrund; der Sensor Albums zeigt das Ergebnis.",
+        "data": {
+          "album_id": "Album",
+          "confirm_deletions": "Zurückgehaltene Löschungen bestätigen"
+        }
+      },
+      "settings": {
+        "title": "Album-Einstellungen",
+        "description": "Zeilen der Host-Zuordnung lauten `von -> nach`, jeweils ein Ursprung wie https://photos.example.com, um den Freigabe-Host über eine andere Adresse zu erreichen (zum Beispiel im lokalen Netz).",
+        "data": {
+          "interval_min": "Synchronisierungsintervall",
+          "max_edge": "Längste Kante",
+          "quality": "JPEG-Qualität",
+          "free_floor_gb": "Freier Speicher, der bleiben muss",
+          "host_map": "Host-Zuordnung"
+        }
+      }
+    },
+    "error": {
+      "invalid_link": "Das ist kein Freigabelink von Synology Photos (https://host/mo/sharing/…), oder er enthält Zugangsdaten.",
+      "already_added": "Dieses Album ist bereits hinzugefügt.",
+      "wrong_password": "Das Passwort des Links ist falsch oder fehlt.",
+      "unreachable": "Der Freigabe-Host ist nicht erreichbar. Prüfen Sie den Link, das Netzwerk oder die Host-Zuordnung.",
+      "invalid_host_map": "Jede Zeile muss `von -> nach` lauten, beide Seiten nur ein Ursprung: http oder https, Host und optional Port, ohne Pfad, Abfrage, abschliessenden Schrägstrich oder Benutzernamen.",
+      "album_busy": "Dieses Album wird gerade synchronisiert. Versuchen Sie es nach Abschluss erneut.",
+      "unknown_album": "Dieses Album existiert nicht mehr."
+    },
+    "abort": {
+      "not_loaded": "Der Eintrag der Alben ist nicht geladen. Laden Sie ihn neu und versuchen Sie es erneut.",
+      "no_albums": "Es wurden noch keine Alben hinzugefügt."
+    }
+  },
+  "issues": {
+    "album_awaiting_confirmation": {
+      "title": "Album {name} wartet auf Bestätigung",
+      "description": "Mehr als die Hälfte der Fotos des Albums {name} ({path}) ist aus der Freigabe verschwunden, daher wurde kein Foto gelöscht. Wenn das beabsichtigt ist, rufen Sie die Aktion domosenso_frame.album_sync mit diesem Album und confirm_deletions auf, oder verwenden Sie Jetzt synchronisieren mit Zurückgehaltene Löschungen bestätigen."
+    },
+    "album_path_collision": {
+      "title": "Album {name} liegt in einem anderen Ordner",
+      "description": "Der vorgesehene Ordner für das Album {name} gehört bereits zu etwas anderem, daher liegt das Album in {path}. Benennen Sie den anderen Ordner um, verschieben Sie ihn oder legen Sie einen Ordner für dieses Album fest, wenn es woanders liegen soll."
+    }
+  },
+  "services": {
+    "album_add": {
+      "name": "Album hinzufügen",
+      "description": "Fügt ein geteiltes Album von Synology Photos hinzu und führt die erste Synchronisierung aus.",
+      "fields": {
+        "url": {
+          "name": "Freigabelink",
+          "description": "Freigabelink von Synology Photos."
+        },
+        "password": {
+          "name": "Passwort",
+          "description": "Passwort des Freigabelinks, falls vorhanden."
+        },
+        "path": {
+          "name": "Ordner",
+          "description": "Ordner im Fotoordner; leer bedeutet Jahr/Monat/Albumname."
+        }
+      }
+    },
+    "album_remove": {
+      "name": "Album entfernen",
+      "description": "Entfernt ein Album und löscht seinen Ordner.",
+      "fields": {
+        "album_id": {
+          "name": "Album-ID",
+          "description": "ID aus dem Attribut albums von sensor.domosenso_frame_albums."
+        }
+      }
+    },
+    "album_sync": {
+      "name": "Alben synchronisieren",
+      "description": "Synchronisiert ein Album oder alle Alben sofort.",
+      "fields": {
+        "album_id": {
+          "name": "Album-ID",
+          "description": "ID des Albums; leer synchronisiert alle."
+        },
+        "confirm_deletions": {
+          "name": "Löschungen bestätigen",
+          "description": "Fotos löschen, die eine zurückgehaltene Synchronisierung behalten hat, weil mehr als die Hälfte verschwunden war."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_link": {
+      "message": "Kein Freigabelink von Synology Photos."
+    },
+    "already_added": {
+      "message": "Dieses Album ist bereits hinzugefügt."
+    },
+    "unknown_album": {
+      "message": "Unbekannte Album-ID."
     }
   }
 }
