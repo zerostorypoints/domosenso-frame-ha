@@ -11,11 +11,13 @@ from .album_share import RemoteItem
 
 _BAD = re.compile(r'[/\\\x00-\x1f\x7f]')
 MAX_NAME = 80
+MAX_BYTES = 200
 
 
 def sanitize_name(name: str) -> str:
-    text = _BAD.sub('_', unicodedata.normalize('NFC', name)).strip(' ').lstrip('.').strip(' ')
-    return text[:MAX_NAME].rstrip(' ') or 'album'
+    text = _BAD.sub('_', unicodedata.normalize('NFC', name)).lstrip(' .')[:MAX_NAME]
+    text = text.encode('utf-8')[:MAX_BYTES].decode('utf-8', 'ignore')
+    return text.rstrip(' ') or 'album'
 
 
 def initial_path(name: str, start_time: int, tz: tzinfo) -> str:

@@ -79,3 +79,21 @@ def test_same_filename_different_ids():
     a = share.RemoteItem(5, 'IMG_0001.JPG', 1, 0, 'photo', 'k')
     b = share.RemoteItem(6, 'IMG_0001.JPG', 1, 0, 'photo', 'k')
     assert [layout.local_filename(a), layout.local_filename(b)] == ['IMG_0001_5.jpg', 'IMG_0001_6.jpg']
+
+
+@pytest.mark.parametrize('raw', ['.. ..', '. .', '. .x', '..', ' . '])
+def test_sanitize_never_dot_led_or_traversal(raw):
+    name = layout.sanitize_name(raw)
+    assert name and not name.startswith('.') and not name.startswith(' ')
+    last = layout.initial_path(raw, 0, ZoneInfo('Europe/Zurich')).split('/')[-1]
+    assert last not in ('.', '..') and not last.startswith('.')
+
+
+def test_sanitize_dot_space_inputs_values():
+    assert layout.sanitize_name('. .x') == 'x'
+    assert layout.sanitize_name('.. ..') == 'album'
+
+
+def test_sanitize_caps_utf8_bytes():
+    name = layout.sanitize_name('🌞' * 80)
+    assert name and len(name.encode('utf-8')) <= 200
