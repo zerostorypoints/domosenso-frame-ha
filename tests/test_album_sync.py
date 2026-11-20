@@ -319,6 +319,23 @@ def test_remove_album_deletes_own_folder(tmp_path):
     assert not (tmp_path / rec['path']).exists()
 
 
+def test_remove_album_keeps_hand_added_files(tmp_path):
+    rec = sync(record(), FakeClient([item(1)]), tmp_path).record
+    folder = tmp_path / rec['path']
+    (folder / 'mine.jpg').write_bytes(b'x')
+    (folder / '.partial-x.jpg').write_bytes(b'x')
+    asyncio.run(album_sync.remove_album(rec, tmp_path, _direct))
+    assert sorted(p.name for p in folder.iterdir()) == ['mine.jpg']
+
+
+def test_remove_album_removes_folder_with_only_synced_files(tmp_path):
+    rec = sync(record(), FakeClient([item(1), item(2)]), tmp_path).record
+    folder = tmp_path / rec['path']
+    (folder / '.sync.json.tmp').write_bytes(b'x')
+    asyncio.run(album_sync.remove_album(rec, tmp_path, _direct))
+    assert not folder.exists()
+
+
 def test_remove_album_spares_foreign_folder(tmp_path):
     rec = sync(record(), FakeClient([item(1)]), tmp_path).record
     folder = tmp_path / rec['path']

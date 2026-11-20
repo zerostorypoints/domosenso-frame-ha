@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import errno
-import shutil
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import tzinfo
@@ -13,7 +12,7 @@ from urllib.parse import urlsplit
 from PIL import Image, UnidentifiedImageError
 
 from . import album_image, album_plan
-from .album_files import free_bytes, read_marker, remove_photo, write_marker, write_photo
+from .album_files import MARKER, free_bytes, read_marker, remove_photo, write_marker, write_photo
 from .album_layout import initial_path, local_filename, resolve_path, sanitize_name
 from .album_share import (AuthFailed, NoDownload, RemoteAlbum, RemoteItem, ShareClient, ShareError,
                           Unreachable, parse_share_url)
@@ -263,11 +262,26 @@ async def _delete(run: _Run, names: list[str]) -> None:
 
 
 async def remove_album(record: AlbumRecord, photo_dir: Path, run_blocking: RunBlocking) -> None:
-    """Delete the album folder, but only one whose marker names this album."""
+    """Delete what the sync owns in the album folder, and the folder only if nothing else is left."""
     await run_blocking(lambda: _remove(record, photo_dir))
 
 
 def _remove(record: AlbumRecord, photo_dir: Path) -> None:
     path = record.get('path')
-    if path and _inside(photo_dir, path) and _owned(photo_dir / path, record['id']):
-        shutil.rmtree(photo_dir / path)
+    if not (path and _inside(photo_dir, path)):
+        return
+    folder = photo_dir / path
+    marker = read_marker(folder)
+    if not marker or marker.get('album_id') != record['id']:
+        return
+    items = marker.get('items')
+    names = {v for v in items.values() if isinstance(v, str) and PurePosixPath(v).name == v} \
+        if isinstance(items, dict) else set()
+    for name in names:
+        remove_photo(folder, name)
+    for leftover in (*folder.glob('.partial-*'), folder / f'{MARKER}.tmp', folder / MARKER):
+        leftover.unlink(missing_ok=True)
+    try:
+        folder.rmdir()  # fails (and keeps the folder) while the user's own files are in it
+    except OSError:
+        pass
