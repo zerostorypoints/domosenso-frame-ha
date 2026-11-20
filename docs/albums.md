@@ -8,7 +8,7 @@ timer. The share link is the only access: no Synology account or token is stored
 
 - A folder `<photo_dir>/<YYYY>/<MM>/<album name>`. Year and month come from the album's earliest
   photo at the first sync and then stay fixed. Folder names are cleaned of path separators and
-  control characters. If another folder already holds the name, the album gets a `-2` suffix
+  control characters, lose leading spaces and dots and are cut to 80 characters and 200 bytes. If another folder already holds the name, the album gets a `-2` suffix
   (`-3`, ...) and Home Assistant shows a repair issue. When the album is renamed in Synology
   Photos, only the last part of the folder path is renamed.
 - Every photo is converted on import to a JPEG of at most `max_edge` pixels on the longest edge
@@ -23,7 +23,8 @@ timer. The share link is the only access: no Synology account or token is stored
 - A hidden `.sync.json` marker in each synced folder names the album and lists the files that
   belong to it. It holds no link and no password. Folders without a marker are never written,
   renamed or deleted. A synced folder is managed in Synology Photos: files you add or change
-  there by hand are not tracked, and a photo removed from the share is removed from the folder.
+  there by hand are not tracked, and a photo removed from the share is removed from the folder, and a photo you delete by hand is
+  downloaded again at the next sync.
 
 ## Share link requirements
 
@@ -39,16 +40,24 @@ verified on DSM in November 2026.
 
 Open **Settings -> Devices & services -> Add integration -> DomoSenso Frame** and choose
 **Photo albums**. This is a second kind of config entry next to the YAML or UI bridge; it does
-not replace or change either. There is one albums entry per Home Assistant. The only field is
+not replace or change either. When a bridge entry or the YAML bridge already exists, the flow
+goes straight to the albums step. There is one albums entry per Home Assistant. The only field is
 the photo folder, an existing absolute path (default `/config/www/ramka`). Everything under
 `/config/www` is served without login, so add only albums you are fine to show there.
 
 Add albums with **Configure** on the entry (**Add album**) or with the `album_add` action: share
 link, optional password and an optional folder inside the photo folder (for example
-`2026/11/Holiday`) instead of the default layout. The first sync runs right away. A wrong
-password or an unreachable host is reported in the form and nothing is kept. **Remove album**
-deletes the album's folder and its photos (only a folder with its own marker); the shared album
-is not changed.
+`2026/11/Holiday`) instead of the default layout. The first sync runs right away. In the
+options form a wrong password or an unreachable host is reported in the form and nothing is
+kept. The `album_add` action keeps the album and returns it with status `auth_failed` or
+`unreachable`; fix the cause and sync again, or remove it.
+
+**Remove album** (form or `album_remove`) deletes the photos listed in the folder's marker, any
+leftover temporary files and the marker, and then the folder itself only if it is empty. Files
+you added to the folder by hand stay, and so does the folder. A folder without the album's own
+marker is never touched. The shared album is not changed. While the album is syncing, the options form answers that the album is busy and
+`album_remove` reports `removed: false`; try again afterwards. `album_sync` on a syncing album
+returns it with status `syncing`.
 
 Removing the albums entry itself keeps every synced folder as a plain folder and deletes the
 stored links and passwords.
@@ -71,7 +80,7 @@ sync does not call it.
 | Host map | empty | |
 
 A sync stops with status `disk_full` when the free space on the photo folder's disk would drop
-below the floor. Files already written stay.
+below the floor; the check runs before each file. Files already written stay.
 
 ### Host map
 

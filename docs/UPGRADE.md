@@ -9,9 +9,12 @@ network access. See [photo albums](albums.md) for setup.
 
 Rollback: remove the albums entry (**Settings -> Devices & services -> DomoSenso Frame**), then
 install the previous release and restart. Removing the entry deletes the stored links and
-passwords; synced folders stay as plain folders and the Ramka keeps showing them. Delete their
-hidden `.sync.json` markers if you do not want a later albums entry to treat them as its own.
-Removing a single album inside the entry deletes that album's folder instead.
+passwords; synced folders stay as plain folders and the Ramka keeps showing them. Their hidden
+`.sync.json` markers can be deleted to tidy up, which changes nothing else: a new albums entry
+gives every album a fresh id, so it never adopts an old marker. Adding the same link again
+creates a second copy next to the old folder (with a `-2` suffix and a repair issue) rather than
+reusing it. Removing a single album inside the entry deletes the files it synced and its marker,
+and the folder only when nothing else is in it.
 
 ## Optional HiFiSync music screens (0.5.0 candidate)
 
