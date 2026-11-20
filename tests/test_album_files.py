@@ -45,3 +45,18 @@ def test_read_marker_missing_unreadable_or_non_dict(tmp_path):
 
 def test_free_bytes(tmp_path):
     assert album_files.free_bytes(tmp_path) > 0
+
+
+def test_failed_replace_leaves_no_temp_files(tmp_path, monkeypatch):
+    def boom(*a, **k):
+        raise OSError('disk')
+    monkeypatch.setattr(album_files.os, 'replace', boom)
+    for call in (lambda: album_files.write_photo(tmp_path, 'a.jpg', b'x', 1),
+                 lambda: album_files.write_marker(tmp_path, {'a': 1})):
+        try:
+            call()
+        except OSError:
+            pass
+        else:
+            raise AssertionError('expected OSError')
+    assert list(tmp_path.iterdir()) == []

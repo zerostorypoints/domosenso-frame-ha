@@ -8,6 +8,12 @@ from PIL import Image, ImageOps
 ORIENTATION = 0x0112
 _HEIF_BRANDS = (b'heic', b'heix', b'mif1', b'msf1')
 _heif_ready = False
+EXIF_IFD, GPS_IFD, MAKER_NOTE = 0x8769, 0x8825, 0x927C
+MAX_EXIF = 65000  # JPEG APP1 holds 64 KB
+_POINTERS = {EXIF_IFD, GPS_IFD, 0xA005}
+_KEEP_IFD0 = {0x010F, 0x0110, 0x0132}  # Make, Model, DateTime
+# DateTimeOriginal, LensModel, FocalLength, FocalLengthIn35mmFilm, FNumber, ExposureTime, ISO
+_KEEP_EXIF = {0x9003, 0xA434, 0x920A, 0xA405, 0x829D, 0x829A, 0x8827}
 
 
 class HeifUnavailable(Exception):
@@ -40,10 +46,48 @@ def normalize(data: bytes, max_edge: int, quality: int) -> bytes:
     if img.mode != 'RGB':
         img = img.convert('RGB')
     img.thumbnail((max_edge, max_edge))
-    kwargs = {}
-    if len(exif):
-        exif[ORIENTATION] = 1
-        kwargs['exif'] = exif.tobytes()
     out = io.BytesIO()
-    img.save(out, format='JPEG', quality=quality, **kwargs)
-    return out.getvalue()
+    for candidate in _exif_candidates(exif):
+        out.seek(0)
+        out.truncate()
+        try:
+            img.save(out, format='JPEG', quality=quality, **candidate)
+        except ValueError:  # EXIF does not fit in one APP1 segment
+            continue
+        return out.getvalue()
+    raise AssertionError('unreachable: the EXIF-free candidate always saves')
+
+
+def _exif_candidates(exif: Image.Exif):
+    """Yield save kwargs from fullest to emptiest EXIF."""
+    if not len(exif):
+        yield {}
+        return
+    exif[ORIENTATION] = 1
+    full = exif.tobytes()
+    if len(full) <= MAX_EXIF:
+        yield {'exif': full}
+    yield {'exif': _rebuilt(exif, drop_maker_note=True).tobytes()}
+    yield {'exif': _rebuilt(exif, keep=True).tobytes()}
+    yield {}
+
+
+def _rebuilt(exif: Image.Exif, drop_maker_note: bool = False, keep: bool = False) -> Image.Exif:
+    """Copy tags into a fresh Exif (drops the thumbnail IFD1)."""
+    new = Image.Exif()
+    for tag, value in exif.items():
+        if tag not in _POINTERS and (not keep or tag in _KEEP_IFD0):
+            new[tag] = value
+    sub = exif.get_ifd(EXIF_IFD)
+    for tag, value in sub.items():
+        if keep and tag not in _KEEP_EXIF:
+            continue
+        if drop_maker_note and tag == MAKER_NOTE:
+            continue
+        new.get_ifd(EXIF_IFD)[tag] = value
+    if not keep:
+        gps = exif.get_ifd(GPS_IFD)
+        if gps:
+            new.get_ifd(GPS_IFD).update(gps)
+    new[ORIENTATION] = 1
+    return new

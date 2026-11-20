@@ -92,3 +92,41 @@ def test_heic_without_plugin(monkeypatch):
     monkeypatch.setattr(album_image, '_heif_ready', False)
     with pytest.raises(album_image.HeifUnavailable):
         album_image.normalize(data, 2560, 85)
+
+
+def _big_exif(size_kb=70):
+    ex = Image.Exif()
+    ex[MODEL] = 'Cam One'
+    ex[0x0112] = 6
+    sub = ex.get_ifd(0x8769)
+    sub[DATE] = '2026:05:01 10:00:00'
+    sub[0xA434] = 'Lens 50'
+    sub[0x927C] = b'\x00' * (size_kb * 1024)
+    return ex.tobytes()
+
+
+def test_oversized_maker_note_is_dropped_not_fatal():
+    exif_bytes = _big_exif()
+    assert len(exif_bytes) > 65535
+    src = io.BytesIO()
+    Image.new('RGB', (300, 200)).save(src, format='PNG', exif=exif_bytes)
+    exif = _open(album_image.normalize(src.getvalue(), 2560, 85)).getexif()
+    sub = exif.get_ifd(0x8769)
+    assert exif[MODEL] == 'Cam One'
+    assert exif[0x0112] == 1
+    assert sub[DATE] == '2026:05:01 10:00:00'
+    assert sub[0xA434] == 'Lens 50'
+    assert 0x927C not in sub
+
+
+def test_oversized_exif_without_maker_note_falls_back_to_key_tags():
+    ex = Image.Exif()
+    ex[MODEL] = 'Cam One'
+    ex[0x010E] = 'x' * 70000  # ImageDescription
+    ex.get_ifd(0x8769)[DATE] = '2026:05:01 10:00:00'
+    src = io.BytesIO()
+    Image.new('RGB', (300, 200)).save(src, format='PNG', exif=ex.tobytes())
+    exif = _open(album_image.normalize(src.getvalue(), 2560, 85)).getexif()
+    assert exif[MODEL] == 'Cam One'
+    assert exif.get_ifd(0x8769)[DATE] == '2026:05:01 10:00:00'
+    assert 0x010E not in exif

@@ -18,16 +18,23 @@ def read_marker(folder: Path) -> dict | None:
 
 
 def write_marker(folder: Path, marker: dict) -> None:
-    tmp = folder / f'{MARKER}.tmp'
-    tmp.write_text(json.dumps(marker, ensure_ascii=False, indent=2), encoding='utf-8')
-    os.replace(tmp, folder / MARKER)
+    _replace_via_temp(folder / f'{MARKER}.tmp', folder / MARKER,
+                      json.dumps(marker, ensure_ascii=False, indent=2).encode('utf-8'), None)
 
 
 def write_photo(folder: Path, name: str, data: bytes, mtime: int) -> None:
-    tmp = folder / f'.partial-{name}'
-    tmp.write_bytes(data)
-    os.utime(tmp, (mtime, mtime))
-    os.replace(tmp, folder / name)
+    _replace_via_temp(folder / f'.partial-{name}', folder / name, data, mtime)
+
+
+def _replace_via_temp(tmp: Path, target: Path, data: bytes, mtime: int | None) -> None:
+    try:
+        tmp.write_bytes(data)
+        if mtime is not None:
+            os.utime(tmp, (mtime, mtime))
+        os.replace(tmp, target)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
 def remove_photo(folder: Path, name: str) -> None:
