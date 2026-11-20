@@ -1,5 +1,16 @@
 # Changes
 
+## 0.6.0 — pending release
+
+- Add synced photo albums: a second config-entry kind, "Photo albums", copies Synology Photos
+  share links into a photo folder for Ramka. Photos are converted to screen-sized JPEG files
+  (HEIC supported through `pillow-heif`), GPS location is always removed, and the link password
+  stays in `.storage`. See [photo albums](docs/albums.md).
+- Add the `album_add`, `album_remove` and `album_sync` actions (administrators only, with
+  responses) and `sensor.domosenso_frame_albums`.
+- Hold deletions that would remove more than half of an album and ask for confirmation.
+- Add the `pillow-heif` requirement; Home Assistant installs it on the first start with network.
+
 ## 0.5.0 — pending release
 
 - Offer optional HiFiSync pages in the existing Studio layout, with the Studio 0.2.7 renderer.

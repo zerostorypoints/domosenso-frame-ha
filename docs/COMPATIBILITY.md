@@ -1,5 +1,13 @@
 # Compatibility
 
+## Photo albums (0.6.0)
+
+Albums sync requires Home Assistant 2026.9.2 or newer. `pillow-heif` 1.8.1 is installed by Home
+Assistant from the manifest, which needs network access on the first start; without it HEIC
+photos fall back to thumbnails. The Synology Photos share-link API is undocumented; it was
+verified on DSM in November 2026 and a DSM update can change it. The albums entry does not
+change the assistant, timer or control contracts below. See [photo albums](albums.md).
+
 The existing assistant read contract remains version 1. Shared timers add distinct
 negotiated actions, optional endpoint `timers:{writeEnabled,items}` mappings, and a
 closed `ha_clock` read source. They do not broaden SPEC-029 read authorization.

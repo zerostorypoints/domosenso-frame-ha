@@ -7,7 +7,7 @@ arrange screens in Frame Studio and approve Android tablets using a six-digit co
 Works with DomoSenso installations and vanilla Home Assistant. The Android/AI app
 is maintained separately; this repository contains no app binaries or AI models.
 
-**Version 0.5.0 is a pending alpha/pilot release. Requires Home Assistant 2026.9.2 or newer.**
+**Version 0.6.0 is a pending alpha/pilot release. Requires Home Assistant 2026.9.2 or newer.**
 
 This development branch adds component-backed assistant answers and an explicit source-selection
 panel. The published HACS release remains unchanged until this branch is reviewed and released.
@@ -30,6 +30,12 @@ This is a HACS custom repository, not a listing in the HACS default catalog.
 Installing files in HACS and adding the integration in Home Assistant are separate
 steps. HACS must already be installed. No terminal or YAML editing is needed for
 new basic installations. Back up HA before upgrading an existing installation.
+
+## Photo albums (Synology Photos)
+
+Add **Photo albums** as a second entry to sync shared Synology Photos albums into a photo
+folder for Ramka. Photos are converted to screen-sized JPEG files and location data is removed.
+See [photo albums](docs/albums.md) for the share-link requirements, safety holds and actions.
 
 ## Pair an Android tablet
 

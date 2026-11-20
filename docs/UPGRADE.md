@@ -1,5 +1,18 @@
 # Upgrade notes
 
+## Photo albums (0.6.0 candidate)
+
+The update is additive. Existing YAML or UI bridge entries, pairings, mappings and templates are
+untouched; the photo albums are a second config-entry kind that you add only if you want them.
+Home Assistant installs `pillow-heif` from the manifest on the first start, so that start needs
+network access. See [photo albums](albums.md) for setup.
+
+Rollback: remove the albums entry (**Settings -> Devices & services -> DomoSenso Frame**), then
+install the previous release and restart. Removing the entry deletes the stored links and
+passwords; synced folders stay as plain folders and the Ramka keeps showing them. Delete their
+hidden `.sync.json` markers if you do not want a later albums entry to treat them as its own.
+Removing a single album inside the entry deletes that album's folder instead.
+
 ## Optional HiFiSync music screens (0.5.0 candidate)
 
 Use HiFiSync for Home Assistant 0.2.0 or later, a compatible Frame app and
