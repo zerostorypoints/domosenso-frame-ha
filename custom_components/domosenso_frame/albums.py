@@ -17,7 +17,8 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_call_later, async_track_time_interval
+from homeassistant.helpers.service import async_register_admin_service
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -34,8 +35,10 @@ PLATFORMS = ['sensor']
 SERVICES = ('album_add', 'album_remove', 'album_sync')
 DEFAULT_PHOTO_DIR = '/config/www/ramka'
 DEFAULTS = {'interval_min': 60, 'max_edge': 2560, 'quality': 85, 'free_floor': 1_000_000_000, 'host_map': []}
-REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=60)
+# No total limit: large originals may take long while data flows; a stall still fails.
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=None, sock_connect=30, sock_read=60)
 UNLOAD_WAIT_S = 30
+STARTUP_DELAY_S = 60
 FLOW_ERRORS = {'auth_failed': 'wrong_password', 'unreachable': 'unreachable'}
 
 
@@ -105,32 +108,42 @@ class AlbumsManager:
         # would mix sessions of albums on the same host.
         self.session = async_create_clientsession(hass, cookie_jar=aiohttp.DummyCookieJar())
         self.closing = False
-        self._unsub = None
+        self._unsubs: list = []
         self._task: asyncio.Task | None = None
+        self._running: set[asyncio.Task] = set()
 
     async def async_load(self) -> None:
         data = await self.store.async_load() or {}
         self.albums = {rec['id']: rec for rec in data.get('albums', [])}
         for rec in self.albums.values():
+            if rec.get('status') == 'syncing':  # HA stopped mid-sync; the startup sync settles it
+                rec.update(status='error', error='interrupted')
             self._issues(rec)
 
     def start(self) -> None:
-        self._unsub = async_track_time_interval(self.hass, self._tick, timedelta(minutes=self.interval),
-                                                name='domosenso_frame albums', cancel_on_shutdown=True)
+        self._unsubs = [
+            async_call_later(self.hass, STARTUP_DELAY_S, self._tick),
+            async_track_time_interval(self.hass, self._tick, timedelta(minutes=self.interval),
+                                      name='domosenso_frame albums', cancel_on_shutdown=True)]
 
     async def async_close(self) -> None:
-        """Stop the timer and wait (bounded) for running syncs; files are written atomically."""
+        """Stop timers, cancel every running sync and wait for it (bounded); nothing is saved after.
+
+        Photo and marker writes are atomic and already running executor jobs finish their file.
+        """
         self.closing = True
-        if self._unsub:
-            self._unsub()
+        for unsub in self._unsubs:
+            unsub()
+        tasks = [t for t in (self._task, *self._running) if t and not t.done()]
+        for task in tasks:
+            task.cancel()
         try:
             async with asyncio.timeout(UNLOAD_WAIT_S):
-                while (self._task and not self._task.done()) or any(lk.locked() for lk in self.locks.values()):
-                    await asyncio.sleep(0.5)
+                await asyncio.gather(*tasks, return_exceptions=True)
+                while any(lk.locked() for lk in self.locks.values()):
+                    await asyncio.sleep(0.2)
         except TimeoutError:
-            _LOGGER.warning('Album sync still running after %s s; cancelling it', UNLOAD_WAIT_S)
-            if self._task:
-                self._task.cancel()
+            _LOGGER.warning('Album sync still running after %s s', UNLOAD_WAIT_S)
 
     def public(self, rec: AlbumRecord) -> dict:
         lock = self.locks.get(rec['id'])
@@ -199,6 +212,18 @@ class AlbumsManager:
             raise OSError(type(err).__name__) from err  # the client maps OSError to Unreachable
 
     async def _sync_one(self, album_id: str, confirm: bool = False) -> AlbumRecord | None:
+        """Every sync runs as a tracked task, so unload can cancel it."""
+        rec = self.albums.get(album_id)
+        if rec is None or self.closing:
+            return rec
+        if self._lock(album_id).locked():
+            return {**rec, 'status': 'syncing'}
+        task = self.hass.async_create_task(self._sync_locked(album_id, confirm), 'domosenso_frame album sync')
+        self._running.add(task)
+        task.add_done_callback(self._running.discard)
+        return await task
+
+    async def _sync_locked(self, album_id: str, confirm: bool) -> AlbumRecord | None:
         lock = self._lock(album_id)
         if lock.locked():
             rec = self.albums.get(album_id)
@@ -208,9 +233,10 @@ class AlbumsManager:
             if rec is None:
                 return None
             async_dispatcher_send(self.hass, SIGNAL)
-            link = parse_share_url(rec['url'])
-            client = ShareClient(self._transport, api_base(link, self.host_map), link.passphrase, rec['password'])
             try:
+                link = parse_share_url(rec['url'])
+                client = ShareClient(self._transport, api_base(link, self.host_map), link.passphrase,
+                                     rec.get('password'))
                 result = await sync_album(rec, client, self.photo_dir, self.options, dt_util.get_default_time_zone(),
                                           int(time.time()), self._run_blocking, confirm)
                 rec = result.record
@@ -237,6 +263,8 @@ class AlbumsManager:
                 await self._sync_one(rid)
 
     async def _save(self) -> None:
+        if self.closing:  # a closed manager must not overwrite what its successor saves
+            return
         await self.store.async_save({'albums': list(self.albums.values())})
         async_dispatcher_send(self.hass, SIGNAL)
 
@@ -291,14 +319,15 @@ def _register_services(hass) -> None:
     async def album_sync(call):
         manager = hass.data[DATA]
         try:
-            records = await manager.sync(call.data.get('album_id'), call.data['confirm_deletions'])
+            records = await manager.sync(call.data.get('album_id') or None, call.data['confirm_deletions'])
         except AlbumError as err:
             raise _invalid(err) from err
         return {'albums': [manager.public(rec) for rec in records]}
 
     for name, handler, schema in (('album_add', album_add, ADD_SCHEMA), ('album_remove', album_remove, REMOVE_SCHEMA),
                                   ('album_sync', album_sync, SYNC_SCHEMA)):
-        hass.services.async_register(DOMAIN, name, handler, schema=schema, supports_response=SupportsResponse.OPTIONAL)
+        async_register_admin_service(hass, DOMAIN, name, handler, schema=schema,
+                                     supports_response=SupportsResponse.OPTIONAL)
 
 
 async def _reload(hass, entry) -> None:
@@ -310,10 +339,21 @@ async def async_setup_entry(hass, entry) -> bool:
     await manager.async_load()
     hass.data[DATA] = manager
     _register_services(hass)
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    except BaseException:
+        await _teardown(hass, manager)
+        raise
     entry.async_on_unload(entry.add_update_listener(_reload))
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     manager.start()
     return True
+
+
+async def _teardown(hass, manager) -> None:
+    await manager.async_close()
+    for name in SERVICES:
+        hass.services.async_remove(DOMAIN, name)
+    hass.data.pop(DATA, None)
 
 
 async def async_unload_entry(hass, entry) -> bool:
