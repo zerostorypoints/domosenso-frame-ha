@@ -48,7 +48,9 @@ def album(name='trip', count=2, version=1):
 
 
 class FakeClient:
-    def __init__(self, items, name='trip', version=1, originals=None, thumbs=None, error=None):
+    def __init__(self, items, name='trip', version=None, originals=None, thumbs=None, error=None):
+        if version is None:  # like Synology: adding or removing a photo changes the version
+            version = 1 + abs(hash(tuple(i.id for i in items)))
         self.remote, self.list = album(name, len(items), version), list(items)
         self.originals, self.thumbs = originals or {}, thumbs or {}
         self.error, self.calls = error, []
@@ -105,7 +107,7 @@ def photos(folder):
 
 
 def test_first_sync_creates_folder_marker_files(tmp_path):
-    client = FakeClient([item(1), item(2)])
+    client = FakeClient([item(1), item(2)], version=1)
     res = sync(record(), client, tmp_path)
     rec, folder = res.record, tmp_path / '2007/12/trip'
     assert rec['path'] == '2007/12/trip'
@@ -156,19 +158,36 @@ def test_unchanged_version_skips_listing(tmp_path, monkeypatch):
 
 def test_lists_every_time_while_version_does_not_track_content(tmp_path, monkeypatch):
     monkeypatch.setattr(album_plan, 'VERSION_TRACKS_CONTENT', False)
-    rec = sync(record(), FakeClient([item(1)]), tmp_path, now=1000).record
-    client = FakeClient([item(1), item(2)])
+    rec = sync(record(), FakeClient([item(1)], version=1), tmp_path, now=1000).record
+    client = FakeClient([item(1), item(2)], version=1)
     res = sync(rec, client, tmp_path, now=2000)
     assert 'items' in client.calls and res.added == 1
 
 
 def test_daily_full_list_even_if_version_same(tmp_path, monkeypatch):
     monkeypatch.setattr(album_plan, 'VERSION_TRACKS_CONTENT', True)
-    rec = sync(record(), FakeClient([item(1)]), tmp_path, now=1000).record
-    client = FakeClient([item(1), item(2)])
+    rec = sync(record(), FakeClient([item(1)], version=1), tmp_path, now=1000).record
+    client = FakeClient([item(1), item(2)], version=1)
     res = sync(rec, client, tmp_path, now=1000 + 86400)
     assert 'items' in client.calls and res.added == 1
     assert res.record['last_full_list'] == 1000 + 86400
+
+
+def test_unchanged_version_lists_when_a_synced_file_is_gone(tmp_path, monkeypatch):
+    monkeypatch.setattr(album_plan, 'VERSION_TRACKS_CONTENT', True)
+    rec = sync(record(), FakeClient([item(1), item(2)], version=1), tmp_path, now=1000).record
+    (tmp_path / rec['path'] / 'IMG_0001_1.jpg').unlink()
+    client = FakeClient([item(1), item(2)], version=1)
+    res = sync(rec, client, tmp_path, now=2000)
+    assert 'items' in client.calls and res.added == 1
+
+
+def test_unchanged_version_lists_when_the_album_is_renamed(tmp_path, monkeypatch):
+    monkeypatch.setattr(album_plan, 'VERSION_TRACKS_CONTENT', True)
+    rec = sync(record(), FakeClient([item(1)], version=1), tmp_path, now=1000).record
+    client = FakeClient([item(1)], name='lake', version=1)
+    res = sync(rec, client, tmp_path, now=2000)
+    assert 'items' in client.calls and res.record['path'] == '2007/12/lake'
 
 
 def test_remote_removal_deletes_file(tmp_path):

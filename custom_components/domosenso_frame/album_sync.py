@@ -139,14 +139,15 @@ async def _sync(run: _Run, client: ShareClient, tz: tzinfo, confirm: bool) -> No
     confirm = confirm and rec.get('status') == 'awaiting_confirmation'
     await client.login()
     remote = await client.album()
+    local = await run.io(_local_items, run.photo_dir, rec)
     if (album_plan.VERSION_TRACKS_CONTENT and not confirm and rec.get('status') == 'ok' and rec.get('path')
-            and remote.id == rec.get('remote_album_id')
+            and remote.id == rec.get('remote_album_id') and remote.name == rec.get('name')
             and remote.version == rec.get('version') and not rec.get('skipped')
+            and len(local) == rec.get('photos')  # every synced file is still on disk
             and now - (rec.get('last_full_list') or 0) < run.options.full_list_every):
         rec.update(status='ok', error=None, last_sync=now)
         return
     listing = await client.items()
-    local = await run.io(_local_items, run.photo_dir, rec)
     plan = album_plan.plan_sync(local, listing, remote.item_count, confirm)
     rec['last_full_list'] = now
     if plan.hold:

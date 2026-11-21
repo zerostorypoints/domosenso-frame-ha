@@ -5,8 +5,9 @@ from dataclasses import dataclass
 
 from .album_share import RemoteItem
 
-# Whether a changed photo gets a new Synology version number (pending a live check).
-VERSION_TRACKS_CONTENT = False
+# A photo added to or removed from the album raises its Synology version (checked on a DSM, 2026-11-21);
+# an unchanged version skips the listing, with a full listing at least once a day.
+VERSION_TRACKS_CONTENT = True
 # Item types synced as photos; a Live Photo is its still image. Everything else (video) is skipped.
 PHOTO_TYPES = ('photo', 'live')
 

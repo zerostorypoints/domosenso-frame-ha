@@ -33,7 +33,7 @@ def item(i, kind='photo'):
 
 
 def test_version_flag_is_bool():
-    assert plan.VERSION_TRACKS_CONTENT is False
+    assert plan.VERSION_TRACKS_CONTENT is True
 
 
 def test_plan_new_and_removed():

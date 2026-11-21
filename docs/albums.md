@@ -82,6 +82,12 @@ Assistant starts, and on demand (**Sync now** in the options or the `album_sync`
 appear on the Ramka within its own re-index, at most about 15 minutes after the files land; the
 sync does not call it.
 
+Each sync asks for the album's version first. Synology raises it when a photo is added or removed
+(and when the link's settings change). While the version and the album's name are unchanged and
+every synced file is still in its folder, the sync skips the photo listing, except for a full
+listing at least once every 24 hours. A sync waiting for a deletion to be confirmed always lists
+the album.
+
 **Configure -> Settings** holds:
 
 | Option | Default | Range |
