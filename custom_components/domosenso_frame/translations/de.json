@@ -64,7 +64,7 @@
       },
       "add_album": {
         "title": "Album hinzufügen",
-        "description": "Fügen Sie einen Freigabelink von Synology Photos ein. Die erste Synchronisierung startet sofort und kann bei grossen Alben eine Weile dauern.",
+        "description": "Fügen Sie einen Freigabelink von Synology Photos ein, mit seinem Passwort, falls er eines hat. Die erste Synchronisierung startet sofort und kann bei grossen Alben eine Weile dauern.",
         "data": {
           "url": "Freigabelink",
           "password": "Passwort des Links (falls vorhanden)",
@@ -76,7 +76,7 @@
       },
       "remove_album": {
         "title": "Album entfernen",
-        "description": "Der Ordner des Albums und seine Fotos werden gelöscht. Das geteilte Album selbst bleibt unverändert.",
+        "description": "Löscht die von diesem Album synchronisierten Fotos und seine Synchronisierungsmarkierung. Der Ordner wird nur gelöscht, wenn sonst nichts darin liegt; von Hand hinzugefügte Dateien bleiben. Das geteilte Album selbst bleibt unverändert.",
         "data": {
           "album_id": "Album"
         }
@@ -91,7 +91,7 @@
       },
       "settings": {
         "title": "Album-Einstellungen",
-        "description": "Zeilen der Host-Zuordnung lauten `von -> nach`, jeweils ein Ursprung wie https://photos.example.com, um den Freigabe-Host über eine andere Adresse zu erreichen (zum Beispiel im lokalen Netz).",
+        "description": "Zeilen der Host-Zuordnung lauten `von -> nach`, jeweils ein Ursprung wie https://photos.example.com, um den Freigabe-Host über eine andere Adresse zu erreichen (zum Beispiel im lokalen Netz). Weiterleitungen werden nicht befolgt: Ordnen Sie die Adresse zu, die direkt antwortet, zum Beispiel die https-Adresse, wenn http dorthin weiterleitet.",
         "data": {
           "interval_min": "Synchronisierungsintervall",
           "max_edge": "Längste Kante",
@@ -108,7 +108,8 @@
       "unreachable": "Der Freigabe-Host ist nicht erreichbar. Prüfen Sie den Link, das Netzwerk oder die Host-Zuordnung.",
       "invalid_host_map": "Jede Zeile muss `von -> nach` lauten, beide Seiten nur ein Ursprung: http oder https, Host und optional Port, ohne Pfad, Abfrage, abschliessenden Schrägstrich oder Benutzernamen.",
       "album_busy": "Dieses Album wird gerade synchronisiert. Versuchen Sie es nach Abschluss erneut.",
-      "unknown_album": "Dieses Album existiert nicht mehr."
+      "unknown_album": "Dieses Album existiert nicht mehr.",
+      "share_error": "Die erste Synchronisierung dieses Albums ist fehlgeschlagen. Prüfen Sie den Link, den Fotoordner und den freien Speicherplatz und versuchen Sie es erneut."
     },
     "abort": {
       "not_loaded": "Der Eintrag der Alben ist nicht geladen. Laden Sie ihn neu und versuchen Sie es erneut.",
@@ -128,15 +129,11 @@
   "services": {
     "album_add": {
       "name": "Album hinzufügen",
-      "description": "Fügt ein geteiltes Album von Synology Photos hinzu und führt die erste Synchronisierung aus.",
+      "description": "Fügt ein geteiltes Album von Synology Photos ohne Passwort hinzu und führt die erste Synchronisierung aus. Ein Link mit Passwort liefert das Album mit Status auth_failed: Solche Links fügen Sie in den Optionen der Integration hinzu (Konfigurieren -> Album hinzufügen).",
       "fields": {
         "url": {
           "name": "Freigabelink",
           "description": "Freigabelink von Synology Photos."
-        },
-        "password": {
-          "name": "Passwort",
-          "description": "Passwort des Freigabelinks, falls vorhanden."
         },
         "path": {
           "name": "Ordner",
@@ -146,7 +143,7 @@
     },
     "album_remove": {
       "name": "Album entfernen",
-      "description": "Entfernt ein Album und löscht seinen Ordner.",
+      "description": "Entfernt ein Album: löscht die synchronisierten Fotos und die Synchronisierungsmarkierung, den Ordner nur, wenn sonst nichts darin liegt.",
       "fields": {
         "album_id": {
           "name": "Album-ID",

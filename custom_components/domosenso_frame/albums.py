@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 import logging
 import re
 import secrets
@@ -20,10 +21,11 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later, async_track_time_interval
 from homeassistant.helpers.service import async_register_admin_service
 from homeassistant.helpers.storage import Store
+from homeassistant.requirements import async_process_requirements
 from homeassistant.util import dt as dt_util
 
 from .album_layout import sanitize_name
-from .album_share import ShareClient, api_base, parse_share_url
+from .album_share import MAX_BODY, ShareClient, Unreachable, api_base, parse_share_url
 from .album_sync import AlbumRecord, SyncOptions, remove_album, sync_album
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,11 +37,15 @@ PLATFORMS = ['sensor']
 SERVICES = ('album_add', 'album_remove', 'album_sync')
 DEFAULT_PHOTO_DIR = '/config/www/ramka'
 DEFAULTS = {'interval_min': 60, 'max_edge': 2560, 'quality': 85, 'free_floor': 1_000_000_000, 'host_map': []}
-# No total limit: large originals may take long while data flows; a stall still fails.
-REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=None, sock_connect=30, sock_read=60)
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=900, sock_connect=30, sock_read=60)
+CHUNK = 1 << 20
+# Installed at albums setup, not from the manifest: a missing wheel or no network must not fail the
+# bridge or the albums entry. Until it is importable, HEIC items use the share's thumbnail.
+HEIF_REQUIREMENT = 'pillow-heif==1.8.1'
 UNLOAD_WAIT_S = 30
 STARTUP_DELAY_S = 60
 FLOW_ERRORS = {'auth_failed': 'wrong_password', 'unreachable': 'unreachable'}
+FLOW_ACCEPTED = ('ok', 'awaiting_confirmation')
 
 
 class AlbumError(ValueError):
@@ -104,6 +110,8 @@ class AlbumsManager:
         self.store = Store(hass, 1, STORE_KEY)
         self.albums: dict[str, AlbumRecord] = {}
         self.locks: dict[str, asyncio.Lock] = {}
+        self.one_sync = asyncio.Semaphore(1)  # one album syncs at a time, across all albums
+        self.heif_install: asyncio.Task | None = None
         # Own session without a cookie jar: the client sends sharing_sid itself, and a shared jar
         # would mix sessions of albums on the same host.
         self.session = async_create_clientsession(hass, cookie_jar=aiohttp.DummyCookieJar())
@@ -144,6 +152,7 @@ class AlbumsManager:
                     await asyncio.sleep(0.2)
         except TimeoutError:
             _LOGGER.warning('Album sync still running after %s s', UNLOAD_WAIT_S)
+        await self.session.close()
 
     def public(self, rec: AlbumRecord) -> dict:
         lock = self.locks.get(rec['id'])
@@ -169,7 +178,7 @@ class AlbumsManager:
         self.albums[rid] = AlbumRecord(
             id=rid, url=url, password=password or None, path_override=_clean_path(path), path=None,
             remote_album_id=None, name=None, version=None, last_sync=None, last_full_list=None,
-            status='syncing', error=None, mode=None, heic=None, photos=0, skipped=[])
+            status='syncing', error=None, mode=None, heic=None, photos=0, skipped=[], skipped_at=None)
         await self._save()
         return await self._sync_one(rid) or self.albums[rid]
 
@@ -194,7 +203,9 @@ class AlbumsManager:
         if album_id is not None and album_id not in self.albums:
             raise AlbumError('unknown_album')
         ids = [album_id] if album_id is not None else list(self.albums)
-        results = [await self._sync_one(rid, confirm_deletions) for rid in ids]
+        # Only holds that exist now are confirmed; a hold this run creates stays.
+        held = {rid for rid in ids if confirm_deletions and self.albums[rid].get('status') == 'awaiting_confirmation'}
+        results = [await self._sync_one(rid, rid in held) for rid in ids]
         return [rec for rec in results if rec is not None]
 
     def _lock(self, album_id: str) -> asyncio.Lock:
@@ -204,10 +215,18 @@ class AlbumsManager:
         return self.hass.async_add_executor_job(fn)
 
     async def _transport(self, method, url, params=None, data=None, headers=None):
+        """Redirects are not followed (the client reports them); bodies over MAX_BODY are refused."""
         try:
             async with self.session.request(method, url, params=params, data=data, headers=headers,
-                                            timeout=REQUEST_TIMEOUT) as resp:
-                return resp.status, resp.headers.get('Content-Type', ''), await resp.read()
+                                            timeout=REQUEST_TIMEOUT, allow_redirects=False) as resp:
+                if (resp.content_length or 0) > MAX_BODY:
+                    raise Unreachable('Response too large', 'too_large')
+                body = bytearray()
+                async for chunk in resp.content.iter_chunked(CHUNK):
+                    body += chunk
+                    if len(body) > MAX_BODY:
+                        raise Unreachable('Response too large', 'too_large')
+                return resp.status, resp.headers.get('Content-Type', ''), bytes(body)
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
             raise OSError(type(err).__name__) from err  # the client maps OSError to Unreachable
 
@@ -229,24 +248,30 @@ class AlbumsManager:
             rec = self.albums.get(album_id)
             return {**rec, 'status': 'syncing'} if rec else None
         async with lock:
-            rec = self.albums.get(album_id)
-            if rec is None:
+            if self.albums.get(album_id) is None:
                 return None
-            async_dispatcher_send(self.hass, SIGNAL)
-            try:
-                link = parse_share_url(rec['url'])
-                client = ShareClient(self._transport, api_base(link, self.host_map), link.passphrase,
-                                     rec.get('password'))
-                result = await sync_album(rec, client, self.photo_dir, self.options, dt_util.get_default_time_zone(),
-                                          int(time.time()), self._run_blocking, confirm)
-                rec = result.record
-            except Exception as err:  # noqa: BLE001 - one album must not stop the others
-                _LOGGER.error('Album %s sync failed unexpectedly: %s', album_id, type(err).__name__)
-                rec = {**rec, 'status': 'error', 'error': 'unexpected'}
-            self.albums[album_id] = rec
-            self._issues(rec)
-            await self._save()
-            return rec
+            async_dispatcher_send(self.hass, SIGNAL)  # shown as syncing while it waits its turn
+            async with self.one_sync:
+                return await self._sync_body(album_id, confirm)
+
+    async def _sync_body(self, album_id: str, confirm: bool) -> AlbumRecord | None:
+        rec = self.albums.get(album_id)
+        if rec is None:
+            return None
+        try:
+            link = parse_share_url(rec['url'])
+            client = ShareClient(self._transport, api_base(link, self.host_map), link.passphrase,
+                                 rec.get('password'))
+            result = await sync_album(rec, client, self.photo_dir, self.options, dt_util.get_default_time_zone(),
+                                      int(time.time()), self._run_blocking, confirm)
+            rec = result.record
+        except Exception as err:  # noqa: BLE001 - one album must not stop the others
+            _LOGGER.error('Album %s sync failed unexpectedly: %s', album_id, type(err).__name__)
+            rec = {**rec, 'status': 'error', 'error': 'unexpected'}
+        self.albums[album_id] = rec
+        self._issues(rec)
+        await self._save()
+        return rec
 
     @callback
     def _tick(self, _now) -> None:
@@ -288,8 +313,9 @@ def _same_link(url: str, link) -> bool:
         return False
 
 
-ADD_SCHEMA = vol.Schema({vol.Required('url'): cv.string, vol.Optional('password'): cv.string,
-                         vol.Optional('path'): cv.string})
+# No password field: service data is recorded in call_service events. A link with a password is
+# added in the options form; in-process callers use AlbumsManager.add.
+ADD_SCHEMA = vol.Schema({vol.Required('url'): cv.string, vol.Optional('path'): cv.string})
 REMOVE_SCHEMA = vol.Schema({vol.Required('album_id'): cv.string})
 SYNC_SCHEMA = vol.Schema({vol.Optional('album_id'): cv.string,
                           vol.Optional('confirm_deletions', default=False): cv.boolean})
@@ -303,7 +329,7 @@ def _register_services(hass) -> None:
     async def album_add(call):
         manager = hass.data[DATA]
         try:
-            rec = await manager.add(call.data['url'], call.data.get('password'), call.data.get('path'))
+            rec = await manager.add(call.data['url'], None, call.data.get('path'))
         except AlbumError as err:
             raise _invalid(err) from err
         return {'album': manager.public(rec)}
@@ -334,6 +360,17 @@ async def _reload(hass, entry) -> None:
     await hass.config_entries.async_reload(entry.entry_id)
 
 
+async def _install_heif(hass) -> None:
+    """Best effort: a failure only means HEIC items keep using the share's thumbnail."""
+    try:
+        await async_process_requirements(hass, DOMAIN, [HEIF_REQUIREMENT], is_built_in=False)
+    except Exception as err:  # noqa: BLE001 - RequirementsNotFound, pip or network errors
+        _LOGGER.warning('pillow-heif could not be installed (%s); HEIC photos use the share thumbnail',
+                        type(err).__name__)
+    else:
+        importlib.invalidate_caches()
+
+
 async def async_setup_entry(hass, entry) -> bool:
     manager = AlbumsManager(hass, entry)
     await manager.async_load()
@@ -345,6 +382,8 @@ async def async_setup_entry(hass, entry) -> bool:
         await _teardown(hass, manager)
         raise
     entry.async_on_unload(entry.add_update_listener(_reload))
+    manager.heif_install = entry.async_create_background_task(hass, _install_heif(hass),
+                                                              'domosenso_frame pillow-heif install')
     manager.start()
     return True
 

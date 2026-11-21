@@ -1,6 +1,9 @@
 album_add:
   name: Add album
-  description: Adds a shared Synology Photos album and runs its first sync.
+  description: >-
+    Adds a shared Synology Photos album without a password and runs its first sync. A link with a
+    password returns the album with status auth_failed: add such links in the integration options
+    (Configure -> Add album).
   fields:
     url:
       name: Share link
@@ -10,12 +13,6 @@ album_add:
       selector:
         text:
           type: url
-    password:
-      name: Password
-      description: Password of the share link, if it has one.
-      selector:
-        text:
-          type: password
     path:
       name: Folder
       description: Folder inside the photo folder; empty uses year/month/album name.
@@ -24,7 +21,9 @@ album_add:
         text:
 album_remove:
   name: Remove album
-  description: Removes an album and deletes its folder.
+  description: >-
+    Removes an album: deletes the photos it synced and its sync marker, and the folder only if
+    nothing else is left in it.
   fields:
     album_id:
       name: Album ID

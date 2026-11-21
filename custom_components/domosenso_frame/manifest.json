@@ -10,9 +10,7 @@
     "script",
     "automation"
   ],
-  "requirements": [
-    "pillow-heif==1.8.1"
-  ],
+  "requirements": [],
   "codeowners": [
     "@zerostorypoints"
   ],

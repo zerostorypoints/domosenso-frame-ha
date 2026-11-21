@@ -64,7 +64,7 @@
       },
       "add_album": {
         "title": "Dodaj album",
-        "description": "Wklej link udostępniania z Synology Photos. Pierwsza synchronizacja rusza od razu i przy dużym albumie może potrwać.",
+        "description": "Wklej link udostępniania z Synology Photos, razem z hasłem, jeśli je ma. Pierwsza synchronizacja rusza od razu i przy dużym albumie może potrwać.",
         "data": {
           "url": "Link udostępniania",
           "password": "Hasło linku (jeśli jest)",
@@ -76,7 +76,7 @@
       },
       "remove_album": {
         "title": "Usuń album",
-        "description": "Folder albumu i jego zdjęcia zostaną usunięte. Sam udostępniony album się nie zmienia.",
+        "description": "Usuwa zdjęcia zsynchronizowane z tego albumu i jego znacznik synchronizacji. Folder zostaje usunięty tylko wtedy, gdy nic innego w nim nie ma; pliki dodane ręcznie zostają. Sam udostępniony album się nie zmienia.",
         "data": {
           "album_id": "Album"
         }
@@ -91,7 +91,7 @@
       },
       "settings": {
         "title": "Ustawienia albumów",
-        "description": "Wiersze mapy hostów mają postać `z -> do`, każda strona to sam adres źródłowy, np. https://photos.example.com, aby łączyć się z hostem udostępniania pod innym adresem (na przykład w sieci lokalnej).",
+        "description": "Wiersze mapy hostów mają postać `z -> do`, każda strona to sam adres źródłowy, np. https://photos.example.com, aby łączyć się z hostem udostępniania pod innym adresem (na przykład w sieci lokalnej). Przekierowania nie są obsługiwane: wskaż adres, który odpowiada bezpośrednio, na przykład adres https, jeśli http tam przekierowuje.",
         "data": {
           "interval_min": "Odstęp synchronizacji",
           "max_edge": "Najdłuższa krawędź",
@@ -108,7 +108,8 @@
       "unreachable": "Host udostępniania jest nieosiągalny. Sprawdź link, sieć lub mapę hostów.",
       "invalid_host_map": "Każdy wiersz musi mieć postać `z -> do`, a obie strony to sam adres źródłowy: http lub https, host i opcjonalnie port, bez ścieżki, zapytania, końcowego ukośnika i nazwy użytkownika.",
       "album_busy": "Ten album jest właśnie synchronizowany. Spróbuj ponownie po zakończeniu.",
-      "unknown_album": "Ten album już nie istnieje."
+      "unknown_album": "Ten album już nie istnieje.",
+      "share_error": "Pierwsza synchronizacja tego albumu się nie powiodła. Sprawdź link, folder zdjęć i wolne miejsce na dysku, a potem spróbuj ponownie."
     },
     "abort": {
       "not_loaded": "Wpis albumów nie jest załadowany. Przeładuj go i spróbuj ponownie.",
@@ -128,15 +129,11 @@
   "services": {
     "album_add": {
       "name": "Dodaj album",
-      "description": "Dodaje udostępniony album Synology Photos i wykonuje pierwszą synchronizację.",
+      "description": "Dodaje udostępniony album Synology Photos bez hasła i wykonuje pierwszą synchronizację. Dla linku z hasłem zwraca album ze statusem auth_failed: takie linki dodaj w opcjach integracji (Konfiguruj -> Dodaj album).",
       "fields": {
         "url": {
           "name": "Link udostępniania",
           "description": "Link udostępniania Synology Photos."
-        },
-        "password": {
-          "name": "Hasło",
-          "description": "Hasło linku udostępniania, jeśli jest."
         },
         "path": {
           "name": "Folder",
@@ -146,7 +143,7 @@
     },
     "album_remove": {
       "name": "Usuń album",
-      "description": "Usuwa album i jego folder.",
+      "description": "Usuwa album: kasuje zsynchronizowane zdjęcia i znacznik synchronizacji, a folder tylko wtedy, gdy nic innego w nim nie ma.",
       "fields": {
         "album_id": {
           "name": "ID albumu",

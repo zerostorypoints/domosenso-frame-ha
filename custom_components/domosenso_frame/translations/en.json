@@ -64,7 +64,7 @@
       },
       "add_album": {
         "title": "Add album",
-        "description": "Paste a Synology Photos share link. The first sync runs now and can take a while for a large album.",
+        "description": "Paste a Synology Photos share link, with its password if it has one. The first sync runs now and can take a while for a large album.",
         "data": {
           "url": "Share link",
           "password": "Link password (if any)",
@@ -76,7 +76,7 @@
       },
       "remove_album": {
         "title": "Remove album",
-        "description": "The album's folder and its photos are deleted. The shared album itself is not changed.",
+        "description": "Deletes the photos this album synced and its sync marker. The folder is deleted only if nothing else is left in it; files you added by hand stay. The shared album itself is not changed.",
         "data": {
           "album_id": "Album"
         }
@@ -91,7 +91,7 @@
       },
       "settings": {
         "title": "Album settings",
-        "description": "Host map lines read `from -> to`, each an origin such as https://photos.example.com, to reach the share host by another address (for example on the local network).",
+        "description": "Host map lines read `from -> to`, each an origin such as https://photos.example.com, to reach the share host by another address (for example on the local network). Redirects are not followed: map to the address that answers directly, for example the https address if http redirects there.",
         "data": {
           "interval_min": "Sync interval",
           "max_edge": "Longest edge",
@@ -108,7 +108,8 @@
       "unreachable": "The share host cannot be reached. Check the link, the network or the host map.",
       "invalid_host_map": "Each line must read `from -> to`, where both sides are an origin only: http or https, host and optional port, without path, query, trailing slash or user name.",
       "album_busy": "This album is syncing right now. Try again when the sync has finished.",
-      "unknown_album": "This album no longer exists."
+      "unknown_album": "This album no longer exists.",
+      "share_error": "The first sync of this album failed. Check the link, the photo folder and the free disk space, then try again."
     },
     "abort": {
       "not_loaded": "The albums entry is not loaded. Reload it and try again.",
@@ -128,15 +129,11 @@
   "services": {
     "album_add": {
       "name": "Add album",
-      "description": "Adds a shared Synology Photos album and runs its first sync.",
+      "description": "Adds a shared Synology Photos album without a password and runs its first sync. A link with a password returns the album with status auth_failed: add such links in the integration options (Configure -> Add album).",
       "fields": {
         "url": {
           "name": "Share link",
           "description": "Synology Photos share link."
-        },
-        "password": {
-          "name": "Password",
-          "description": "Password of the share link, if it has one."
         },
         "path": {
           "name": "Folder",
@@ -146,7 +143,7 @@
     },
     "album_remove": {
       "name": "Remove album",
-      "description": "Removes an album and deletes its folder.",
+      "description": "Removes an album: deletes the photos it synced and its sync marker, and the folder only if nothing else is left in it.",
       "fields": {
         "album_id": {
           "name": "Album ID",

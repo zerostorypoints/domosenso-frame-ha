@@ -5,7 +5,7 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 from . import DOMAIN, ENDPOINT
-from .albums import DATA as ALBUMS, DEFAULT_PHOTO_DIR, DEFAULTS, FLOW_ERRORS, AlbumError, format_host_map, parse_host_map
+from .albums import DATA as ALBUMS, DEFAULT_PHOTO_DIR, DEFAULTS, FLOW_ACCEPTED, FLOW_ERRORS, AlbumError, format_host_map, parse_host_map
 from .onboarding import AIR_METRICS, CLASSES, build_endpoint
 from .studio_mappings import discover
 
@@ -116,9 +116,9 @@ class AlbumsOptionsFlow(config_entries.OptionsFlow):
             try:rec=await manager.add(user_input['url'],user_input.get('password'),user_input.get('path'))
             except AlbumError as err:errors['base']=err.code
             else:
-                if not (error:=FLOW_ERRORS.get(rec['status'])):return self._done()
+                if rec['status'] in FLOW_ACCEPTED:return self._done()
                 await manager.remove(rec['id'])  # the user is still in the form: keep nothing
-                errors['base']=error
+                errors['base']=FLOW_ERRORS.get(rec['status'],'share_error')
         schema=vol.Schema({
             vol.Required('url'):selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.URL)),
             vol.Optional('password'):selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)),
