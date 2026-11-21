@@ -19,6 +19,8 @@
 - One album syncs at a time; redirects are not followed, a response is limited to 200 MB and a
   request to 15 minutes; a missing photo folder is reported as `photo_dir_missing` and never
   created again.
+- Skip the photo listing while the album's version, name and local files are unchanged, with a
+  full listing at least once a day.
 
 ## 0.5.0 — pending release
 
