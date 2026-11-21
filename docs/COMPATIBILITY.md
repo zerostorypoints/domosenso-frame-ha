@@ -2,9 +2,13 @@
 
 ## Photo albums (0.6.0)
 
-Albums sync requires Home Assistant 2026.9.2 or newer. `pillow-heif` 1.8.1 is installed by Home
-Assistant from the manifest, which needs network access on the first start; without it HEIC
-photos fall back to thumbnails. The Synology Photos share-link API is undocumented; it was
+Albums sync requires Home Assistant 2026.9.2 or newer. `pillow-heif` 1.8.1 is not a manifest requirement, so the bridge never depends on it. When the
+albums entry is set up, it asks Home Assistant to install it in the background; setup does not
+wait for it and does not fail when the install fails (no network, no wheel for the platform), it
+logs a warning. Syncs that run before the install has finished, or after it failed, convert HEIC
+photos from the share's thumbnail and report `heic: thumbnails`. In the HA Container image the
+package lands in the image's site-packages, so after every image update the next albums setup
+installs it again and needs network access for that. The Synology Photos share-link API is undocumented; it was
 verified on DSM in November 2026 and a DSM update can change it. The albums entry does not
 change the assistant, timer or control contracts below. See [photo albums](albums.md).
 

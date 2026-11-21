@@ -4,8 +4,10 @@
 
 The update is additive. Existing YAML or UI bridge entries, pairings, mappings and templates are
 untouched; the photo albums are a second config-entry kind that you add only if you want them.
-Home Assistant installs `pillow-heif` from the manifest on the first start, so that start needs
-network access. See [photo albums](albums.md) for setup.
+The manifest has no requirements. The albums entry installs `pillow-heif` 1.8.1 in the background
+when it is set up; without network access the entry still loads and HEIC photos use the share's
+thumbnail. In the HA Container image this install repeats after every image update. See
+[photo albums](albums.md) for setup.
 
 Rollback: remove the albums entry (**Settings -> Devices & services -> DomoSenso Frame**), then
 install the previous release and restart. Removing the entry deletes the stored links and
