@@ -212,3 +212,32 @@ def test_non_200_is_unreachable():
         await c.login()
     with pytest.raises(share.Unreachable):
         asyncio.run(run())
+
+
+@pytest.mark.parametrize('reply', [
+    (200, 'Application/JSON; charset=utf-8', json.dumps({'success': False, 'error': {'code': 804}}).encode()),
+    (200, 'application/octet-stream', json.dumps({'success': False, 'error': {'code': 804}}).encode()),
+])
+def test_original_error_reply_detected_by_type_or_body(reply):
+    async def run():
+        _, c = _client(reply)
+        await c.original(_item())
+    with pytest.raises(share.NoDownload):
+        asyncio.run(run())
+
+
+def test_original_body_starting_with_brace_but_not_an_error_is_kept():
+    async def run():
+        _, c = _client((200, 'application/force-download', b'{not json at all'),
+                       (200, 'application/force-download', b'{"success": true}'))
+        return await c.original(_item()), await c.original(_item())
+    assert asyncio.run(run()) == (b'{not json at all', b'{"success": true}')
+
+
+def test_redirect_is_unreachable_with_code():
+    async def run():
+        _, c = _client((302, 'text/html', b''))
+        await c.login()
+    with pytest.raises(share.Unreachable) as e:
+        asyncio.run(run())
+    assert e.value.code == 'redirect'

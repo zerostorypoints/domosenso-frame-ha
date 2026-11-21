@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import errno
+import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import tzinfo
@@ -17,6 +18,7 @@ from .album_layout import initial_path, local_filename, resolve_path, sanitize_n
 from .album_share import (AuthFailed, NoDownload, RemoteAlbum, RemoteItem, ShareClient, ShareError,
                           Unreachable, parse_share_url)
 
+_LOGGER = logging.getLogger(__name__)
 RunBlocking = Callable[[Callable[[], Any]], Awaitable[Any]]
 _BAD_IMAGE = (UnidentifiedImageError, Image.DecompressionBombError, OSError, ValueError)
 _BAD_RESPONSE = (ShareError, KeyError, IndexError, AttributeError, TypeError, ValueError)
@@ -28,6 +30,7 @@ class SyncOptions:
     quality: int = 85
     free_floor: int = 1_000_000_000
     full_list_every: int = 86400
+    skipped_retry_every: int = 86400
 
 
 class AlbumRecord(TypedDict):
@@ -47,6 +50,7 @@ class AlbumRecord(TypedDict):
     heic: str | None
     photos: int
     skipped: list[int]
+    skipped_at: int | None
 
 
 @dataclass(frozen=True)
@@ -62,6 +66,10 @@ class _DiskFull(Exception):
 
 
 class _InvalidPath(Exception):
+    pass
+
+
+class _PhotoDirMissing(Exception):
     pass
 
 
@@ -82,6 +90,7 @@ class _Run:
     heic_converted: bool = False
     heic_thumbs: bool = False
     skipped: list[int] = field(default_factory=list)
+    failed_now: bool = False
 
     async def io(self, fn, *args):
         return await self.run_blocking(lambda: fn(*args))
@@ -95,12 +104,14 @@ async def sync_album(record: AlbumRecord, client: ShareClient, photo_dir: Path, 
         await _sync(run, client, tz, confirm)
     except AuthFailed:
         _fail(run, 'auth_failed', 'wrong_password')
-    except Unreachable:
-        _fail(run, 'unreachable')
+    except Unreachable as err:
+        _fail(run, 'unreachable', err.code)
     except album_plan.IncompleteListing:
         _fail(run, 'error', 'incomplete_listing')
     except _InvalidPath:
         _fail(run, 'error', 'invalid_path')
+    except _PhotoDirMissing:
+        _fail(run, 'error', 'photo_dir_missing')
     except _DiskFull:
         _fail(run, 'disk_full')
     except OSError as err:
@@ -122,6 +133,10 @@ def _fail(run: _Run, status: str, error: str | None = None) -> None:
 
 async def _sync(run: _Run, client: ShareClient, tz: tzinfo, confirm: bool) -> None:
     rec, now = run.rec, run.now
+    if not await run.io(run.photo_dir.is_dir):  # unmounted storage: touch nothing, never re-create it
+        raise _PhotoDirMissing
+    # Deletions are confirmed only for a hold that exists before this run.
+    confirm = confirm and rec.get('status') == 'awaiting_confirmation'
     await client.login()
     remote = await client.album()
     if (album_plan.VERSION_TRACKS_CONTENT and not confirm and rec.get('status') == 'ok' and rec.get('path')
@@ -137,18 +152,40 @@ async def _sync(run: _Run, client: ShareClient, tz: tzinfo, confirm: bool) -> No
     if plan.hold:
         rec.update(status='awaiting_confirmation', error=None)
         return
+    download, run.skipped = _without_resting_skips(rec, remote, plan.download, now, run.options)
     run.marker = {'album_id': rec['id'], 'remote_album_id': remote.id,
                   'source_host': urlsplit(parse_share_url(rec['url']).origin).netloc,
                   'version': remote.version, 'items': {str(k): v for k, v in local.items()},
                   'last_sync': now}
     run.folder = await run.io(_place_folder, run, remote, tz)
-    await _download(run, client, plan.download)
+    await _download(run, client, download)
     await _delete(run, plan.delete)
     await run.io(write_marker, run.folder, run.marker)
     heic = 'thumbnails' if run.heic_thumbs else 'converted' if run.heic_converted else rec.get('heic')
     rec.update(status='ok', error=None, remote_album_id=remote.id, name=remote.name, version=remote.version,
                last_sync=now, mode=run.mode or rec.get('mode') or 'originals', heic=heic,
-               photos=len(run.marker['items']), skipped=run.skipped)
+               photos=len(run.marker['items']), skipped=run.skipped, skipped_at=_skipped_at(run, rec))
+
+
+def _without_resting_skips(rec: dict, remote: RemoteAlbum, download: list[RemoteItem], now: int,
+                           options: SyncOptions) -> tuple[list[RemoteItem], list[int]]:
+    """Leave out skipped items tried less than a day ago while the album is unchanged.
+
+    Returns the items to download and the skipped ids carried over without a retry.
+    """
+    skipped = set(rec.get('skipped') or [])
+    resting = (skipped and rec.get('skipped_at') is not None and remote.version == rec.get('version')
+               and now - rec['skipped_at'] < options.skipped_retry_every)
+    if not resting:
+        return download, []
+    return [i for i in download if i.id not in skipped], [i.id for i in download if i.id in skipped]
+
+
+def _skipped_at(run: _Run, rec: dict) -> int | None:
+    """Time of the last attempt at the skipped items; None once nothing is skipped."""
+    if not run.skipped:
+        return None
+    return run.now if run.failed_now else rec.get('skipped_at')
 
 
 def _owned(folder: Path, own: str) -> bool:
@@ -169,7 +206,12 @@ def _local_items(photo_dir: Path, rec: dict) -> dict[int, str]:
         return {}
     folder = photo_dir / path
     return {int(k): v for k, v in marker['items'].items()
-            if isinstance(v, str) and v and PurePosixPath(v).name == v and (folder / v).is_file()}
+            if _plain(v) and (folder / v).is_file()}
+
+
+def _plain(name) -> bool:
+    """A bare file name from a marker: no separator, not empty, not `.` or `..`."""
+    return isinstance(name, str) and name not in ('', '.', '..') and PurePosixPath(name).name == name
 
 
 def _rename_target(photo_dir: Path, path: str, wanted: str) -> str:
@@ -179,6 +221,16 @@ def _rename_target(photo_dir: Path, path: str, wanted: str) -> str:
         n += 1
         candidate = f'{wanted}-{n}'
     return candidate
+
+
+def _make_dirs(photo_dir: Path, path: str) -> None:
+    """Create path below photo_dir one level at a time; photo_dir itself is never created."""
+    if not photo_dir.is_dir():
+        raise _PhotoDirMissing
+    current = photo_dir
+    for part in PurePosixPath(path).parts:
+        current = current / part
+        current.mkdir(exist_ok=True)
 
 
 def _place_folder(run: _Run, remote: RemoteAlbum, tz: tzinfo) -> Path:
@@ -192,7 +244,7 @@ def _place_folder(run: _Run, remote: RemoteAlbum, tz: tzinfo) -> Path:
         old = photo_dir / path
         if new != path and (not old.exists() or _owned(old, own)):
             if old.exists():
-                (photo_dir / new).parent.mkdir(parents=True, exist_ok=True)
+                _make_dirs(photo_dir, str(PurePosixPath(new).parent))
                 old.rename(photo_dir / new)
                 run.renamed = True
             path = new
@@ -202,7 +254,7 @@ def _place_folder(run: _Run, remote: RemoteAlbum, tz: tzinfo) -> Path:
     rec['path'] = path
     folder = photo_dir / path
     run.created = not folder.exists()
-    folder.mkdir(parents=True, exist_ok=True)
+    _make_dirs(photo_dir, path)
     write_marker(folder, run.marker)
     return folder
 
@@ -219,9 +271,10 @@ async def _download(run: _Run, client: ShareClient, items: list[RemoteItem]) -> 
                 thumbs = True
         if thumbs:
             raw = await client.thumbnail(item)
-        data = await _convert(run, client, item, raw)
+        data = await _convert(run, client, item, raw, thumbs)
         if data is None:
             run.skipped.append(item.id)
+            run.failed_now = True
             continue
         name = local_filename(item)
         await run.io(write_photo, run.folder, name, data, item.time)
@@ -232,19 +285,23 @@ async def _download(run: _Run, client: ShareClient, items: list[RemoteItem]) -> 
         run.mode = 'thumbnails' if thumbs else 'originals'
 
 
-async def _convert(run: _Run, client: ShareClient, item: RemoteItem, raw: bytes) -> bytes | None:
-    """Return screen-ready JPEG, or None when the image cannot be decoded."""
+async def _convert(run: _Run, client: ShareClient, item: RemoteItem, raw: bytes, is_thumb: bool) -> bytes | None:
+    """Return screen-ready JPEG; an original that cannot be decoded falls back to the `xl` thumbnail.
+
+    None when the thumbnail cannot be decoded either.
+    """
     try:
         data = await _normalize(run, raw)
-    except album_image.HeifUnavailable:
-        run.heic_thumbs = True
+    except (album_image.HeifUnavailable, *_BAD_IMAGE) as err:
+        if is_thumb:
+            return None
+        if isinstance(err, album_image.HeifUnavailable):
+            run.heic_thumbs = True
         thumb = await client.thumbnail(item)  # client errors take the album-level path
         try:
             return await _normalize(run, thumb)
         except (album_image.HeifUnavailable, *_BAD_IMAGE):
             return None
-    except _BAD_IMAGE:
-        return None
     run.heic_converted |= album_image.is_heif(raw)
     return data
 
@@ -275,12 +332,17 @@ def _remove(record: AlbumRecord, photo_dir: Path) -> None:
     if not marker or marker.get('album_id') != record['id']:
         return
     items = marker.get('items')
-    names = {v for v in items.values() if isinstance(v, str) and PurePosixPath(v).name == v} \
-        if isinstance(items, dict) else set()
+    names = {v for v in items.values() if _plain(v) and (folder / v).is_file()} if isinstance(items, dict) else set()
     for name in names:
-        remove_photo(folder, name)
+        try:
+            remove_photo(folder, name)
+        except OSError as err:  # keep going: one stuck file must not leave the rest half-removed
+            _LOGGER.warning('Could not delete a synced photo: %s', type(err).__name__)
     for leftover in (*folder.glob('.partial-*'), folder / f'{MARKER}.tmp', folder / MARKER):
-        leftover.unlink(missing_ok=True)
+        try:
+            leftover.unlink(missing_ok=True)
+        except OSError as err:
+            _LOGGER.warning('Could not delete a sync file: %s', type(err).__name__)
     try:
         folder.rmdir()  # fails (and keeps the folder) while the user's own files are in it
     except OSError:

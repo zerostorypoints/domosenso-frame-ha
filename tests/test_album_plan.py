@@ -46,6 +46,13 @@ def test_plan_skips_videos():
     assert [i.id for i in p.download] == [1]
 
 
+def test_plan_counts_live_photos_as_photos():
+    p = plan.plan_sync({}, [item(1, 'live'), item(2, 'video'), item(3)], 3, False)
+    assert [i.id for i in p.download] == [1, 3]
+    p = plan.plan_sync({1: 'a'}, [item(1, 'live')], 1, False)
+    assert p.hold is False and p.delete == [] and p.download == []
+
+
 def test_plan_holds_when_more_than_half_go():
     p = plan.plan_sync({1: 'a', 2: 'b', 3: 'c', 4: 'd'}, [item(1), item(9)], 2, False)
     assert p.hold is True and p.download == [] and p.delete == []

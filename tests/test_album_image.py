@@ -153,3 +153,17 @@ def test_gps_is_never_written(extra):
     assert 0x8825 not in exif
     assert not exif.get_ifd(0x8825)
     assert exif.get_ifd(0x8769)[DATE] == '2026:05:01 10:00:00'
+
+
+def test_large_jpeg_keeps_size_and_orientation():
+    img = Image.new('RGB', (6000, 4000), (220, 20, 20))
+    img.paste((20, 20, 220), (3000, 0, 6000, 4000))  # left half red, right half blue
+    ex = Image.Exif()
+    ex[0x0112] = 6  # display rotated 90 degrees clockwise: the left half ends on top
+    buf = io.BytesIO()
+    img.save(buf, format='JPEG', quality=90, exif=ex.tobytes())
+    out = _open(album_image.normalize(buf.getvalue(), 2560, 85))
+    assert out.size == (1707, 2560)
+    assert out.getexif()[0x0112] == 1
+    top, bottom = out.getpixel((853, 100)), out.getpixel((853, 2460))
+    assert top[0] > 150 and top[2] < 80 and bottom[2] > 150 and bottom[0] < 80

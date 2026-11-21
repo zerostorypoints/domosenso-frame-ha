@@ -83,7 +83,7 @@ class FakeClient:
 def record(**kw):
     base = dict(id='a1', url=URL, password=PASSWORD, path_override=None, path=None, remote_album_id=None,
                 name=None, version=None, last_sync=None, last_full_list=None, status=None, error=None,
-                mode=None, heic=None, photos=0, skipped=[])
+                mode=None, heic=None, photos=0, skipped=[], skipped_at=None)
     return base | kw
 
 
@@ -263,13 +263,88 @@ def test_heif_unavailable_uses_thumbnail_for_that_item(tmp_path, monkeypatch):
     assert photos(tmp_path / res.record['path']) == ['IMG_0001_1.jpg', 'IMG_0002_2.jpg']
 
 
-def test_unreadable_image_is_skipped_and_retried(tmp_path):
+def test_undecodable_original_falls_back_to_thumbnail(tmp_path):
     client = FakeClient([item(1), item(2)], originals={1: b'not an image'})
     res = sync(record(), client, tmp_path)
-    assert (res.record['status'], res.record['skipped'], res.added) == ('ok', [1], 1)
+    folder = tmp_path / res.record['path']
+    assert ('thumbnail', 1) in client.calls and ('thumbnail', 2) not in client.calls
+    assert (res.record['status'], res.record['skipped'], res.record['mode'], res.added) == ('ok', [], 'originals', 2)
+    assert int(os.stat(folder / 'IMG_0001_1.jpg').st_mtime) == START + 1
+
+
+BAD = dict(originals={1: b'not an image'}, thumbs={1: b'not a thumbnail'})
+
+
+def test_undecodable_item_is_skipped_and_retried_after_a_day(tmp_path):
+    res = sync(record(), FakeClient([item(1), item(2)], **BAD), tmp_path, now=10_000)
+    assert (res.record['status'], res.record['skipped'], res.record['skipped_at'], res.added) == ('ok', [1], 10_000, 1)
     assert set(marker(tmp_path / res.record['path'])['items']) == {'2'}
-    res = sync(res.record, FakeClient([item(1), item(2)]), tmp_path)
-    assert (res.record['skipped'], res.added) == ([], 1)
+    client = FakeClient([item(1), item(2)])
+    res = sync(res.record, client, tmp_path, now=10_000 + 86399)
+    assert ('original', 1) not in client.calls and ('thumbnail', 1) not in client.calls
+    assert (res.record['skipped'], res.record['skipped_at'], res.added) == ([1], 10_000, 0)
+    client = FakeClient([item(1), item(2)])
+    res = sync(res.record, client, tmp_path, now=10_000 + 86400)
+    assert ('original', 1) in client.calls
+    assert (res.record['skipped'], res.record['skipped_at'], res.added) == ([], None, 1)
+
+
+def test_skipped_item_retried_when_album_changes(tmp_path):
+    res = sync(record(), FakeClient([item(1), item(2)], **BAD), tmp_path, now=10_000)
+    client = FakeClient([item(1), item(2)], version=2)
+    res = sync(res.record, client, tmp_path, now=10_001)
+    assert ('original', 1) in client.calls and (res.record['skipped'], res.added) == ([], 1)
+
+
+def test_skipped_item_failing_again_restarts_the_day(tmp_path):
+    res = sync(record(), FakeClient([item(1)], **BAD), tmp_path, now=10_000)
+    res = sync(res.record, FakeClient([item(1)], **BAD), tmp_path, now=10_000 + 86400)
+    assert (res.record['skipped'], res.record['skipped_at']) == ([1], 10_000 + 86400)
+
+
+def test_skipped_item_gone_from_share_is_forgotten(tmp_path):
+    res = sync(record(), FakeClient([item(1), item(2)], **BAD), tmp_path, now=10_000)
+    res = sync(res.record, FakeClient([item(2)]), tmp_path, now=10_001)
+    assert (res.record['skipped'], res.record['skipped_at']) == ([], None)
+
+
+def test_live_photo_is_downloaded(tmp_path):
+    client = FakeClient([item(1, 'live'), item(2, 'video')])
+    res = sync(record(), client, tmp_path)
+    assert photos(tmp_path / res.record['path']) == ['IMG_0001_1.jpg']
+    assert ('original', 2) not in client.calls
+
+
+def test_confirm_applies_only_to_an_existing_hold(tmp_path):
+    rec = sync(record(), FakeClient([item(1), item(2), item(3)]), tmp_path).record
+    assert rec['status'] == 'ok'
+    res = sync(rec, FakeClient([item(1)]), tmp_path, confirm=True)
+    assert res.record['status'] == 'awaiting_confirmation' and res.removed == 0
+    assert photos(tmp_path / rec['path']) == ['IMG_0001_1.jpg', 'IMG_0002_2.jpg', 'IMG_0003_3.jpg']
+
+
+def test_missing_photo_dir_is_an_error_and_not_recreated(tmp_path):
+    photo_dir = tmp_path / 'ramka'
+    res = sync(record(), FakeClient([item(1)]), photo_dir)
+    assert (res.record['status'], res.record['error']) == ('error', 'photo_dir_missing')
+    assert not photo_dir.exists()
+
+
+def test_unmounted_photo_dir_keeps_files_and_record(tmp_path):
+    photo_dir = tmp_path / 'ramka'
+    photo_dir.mkdir()
+    rec = sync(record(), FakeClient([item(1), item(2)]), photo_dir).record
+    photo_dir.rename(tmp_path / 'away')
+    client = FakeClient([item(1)])
+    res = sync(rec, client, photo_dir)
+    assert (res.record['status'], res.record['error'], res.record['photos']) == ('error', 'photo_dir_missing', 2)
+    assert not photo_dir.exists() and not [c for c in client.calls if isinstance(c, tuple)]
+    assert photos(tmp_path / 'away' / rec['path']) == ['IMG_0001_1.jpg', 'IMG_0002_2.jpg']
+
+
+def test_redirect_is_unreachable_with_error_code(tmp_path):
+    res = sync(record(), _failing_client(album_share.Unreachable('HTTP 302', 'redirect')), tmp_path)
+    assert (res.record['status'], res.record['error']) == ('unreachable', 'redirect')
 
 
 def test_disk_floor_stops_before_download(tmp_path, monkeypatch):
@@ -347,6 +422,42 @@ def test_remove_album_spares_foreign_folder(tmp_path):
     assert photos(folder) == ['IMG_0001_1.jpg']
 
 
+def _marker_with(folder, **items):
+    m = marker(folder)
+    m['items'].update(items)
+    (folder / '.sync.json').write_text(json.dumps(m))
+
+
+def test_remove_album_skips_names_that_are_not_plain_files(tmp_path):
+    rec = sync(record(), FakeClient([item(1)]), tmp_path).record
+    folder = tmp_path / rec['path']
+    (folder / 'sub').mkdir()
+    _marker_with(folder, **{'90': '..', '91': 'sub', '92': '.', '93': ''})
+    asyncio.run(album_sync.remove_album(rec, tmp_path, _direct))
+    assert sorted(p.name for p in folder.iterdir()) == ['sub']
+    assert (tmp_path / '2007/12').is_dir()
+
+
+def test_remove_album_continues_after_a_failed_unlink(tmp_path, monkeypatch):
+    rec = sync(record(), FakeClient([item(1), item(2)]), tmp_path).record
+    folder = tmp_path / rec['path']
+    real = album_sync.remove_photo
+
+    def flaky(where, name):
+        if name == 'IMG_0001_1.jpg':
+            raise PermissionError(13, 'read-only')
+        real(where, name)
+    monkeypatch.setattr(album_sync, 'remove_photo', flaky)
+    asyncio.run(album_sync.remove_album(rec, tmp_path, _direct))
+    assert sorted(p.name for p in folder.iterdir()) == ['IMG_0001_1.jpg']
+
+
+def test_local_items_reject_dot_dot(tmp_path):
+    rec = sync(record(), FakeClient([item(1)]), tmp_path).record
+    _marker_with(tmp_path / rec['path'], **{'90': '..', '91': '.'})
+    assert album_sync._local_items(tmp_path, rec) == {1: 'IMG_0001_1.jpg'}
+
+
 def test_no_secret_under_photo_dir(tmp_path):
     rec = sync(record(), FakeClient([item(1), item(2)], originals={1: HEIC}), tmp_path).record
     sync(rec, FakeClient([item(1)], name='lake'), tmp_path, confirm=True)
@@ -361,9 +472,9 @@ def test_no_secret_under_photo_dir(tmp_path):
 
 def test_skipped_item_forces_listing(tmp_path, monkeypatch):
     monkeypatch.setattr(album_plan, 'VERSION_TRACKS_CONTENT', True)
-    rec = sync(record(), FakeClient([item(1)], originals={1: b'junk'}), tmp_path, now=1000).record
+    rec = sync(record(), FakeClient([item(1)], **BAD), tmp_path, now=1000).record
     client = FakeClient([item(1)])
-    res = sync(rec, client, tmp_path, now=2000)
+    res = sync(rec, client, tmp_path, now=1000 + 86400)
     assert 'items' in client.calls and (res.added, res.record['skipped']) == (1, [])
 
 

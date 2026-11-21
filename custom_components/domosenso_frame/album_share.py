@@ -42,6 +42,7 @@ def api_base(link: ShareLink, host_map: list[dict[str, str]]) -> str:
 
 USER_AGENT = 'domosenso-frame/0.6.0'
 PAGE_SIZE = 500
+MAX_BODY = 200_000_000  # larger responses are refused by the transport
 Transport = Callable[..., Awaitable[tuple[int, str, bytes]]]
 
 
@@ -60,7 +61,11 @@ class NoDownload(ShareError):
 
 
 class Unreachable(Exception):
-    pass
+    """Network failure or a reply that is not the share API; `code` names a known cause."""
+
+    def __init__(self, message: str = '', code: str | None = None):
+        super().__init__(message)
+        self.code = code
 
 
 @dataclass(frozen=True)
@@ -114,6 +119,8 @@ class ShareClient:
                                                         headers=self._headers(session))
         except (OSError, asyncio.TimeoutError) as err:
             raise Unreachable(str(err) or type(err).__name__) from err
+        if 300 <= status < 400:  # redirects are not followed: map the final address in the host map
+            raise Unreachable(f'HTTP {status}', 'redirect')
         if status != 200:
             raise Unreachable(f'HTTP {status}')
         return ctype, body
@@ -130,12 +137,16 @@ class ShareClient:
 
     async def _fetch(self, params: dict) -> bytes:
         ctype, body = await self._send('GET', params=params)
-        if ctype.startswith('application/json'):
+        is_json = ctype.lower().startswith('application/json')
+        if is_json or body[:1] == b'{':
             try:
-                code = (json.loads(body).get('error') or {}).get('code')
+                reply = json.loads(body)
             except ValueError:
-                code = None
-            _raise_for(code)
+                reply = None
+            if not isinstance(reply, dict):
+                reply = None
+            if is_json or (reply is not None and reply.get('success') is False):
+                _raise_for(((reply or {}).get('error') or {}).get('code'))
         return body
 
     async def login(self) -> None:

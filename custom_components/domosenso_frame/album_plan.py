@@ -7,6 +7,8 @@ from .album_share import RemoteItem
 
 # Whether a changed photo gets a new Synology version number (pending a live check).
 VERSION_TRACKS_CONTENT = False
+# Item types synced as photos; a Live Photo is its still image. Everything else (video) is skipped.
+PHOTO_TYPES = ('photo', 'live')
 
 
 class IncompleteListing(Exception):
@@ -23,7 +25,7 @@ class SyncPlan:
 def plan_sync(local: dict[int, str], remote: list[RemoteItem], item_count: int, confirm: bool) -> SyncPlan:
     if len(remote) != item_count:
         raise IncompleteListing(f'Got {len(remote)} of {item_count} items')
-    photos = {i.id: i for i in remote if i.type == 'photo'}
+    photos = {i.id: i for i in remote if i.type in PHOTO_TYPES}
     delete = [name for item_id, name in local.items() if item_id not in photos]
     if local and not confirm and (not photos or len(delete) > len(local) / 2):
         return SyncPlan([], [], True)

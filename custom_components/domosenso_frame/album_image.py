@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import io
 
-from PIL import Image, ImageOps
+from PIL import Image
 
 ORIENTATION = 0x0112
 _HEIF_BRANDS = (b'heic', b'heix', b'mif1', b'msf1')
@@ -41,11 +41,13 @@ def normalize(data: bytes, max_edge: int, quality: int) -> bytes:
         _register_heif()
     with Image.open(io.BytesIO(data)) as src:
         exif = src.getexif()
-        img = ImageOps.exif_transpose(src)
-        img.load()
-    if img.mode != 'RGB':
-        img = img.convert('RGB')
-    img.thumbnail((max_edge, max_edge))
+        if src.format == 'JPEG':
+            src.draft('RGB', (max_edge, max_edge))  # decode at a reduced scale: tablet memory
+        img = src if src.mode == 'RGB' else src.convert('RGB')
+        img.thumbnail((max_edge, max_edge))  # the box is square, so before the transpose is the same
+        img = _oriented(img, exif.get(ORIENTATION))
+        if img is src:
+            img = src.copy()  # the source is closed when the block ends
     out = io.BytesIO()
     for candidate in _exif_candidates(exif):
         out.seek(0)
@@ -56,6 +58,17 @@ def normalize(data: bytes, max_edge: int, quality: int) -> bytes:
             continue
         return out.getvalue()
     raise AssertionError('unreachable: the EXIF-free candidate always saves')
+
+
+_TRANSPOSE = {2: Image.Transpose.FLIP_LEFT_RIGHT, 3: Image.Transpose.ROTATE_180,
+              4: Image.Transpose.FLIP_TOP_BOTTOM, 5: Image.Transpose.TRANSPOSE,
+              6: Image.Transpose.ROTATE_270, 7: Image.Transpose.TRANSVERSE, 8: Image.Transpose.ROTATE_90}
+
+
+def _oriented(img: Image.Image, orientation) -> Image.Image:
+    """Apply the EXIF orientation to the already reduced pixels, as ImageOps.exif_transpose does."""
+    method = _TRANSPOSE.get(orientation)
+    return img.transpose(method) if method is not None else img
 
 
 def _exif_candidates(exif: Image.Exif):
