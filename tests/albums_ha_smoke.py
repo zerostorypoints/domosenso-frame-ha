@@ -1,6 +1,8 @@
 """Isolated HA smoke for album sync against a fake Synology Photos share server.
 
 Runs inside the official HA image (see docs/albums.md). All values are fictional.
+With ALBUMS_SMOKE_OFFLINE=1 (and `docker run --network none`) it checks instead that the bridge and
+the albums entry load when pillow-heif cannot be installed, and that HEIC then uses thumbnails.
 """
 import asyncio, importlib, importlib.util, io, json, logging, os, secrets, sys, traceback
 from pathlib import Path
@@ -13,6 +15,7 @@ from homeassistant.core import Context, HomeAssistant
 from homeassistant.exceptions import ServiceValidationError, Unauthorized
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
+import voluptuous as vol  # after homeassistant: HA maps voluptuous to probatio, whose errors services raise
 
 if not os.environ.get('ALBUMS_SMOKE_DEBUG'):
     logging.disable(logging.CRITICAL)
@@ -20,6 +23,8 @@ if not os.environ.get('ALBUMS_SMOKE_DEBUG'):
 DOMAIN = 'domosenso_frame'
 PASSPHRASE, PASSWORD = 'TestShare1', 'pw'
 PASSPHRASE2 = 'TestShare2'
+OFFLINE = os.environ.get('ALBUMS_SMOKE_OFFLINE') == '1'
+FAKE_HEIC = b'\x00\x00\x00\x18ftypheic\x00\x00\x00\x00mif1heic' + b'\x00' * 64  # HEIF header only
 SHARE_URL = f'http://photos.invalid/photo/mo/sharing/{PASSPHRASE}'
 SHARE_URL2 = f'http://photos.invalid/photo/mo/sharing/{PASSPHRASE2}'
 JUNE = 1781524800  # 2026-06-15 12:00 UTC
@@ -40,7 +45,7 @@ def jpeg(color, size=(64, 48)):
 
 
 def heic(color):
-    """HEIC with DateTimeOriginal and GPS; needs pillow_heif, which HA installs from the manifest."""
+    """HEIC with DateTimeOriginal and GPS; needs pillow_heif, which the albums entry has HA install."""
     import pillow_heif
     pillow_heif.register_heif_opener()
     exif = Image.Exif()
@@ -76,6 +81,7 @@ class FakeSynology:
 
     def __init__(self):
         self.shares, self.sids, self.agents, self.delay, self.logins = {}, {}, set(), 0.0, 0
+        self.in_flight, self.max_in_flight = 0, 0
         self.thumb = jpeg((10, 200, 10), (32, 24))
 
     @staticmethod
@@ -83,8 +89,16 @@ class FakeSynology:
         return web.json_response({'error': {'code': code}, 'success': False})
 
     async def handle(self, request):
-        if self.delay:
-            await asyncio.sleep(self.delay)
+        self.in_flight += 1
+        self.max_in_flight = max(self.max_in_flight, self.in_flight)
+        try:
+            if self.delay:
+                await asyncio.sleep(self.delay)
+            return await self.answer(request)
+        finally:
+            self.in_flight -= 1
+
+    async def answer(self, request):
         self.agents.add(request.headers.get('User-Agent'))
         args = dict(await request.post()) if request.method == 'POST' else dict(request.query)
         api = args.get('api')
@@ -170,7 +184,7 @@ async def main():
         check(await bootstrap.async_from_config_dict(config, hass), 'HA bootstrap failed')
         check(hass.data.get(DOMAIN, {}).get('source') == 'yaml', 'YAML bridge not loaded')
         importlib.invalidate_caches()
-        import pillow_heif  # noqa: F401 - installed by HA from manifest requirements
+        check(importlib.util.find_spec('pillow_heif') is None, 'the bridge alone installed pillow_heif')
         albums = sys.modules['custom_components.domosenso_frame.albums']
         config_flow = sys.modules.get('custom_components.domosenso_frame.config_flow') or importlib.import_module('custom_components.domosenso_frame.config_flow')
         albums.STARTUP_DELAY_S = 3600  # the startup sync is exercised on its own below
@@ -180,7 +194,6 @@ async def main():
         share = Share(PASSPHRASE, PASSWORD, 'Summer Trip', JUNE)
         for n, color in ((101, (200, 0, 0)), (102, (0, 0, 200)), (103, (200, 200, 0)), (104, (0, 200, 200))):
             share.add(n, f'IMG_{n:04d}.JPG', jpeg(color))
-        share.add(105, 'IMG_0105.HEIC', heic((120, 60, 200)))
         share.add(106, 'MOV_0106.MOV', b'not a photo', kind='video')
         share2 = Share(PASSPHRASE2, None, 'Winter Walk', JANUARY)
         share2.add(201, 'IMG_0201.JPG', jpeg((90, 90, 90)))
@@ -208,6 +221,15 @@ async def main():
         await hass.async_block_till_done()
         check(entry.state.value == 'loaded', 'albums entry not loaded')
         check(hass.data.get(DOMAIN, {}).get('source') == 'yaml', 'YAML bridge lost after albums entry')
+        # pillow-heif comes from the albums entry setup, in the background, not from the manifest.
+        await asyncio.wait_for(asyncio.shield(hass.data[albums.DATA].heif_install), 300)
+        importlib.invalidate_caches()
+        if OFFLINE:
+            check(importlib.util.find_spec('pillow_heif') is None, 'pillow_heif installed without network')
+            share.add(105, 'IMG_0105.HEIC', FAKE_HEIC)
+        else:
+            check(importlib.util.find_spec('pillow_heif') is not None, 'albums setup did not install pillow_heif')
+            share.add(105, 'IMG_0105.HEIC', heic((120, 60, 200)))
         again = await hass.config_entries.flow.async_init(DOMAIN, context={'source': 'user'})
         check(again['type'] == 'abort' and again['reason'] == 'already_configured', 'second albums entry not aborted')
 
@@ -251,13 +273,31 @@ async def main():
         check(fields['host_map'].description['suggested_value'] == host_map, 'host map not shown back')
         hass.config_entries.options.async_abort(form['flow_id'])
 
-        # Options add: wrong password keeps nothing; a good add does not reload the entry.
+        if OFFLINE:
+            form = await options('add_album')
+            done = await hass.config_entries.options.async_configure(form['flow_id'], {'url': SHARE_URL, 'password': PASSWORD})
+            check(done['type'] == 'create_entry', f'offline options add failed: {done.get("errors")}')
+            (rec,) = manager().public_list()
+            check(rec['status'] == 'ok' and rec['photos'] == 5 and rec['heic'] == 'thumbnails' and rec['mode'] == 'originals',
+                  f'offline HEIC did not fall back to the thumbnail: {rec}')
+            with Image.open(photo_dir / rec['path'] / 'IMG_0105_105.jpg') as thumb:
+                check(thumb.size == (32, 24), 'offline HEIC item is not the thumbnail')
+            check(entry.state.value == 'loaded' and hass.data.get(DOMAIN, {}).get('source') == 'yaml',
+                  'bridge or albums entry not loaded without pillow-heif')
+            print(json.dumps({'bridge': 'yaml', 'albums_entry': 'loaded', 'pillow_heif': 'install-failed',
+                              'heic': rec['heic']}))
+            return
+
+        # Options add: wrong password and a share error keep nothing; a good add does not reload the entry.
         current = manager()
         form = await options('add_album')
         wrong = await hass.config_entries.options.async_configure(form['flow_id'], {'url': SHARE_URL, 'password': 'wrong'})
         check(wrong['type'] == 'form' and wrong['errors'] == {'base': 'wrong_password'}, f'wrong password not reported: {wrong.get("errors")}')
         check(not manager().albums and not (photo_dir / '2026/06/Summer Trip-2').exists(), 'failed options add left an album')
-        added = await hass.config_entries.options.async_configure(wrong['flow_id'], {'url': SHARE_URL2})
+        missing = await hass.config_entries.options.async_configure(wrong['flow_id'], {'url': 'http://photos.invalid/photo/mo/sharing/Missing3'})
+        check(missing['type'] == 'form' and missing['errors'] == {'base': 'share_error'}, f'share error not reported: {missing.get("errors")}')
+        check(not manager().albums, 'options add with a share error left an album')
+        added = await hass.config_entries.options.async_configure(missing['flow_id'], {'url': SHARE_URL2})
         check(added['type'] == 'create_entry', f'options add failed: {added.get("errors")}')
         await hass.async_block_till_done()
         check(manager() is current, 'album action reloaded the entry')
@@ -286,13 +326,27 @@ async def main():
             else:
                 raise AssertionError(f'album_add {url} not refused')
 
-        # album_add: the hand folder holds the wanted path, so the album takes -2.
-        response = await call('album_add', url=SHARE_URL, password=PASSWORD)
-        album = response['album']
-        aid = album['id']
+        # album_add takes no password (service data is recorded); a password link comes back auth_failed.
+        try:
+            await call('album_add', url=SHARE_URL, password=PASSWORD)
+        except vol.Invalid as err:
+            check('password' in str(err), f'album_add password refused for another reason: {err}')
+        else:
+            raise AssertionError('album_add accepted a password')
+        response = await call('album_add', url=SHARE_URL)
+        locked = response['album']
+        check(locked['status'] == 'auth_failed' and locked['error'] == 'wrong_password', f'password link via album_add: {locked}')
+        check('password' not in locked and 'url' not in locked, 'album_add response leaks credentials')
+        check(await call('album_remove', album_id=locked['id']) == {'removed': True}, 'auth_failed album not removed')
+
+        # Options add with the password: the hand folder holds the wanted path, so the album takes -2.
+        form = await options('add_album')
+        done = await hass.config_entries.options.async_configure(form['flow_id'], {'url': SHARE_URL, 'password': PASSWORD})
+        check(done['type'] == 'create_entry', f'options add with password failed: {done.get("errors")}')
+        aid, = (rid for rid in manager().albums if rid != winter_id)
+        album = manager().public(manager().albums[aid])
         check(album['status'] == 'ok' and album['path'] == '2026/06/Summer Trip-2' and album['photos'] == 5, f'album_add result wrong: {album}')
         check(album['mode'] == 'originals' and album['heic'] == 'converted' and album['skipped_count'] == 0, f'album_add mode/heic wrong: {album}')
-        check('password' not in album and 'url' not in album, 'album_add response leaks credentials')
         folder = photo_dir / album['path']
         names = photos(folder)
         check(names == ['IMG_0101_101.jpg', 'IMG_0102_102.jpg', 'IMG_0103_103.jpg', 'IMG_0104_104.jpg', 'IMG_0105_105.jpg'], f'album files wrong: {names}')
@@ -349,9 +403,22 @@ async def main():
         check(photos(folder) == names[1:], 'held sync deleted files')
         hold_issue = f'album_{aid}_awaiting_confirmation'
         check(issues.async_get_issue(DOMAIN, hold_issue) is not None, 'awaiting_confirmation issue missing')
-        result = (await call('album_sync', album_id=aid, confirm_deletions=True))['albums'][0]
+        # confirm_deletions on all albums: only the hold that existed before the call is released;
+        # Winter Walk empties now, enters a hold in the same run and keeps it.
+        winter_items = dict(share2.items)
+        share2.remove(201, 202)
+        winter_folder = photo_dir / '2026/01/Winter Walk'
+        winter_files = tree(winter_folder)
+        results = {a['id']: a for a in (await call('album_sync', confirm_deletions=True))['albums']}
+        result = results[aid]
         check(result['status'] == 'ok' and photos(folder) == ['IMG_0105_105.jpg'], f'confirm failed: {result["status"]} {photos(folder)}')
         check(issues.async_get_issue(DOMAIN, hold_issue) is None, 'awaiting_confirmation issue not removed')
+        check(results[winter_id]['status'] == 'awaiting_confirmation', f'new hold confirmed in the same call: {results[winter_id]}')
+        check(photos(winter_folder) == ['IMG_0201_201.jpg', 'IMG_0202_202.jpg'], 'new hold deleted files')
+        share2.items.update(winter_items)
+        share2.version += 1
+        result = (await call('album_sync', album_id=winter_id))['albums'][0]
+        check(result['status'] == 'ok' and tree(winter_folder).keys() == winter_files.keys(), f'winter not back to ok: {result}')
 
         # Wrong password: auth_failed, files kept.
         share.password = 'changed'
@@ -384,6 +451,11 @@ async def main():
         first, second = await asyncio.gather(call('album_sync', album_id=aid), call('album_sync', album_id=aid))
         statuses = sorted(r['albums'][0]['status'] for r in (first, second))
         check(statuses == ['ok', 'syncing'], f'concurrent syncs: {statuses}')
+        # Two albums at once: the second waits for the first (one sync at a time), and both finish.
+        fake.max_in_flight = 0
+        first, second = await asyncio.gather(call('album_sync', album_id=aid), call('album_sync', album_id=winter_id))
+        check([r['albums'][0]['status'] for r in (first, second)] == ['ok', 'ok'], f'two albums: {first} {second}')
+        check(fake.max_in_flight == 1, f'two albums synced in parallel: {fake.max_in_flight} requests at once')
         fake.delay = 0.0
 
         def leaks():
@@ -455,17 +527,17 @@ async def main():
         await hass.async_block_till_done()
         check(not store_path.exists(), 'album store kept after entry removal')
         check(tree(hand) == hand_before, 'entry removal touched the hand folder')
-        print(json.dumps({'bridge': 'yaml', 'config_flow': 'ok', 'options': 'ok', 'pillow_heif': 'installed-by-ha',
+        print(json.dumps({'bridge': 'yaml', 'config_flow': 'ok', 'options': 'ok', 'pillow_heif': 'installed-by-albums-entry',
                           'sync': 'ok', 'holds': 'ok', 'errors': 'ok', 'lifecycle': 'ok'}))
     finally:
         await hass.async_stop(force=True)
         await runner.cleanup()
-    print('albums smoke ok')
 
 
 if __name__ == '__main__':
     try:
         asyncio.run(main())
+        print('albums smoke ok')
     except AssertionError as err:
         print(f'albums smoke failed: {err}')
         raise SystemExit(1) from None
