@@ -3,6 +3,14 @@
     "step": {
       "user": {
         "title": "Konfiguracja DomoSenso Frame",
+        "description": "Wybierz, co chcesz dodać. Mostek udostępnia panel dla aplikacji Android; albumy synchronizują udostępnione albumy Synology Photos do folderu zdjęć dla Ramki.",
+        "menu_options": {
+          "bridge": "Mostek Frame",
+          "albums": "Albumy zdjęć"
+        }
+      },
+      "bridge": {
+        "title": "Konfiguracja DomoSenso Frame",
         "description": "Utwórz panel dla aplikacji Android. Nie potrzebujesz własnego dashboardu ani YAML. Źródła możesz później zmienić w DomoSenso Frame w menu bocznym.",
         "data": {
           "name": "Nazwa panelu",
@@ -23,15 +31,150 @@
           "radar_near_m": "Próg bliskości (m)",
           "radar_off_delay_s": "Opóźnienie po odejściu (sekundy)"
         }
+      },
+      "albums": {
+        "title": "Konfiguracja albumów zdjęć",
+        "description": "Udostępnione albumy są kopiowane do tego folderu jako pliki JPEG w rozmiarze ekranu. Jeśli folder leży w /config/www, jego zawartość można odczytać bez logowania, więc dodawaj tylko albumy, które mogą być tam widoczne. Albumy dodasz potem przez Konfiguruj.",
+        "data": {
+          "photo_dir": "Folder zdjęć"
+        }
       }
     },
     "error": {
       "invalid_settings": "Podaj nazwę panelu o długości 1–80 znaków i wybierz obsługiwany język.",
-      "invalid_sources": "Wybierz istniejące źródła właściwego typu: maksymalnie 32 czujniki temperatury, 32 czujniki powietrza i 16 kalendarzy, bez powtórzeń."
+      "invalid_sources": "Wybierz istniejące źródła właściwego typu: maksymalnie 32 czujniki temperatury, 32 czujniki powietrza i 16 kalendarzy, bez powtórzeń.",
+      "invalid_photo_dir": "Podaj bezwzględną ścieżkę istniejącego folderu, na przykład /config/www/ramka."
     },
     "abort": {
-      "already_configured": "DomoSenso Frame jest już skonfigurowany. Otwórz DomoSenso Frame w menu bocznym, aby zmienić źródła lub sparować tablet.",
+      "already_configured": "Ta część DomoSenso Frame jest już skonfigurowana. Mostek: otwórz DomoSenso Frame w menu bocznym, aby zmienić źródła lub sparować tablet. Albumy: użyj Konfiguruj przy wpisie albumów.",
       "yaml_configured": "DomoSenso Frame jest skonfigurowany w YAML. Istniejące panele i uprawnienia pozostają zachowane. Otwórz DomoSenso Frame w menu bocznym i wybierz Map sources lub Devices and pairing. Kreator nie zastępuje konfiguracji YAML."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Albumy zdjęć",
+        "description": "Dodaj lub usuń udostępniony album, zsynchronizuj teraz albo zmień ustawienia.",
+        "menu_options": {
+          "add_album": "Dodaj album",
+          "remove_album": "Usuń album",
+          "sync_now": "Synchronizuj teraz",
+          "settings": "Ustawienia"
+        }
+      },
+      "add_album": {
+        "title": "Dodaj album",
+        "description": "Wklej link udostępniania z Synology Photos, razem z hasłem, jeśli je ma. Pierwsza synchronizacja rusza od razu i przy dużym albumie może potrwać.",
+        "data": {
+          "url": "Link udostępniania",
+          "password": "Hasło linku (jeśli jest)",
+          "path": "Folder w folderze zdjęć (opcjonalnie)"
+        },
+        "data_description": {
+          "path": "Zostaw puste, aby użyć rok/miesiąc/nazwa albumu, na przykład 2026/11/Wakacje."
+        }
+      },
+      "remove_album": {
+        "title": "Usuń album",
+        "description": "Usuwa zdjęcia zsynchronizowane z tego albumu i jego znacznik synchronizacji. Folder zostaje usunięty tylko wtedy, gdy nic innego w nim nie ma; pliki dodane ręcznie zostają. Sam udostępniony album się nie zmienia.",
+        "data": {
+          "album_id": "Album"
+        }
+      },
+      "sync_now": {
+        "title": "Synchronizuj teraz",
+        "description": "Bez wyboru albumu synchronizowane są wszystkie. Synchronizacja działa w tle; wynik pokazuje czujnik Albums.",
+        "data": {
+          "album_id": "Album",
+          "confirm_deletions": "Potwierdź wstrzymane usunięcia"
+        }
+      },
+      "settings": {
+        "title": "Ustawienia albumów",
+        "description": "Wiersze mapy hostów mają postać `z -> do`, każda strona to sam adres źródłowy, np. https://photos.example.com, aby łączyć się z hostem udostępniania pod innym adresem (na przykład w sieci lokalnej). Przekierowania nie są obsługiwane: wskaż adres, który odpowiada bezpośrednio, na przykład adres https, jeśli http tam przekierowuje.",
+        "data": {
+          "interval_min": "Odstęp synchronizacji",
+          "max_edge": "Najdłuższa krawędź",
+          "quality": "Jakość JPEG",
+          "free_floor_gb": "Minimalne wolne miejsce na dysku",
+          "host_map": "Mapa hostów"
+        }
+      }
+    },
+    "error": {
+      "invalid_link": "To nie jest link udostępniania Synology Photos (https://host/mo/sharing/…) albo zawiera dane logowania.",
+      "already_added": "Ten album jest już dodany.",
+      "wrong_password": "Hasło linku jest błędne lub go brakuje.",
+      "unreachable": "Host udostępniania jest nieosiągalny. Sprawdź link, sieć lub mapę hostów.",
+      "invalid_host_map": "Każdy wiersz musi mieć postać `z -> do`, a obie strony to sam adres źródłowy: http lub https, host i opcjonalnie port, bez ścieżki, zapytania, końcowego ukośnika i nazwy użytkownika.",
+      "album_busy": "Ten album jest właśnie synchronizowany. Spróbuj ponownie po zakończeniu.",
+      "unknown_album": "Ten album już nie istnieje.",
+      "share_error": "Pierwsza synchronizacja tego albumu się nie powiodła. Sprawdź link, folder zdjęć i wolne miejsce na dysku, a potem spróbuj ponownie."
+    },
+    "abort": {
+      "not_loaded": "Wpis albumów nie jest załadowany. Przeładuj go i spróbuj ponownie.",
+      "no_albums": "Nie dodano jeszcze żadnego albumu."
+    }
+  },
+  "issues": {
+    "album_awaiting_confirmation": {
+      "title": "Album {name} czeka na potwierdzenie",
+      "description": "Ponad połowa zdjęć albumu {name} ({path}) zniknęła z udostępnienia, dlatego żadne zdjęcie nie zostało usunięte. Jeśli tak ma być, wywołaj akcję domosenso_frame.album_sync dla tego albumu z confirm_deletions albo użyj Synchronizuj teraz z opcją Potwierdź wstrzymane usunięcia."
+    },
+    "album_path_collision": {
+      "title": "Album {name} trafił do innego folderu",
+      "description": "Docelowy folder albumu {name} należy już do czegoś innego, więc album zapisano w {path}. Jeśli ma leżeć gdzie indziej, zmień nazwę lub przenieś tamten folder albo ustaw folder dla tego albumu."
+    }
+  },
+  "services": {
+    "album_add": {
+      "name": "Dodaj album",
+      "description": "Dodaje udostępniony album Synology Photos bez hasła i wykonuje pierwszą synchronizację. Dla linku z hasłem zwraca album ze statusem auth_failed: takie linki dodaj w opcjach integracji (Konfiguruj -> Dodaj album).",
+      "fields": {
+        "url": {
+          "name": "Link udostępniania",
+          "description": "Link udostępniania Synology Photos."
+        },
+        "path": {
+          "name": "Folder",
+          "description": "Folder w folderze zdjęć; puste oznacza rok/miesiąc/nazwa albumu."
+        }
+      }
+    },
+    "album_remove": {
+      "name": "Usuń album",
+      "description": "Usuwa album: kasuje zsynchronizowane zdjęcia i znacznik synchronizacji, a folder tylko wtedy, gdy nic innego w nim nie ma.",
+      "fields": {
+        "album_id": {
+          "name": "ID albumu",
+          "description": "ID z atrybutu albums czujnika sensor.domosenso_frame_albums."
+        }
+      }
+    },
+    "album_sync": {
+      "name": "Synchronizuj albumy",
+      "description": "Od razu synchronizuje jeden album lub wszystkie.",
+      "fields": {
+        "album_id": {
+          "name": "ID albumu",
+          "description": "ID albumu do synchronizacji; puste oznacza wszystkie."
+        },
+        "confirm_deletions": {
+          "name": "Potwierdź usunięcia",
+          "description": "Usuń zdjęcia, które wstrzymana synchronizacja zachowała, bo zniknęła ponad połowa."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_link": {
+      "message": "To nie jest link udostępniania Synology Photos."
+    },
+    "already_added": {
+      "message": "Ten album jest już dodany."
+    },
+    "unknown_album": {
+      "message": "Nieznane ID albumu."
     }
   }
 }

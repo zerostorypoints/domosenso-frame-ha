@@ -29,6 +29,7 @@ from .assistant_api import setup as setup_assistant
 from .timer_api import setup as setup_timers
 from .control_api import setup as setup_controls
 from .timers import validate_mapping as validate_timers
+from . import albums
 
 DOMAIN='domosenso_frame'
 LABEL=vol.All(str,vol.Length(min=1,max=80))
@@ -52,6 +53,7 @@ async def async_setup(hass,config):
     return await _async_setup_bridge(hass,config[DOMAIN],'yaml')
 
 async def async_setup_entry(hass,entry):
+    if entry.data.get('kind')=='albums':return await albums.async_setup_entry(hass,entry)
     if DOMAIN in hass.data:
         return hass.data[DOMAIN].get('entry_id')==entry.entry_id
     # Validate persisted shape, but do not rediscover: sources may be offline at startup.
@@ -68,6 +70,7 @@ async def async_setup_entry(hass,entry):
         raise
 
 async def async_unload_entry(hass,entry):
+    if entry.data.get('kind')=='albums':return await albums.async_unload_entry(hass,entry)
     state=hass.data.get(DOMAIN)
     if not state or state.get('entry_id')!=entry.entry_id:return True
     # Notify directly before teardown: bus callbacks can run after proofs are gone.
@@ -85,6 +88,9 @@ async def async_unload_entry(hass,entry):
     hass.data.pop(DOMAIN)
     frontend.async_remove_panel(hass,DOMAIN)
     return True
+
+async def async_remove_entry(hass,entry):
+    if entry.data.get('kind')=='albums':await albums.async_remove_entry(hass,entry)
 
 async def register_static_paths(hass,paths):
     registered=hass.data.setdefault(DOMAIN+'_static_paths',set())

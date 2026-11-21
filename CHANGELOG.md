@@ -1,5 +1,27 @@
 # Changes
 
+## 0.6.0 — pending release
+
+- Add synced photo albums: a second config-entry kind, "Photo albums", copies Synology Photos
+  share links into a photo folder for Ramka. Photos are converted to screen-sized JPEG files
+  (HEIC supported through `pillow-heif`), GPS location is always removed, and the link password
+  stays in `.storage`. See [photo albums](docs/albums.md).
+- Add the `album_add`, `album_remove` and `album_sync` actions (administrators only, with
+  responses) and `sensor.domosenso_frame_albums`.
+- Hold deletions that would remove more than half of an album and ask for confirmation.
+- Install `pillow-heif` 1.8.1 from the albums entry setup, in the background, instead of a manifest
+  requirement: the bridge never depends on it, and without network the albums entry still loads
+  and converts HEIC photos from the share's thumbnail (`heic: thumbnails`).
+- `album_add` takes no password, because service data is recorded in `call_service` events; a
+  link with a password is added in the options form.
+- Sync Live Photos as photos; fall back to the share's thumbnail when an original cannot be
+  decoded, and retry skipped photos at most once a day while the album is unchanged.
+- One album syncs at a time; redirects are not followed, a response is limited to 200 MB and a
+  request to 15 minutes; a missing photo folder is reported as `photo_dir_missing` and never
+  created again.
+- Skip the photo listing while the album's version, name and local files are unchanged, with a
+  full listing at least once a day.
+
 ## 0.5.0 — pending release
 
 - Offer optional HiFiSync pages in the existing Studio layout, with the Studio 0.2.7 renderer.

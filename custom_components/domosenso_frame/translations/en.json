@@ -3,6 +3,14 @@
     "step": {
       "user": {
         "title": "Set up DomoSenso Frame",
+        "description": "Choose what to add. The bridge serves the frame endpoint for the Android app; albums sync shared Synology Photos albums into a photo folder for Ramka.",
+        "menu_options": {
+          "bridge": "Frame bridge",
+          "albums": "Photo albums"
+        }
+      },
+      "bridge": {
+        "title": "Set up DomoSenso Frame",
         "description": "Create one frame endpoint for the Android app. No custom dashboard or YAML is needed. You can edit source mappings later in the DomoSenso Frame sidebar.",
         "data": {
           "name": "Frame name",
@@ -23,15 +31,150 @@
           "radar_near_m": "Near distance (m)",
           "radar_off_delay_s": "Absence delay (seconds)"
         }
+      },
+      "albums": {
+        "title": "Set up photo albums",
+        "description": "Shared albums are copied into this folder as screen-sized JPEG files. Everything in it is readable without login when it lies under /config/www, so add only albums you are fine to show there. Add albums afterwards with Configure.",
+        "data": {
+          "photo_dir": "Photo folder"
+        }
       }
     },
     "error": {
       "invalid_settings": "Enter a frame name of 1–80 characters and choose a supported language.",
-      "invalid_sources": "Select existing sources of the indicated type. Use at most 32 temperature sensors, 32 air sensors and 16 calendars, without duplicates."
+      "invalid_sources": "Select existing sources of the indicated type. Use at most 32 temperature sensors, 32 air sensors and 16 calendars, without duplicates.",
+      "invalid_photo_dir": "Enter the absolute path of an existing folder, for example /config/www/ramka."
     },
     "abort": {
-      "already_configured": "DomoSenso Frame is already configured. Open DomoSenso Frame in the sidebar to edit source mappings or pair a tablet.",
+      "already_configured": "This part of DomoSenso Frame is already configured. For the bridge, open DomoSenso Frame in the sidebar to edit source mappings or pair a tablet. For albums, use Configure on the albums entry.",
       "yaml_configured": "DomoSenso Frame is configured in YAML. Existing endpoints and grants are preserved. Open DomoSenso Frame in the sidebar and use Map sources or Devices and pairing. UI setup does not replace YAML."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Photo albums",
+        "description": "Add or remove a shared album, sync now or change the settings.",
+        "menu_options": {
+          "add_album": "Add album",
+          "remove_album": "Remove album",
+          "sync_now": "Sync now",
+          "settings": "Settings"
+        }
+      },
+      "add_album": {
+        "title": "Add album",
+        "description": "Paste a Synology Photos share link, with its password if it has one. The first sync runs now and can take a while for a large album.",
+        "data": {
+          "url": "Share link",
+          "password": "Link password (if any)",
+          "path": "Folder inside the photo folder (optional)"
+        },
+        "data_description": {
+          "path": "Leave empty to use year/month/album name, for example 2026/11/Holiday."
+        }
+      },
+      "remove_album": {
+        "title": "Remove album",
+        "description": "Deletes the photos this album synced and its sync marker. The folder is deleted only if nothing else is left in it; files you added by hand stay. The shared album itself is not changed.",
+        "data": {
+          "album_id": "Album"
+        }
+      },
+      "sync_now": {
+        "title": "Sync now",
+        "description": "Leave the album empty to sync all albums. The sync runs in the background; the Albums sensor shows the result.",
+        "data": {
+          "album_id": "Album",
+          "confirm_deletions": "Confirm held deletions"
+        }
+      },
+      "settings": {
+        "title": "Album settings",
+        "description": "Host map lines read `from -> to`, each an origin such as https://photos.example.com, to reach the share host by another address (for example on the local network). Redirects are not followed: map to the address that answers directly, for example the https address if http redirects there.",
+        "data": {
+          "interval_min": "Sync interval",
+          "max_edge": "Longest edge",
+          "quality": "JPEG quality",
+          "free_floor_gb": "Keep free on disk",
+          "host_map": "Host map"
+        }
+      }
+    },
+    "error": {
+      "invalid_link": "This is not a Synology Photos share link (https://host/mo/sharing/…) or it contains credentials.",
+      "already_added": "This album is already added.",
+      "wrong_password": "The link password is wrong or missing.",
+      "unreachable": "The share host cannot be reached. Check the link, the network or the host map.",
+      "invalid_host_map": "Each line must read `from -> to`, where both sides are an origin only: http or https, host and optional port, without path, query, trailing slash or user name.",
+      "album_busy": "This album is syncing right now. Try again when the sync has finished.",
+      "unknown_album": "This album no longer exists.",
+      "share_error": "The first sync of this album failed. Check the link, the photo folder and the free disk space, then try again."
+    },
+    "abort": {
+      "not_loaded": "The albums entry is not loaded. Reload it and try again.",
+      "no_albums": "No albums have been added yet."
+    }
+  },
+  "issues": {
+    "album_awaiting_confirmation": {
+      "title": "Album {name} waits for confirmation",
+      "description": "More than half of the photos of album {name} ({path}) disappeared from the share, so no photo was deleted. If this is intended, call the action domosenso_frame.album_sync with this album and confirm_deletions, or use Sync now with Confirm held deletions."
+    },
+    "album_path_collision": {
+      "title": "Album {name} was placed in another folder",
+      "description": "The wanted folder for album {name} already belongs to something else, so the album was placed in {path}. Rename or move the other folder, or set a folder for this album, if you want it elsewhere."
+    }
+  },
+  "services": {
+    "album_add": {
+      "name": "Add album",
+      "description": "Adds a shared Synology Photos album without a password and runs its first sync. A link with a password returns the album with status auth_failed: add such links in the integration options (Configure -> Add album).",
+      "fields": {
+        "url": {
+          "name": "Share link",
+          "description": "Synology Photos share link."
+        },
+        "path": {
+          "name": "Folder",
+          "description": "Folder inside the photo folder; empty uses year/month/album name."
+        }
+      }
+    },
+    "album_remove": {
+      "name": "Remove album",
+      "description": "Removes an album: deletes the photos it synced and its sync marker, and the folder only if nothing else is left in it.",
+      "fields": {
+        "album_id": {
+          "name": "Album ID",
+          "description": "ID from the albums attribute of sensor.domosenso_frame_albums."
+        }
+      }
+    },
+    "album_sync": {
+      "name": "Sync albums",
+      "description": "Syncs one album or all albums now.",
+      "fields": {
+        "album_id": {
+          "name": "Album ID",
+          "description": "ID of the album to sync; empty syncs all."
+        },
+        "confirm_deletions": {
+          "name": "Confirm deletions",
+          "description": "Delete photos that a held sync kept because more than half disappeared."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_link": {
+      "message": "Not a Synology Photos share link."
+    },
+    "already_added": {
+      "message": "This album is already added."
+    },
+    "unknown_album": {
+      "message": "Unknown album ID."
     }
   }
 }
