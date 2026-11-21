@@ -206,6 +206,15 @@ def test_network_error_is_unreachable():
         asyncio.run(run())
 
 
+def test_4xx_is_unreachable_client_error():
+    async def run():
+        _, c = _client((404, 'text/html', b'missing'))
+        await c.login()
+    with pytest.raises(share.Unreachable) as err:
+        asyncio.run(run())
+    assert err.value.code == 'client_error'
+
+
 def test_non_200_is_unreachable():
     async def run():
         _, c = _client((502, 'text/html', b'bad'))

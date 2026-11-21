@@ -121,6 +121,8 @@ class ShareClient:
             raise Unreachable(str(err) or type(err).__name__) from err
         if 300 <= status < 400:  # redirects are not followed: map the final address in the host map
             raise Unreachable(f'HTTP {status}', 'redirect')
+        if 400 <= status < 500:  # the server answered but refused this request (e.g. no thumbnail)
+            raise Unreachable(f'HTTP {status}', 'client_error')
         if status != 200:
             raise Unreachable(f'HTTP {status}')
         return ctype, body

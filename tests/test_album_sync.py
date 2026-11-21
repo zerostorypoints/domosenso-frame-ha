@@ -590,3 +590,22 @@ def test_first_sync_of_empty_album_is_a_change(tmp_path):
     assert (res.record['status'], res.changed) == ('ok', True)
     assert marker(tmp_path / '2007/12/trip')['items'] == {}
     assert sync(res.record, FakeClient([]), tmp_path).changed is False
+
+
+def test_undecodable_original_with_refused_thumbnail_is_skipped(tmp_path):
+    for refused in (album_share.ShareError(117), album_share.NoDownload(804),
+                    album_share.Unreachable('HTTP 404', 'client_error')):
+        client = FakeClient([item(1), item(2)], originals={1: b'not an image'}, thumbs={1: refused})
+        (tmp_path / type(refused).__name__).mkdir()
+        res = sync(record(), client, tmp_path / type(refused).__name__)
+        assert (res.record['status'], res.record['skipped'], res.added) == ('ok', [1], 1), refused
+        assert set(marker(tmp_path / type(refused).__name__ / res.record['path'])['items']) == {'2'}
+
+
+def test_undecodable_original_thumbnail_network_failure_stays_album_level(tmp_path):
+    for err, status in ((album_share.Unreachable('HTTP 502'), 'unreachable'), (album_share.AuthFailed(1001), 'auth_failed')):
+        client = FakeClient([item(1)], originals={1: b'not an image'}, thumbs={1: err})
+        (tmp_path / status).mkdir()
+        res = sync(record(), client, tmp_path / status)
+        assert res.record['status'] == status
+

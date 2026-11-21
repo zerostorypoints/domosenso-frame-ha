@@ -297,7 +297,18 @@ async def _convert(run: _Run, client: ShareClient, item: RemoteItem, raw: bytes,
             return None
         if isinstance(err, album_image.HeifUnavailable):
             run.heic_thumbs = True
-        thumb = await client.thumbnail(item)  # client errors take the album-level path
+            thumb = await client.thumbnail(item)  # client errors take the album-level path
+        else:
+            try:  # an undecodable original whose thumbnail the server refuses is skipped, not fatal
+                thumb = await client.thumbnail(item)
+            except AuthFailed:
+                raise
+            except ShareError:
+                return None
+            except Unreachable as refused:
+                if refused.code != 'client_error':
+                    raise
+                return None
         try:
             return await _normalize(run, thumb)
         except (album_image.HeifUnavailable, *_BAD_IMAGE):
