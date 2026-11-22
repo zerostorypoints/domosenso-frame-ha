@@ -1,5 +1,13 @@
 # Upgrade notes
 
+## Photo albums on the frame (0.6.0)
+
+Photo album management is opt-in per panel and needs `domosenso_photos` 0.2.0 or later in the
+same Home Assistant. Opt a YAML endpoint in with its `photo_albums` key (`entity` and `script` of
+Ramka's album choice), or a UI-configured panel in the integration options. The options form
+validates the sensor and script like the YAML key. Without the opt-in nothing changes: the
+profile does not advertise `photoAlbumsVersion` and the album commands are refused.
+
 ## Optional HiFiSync music screens (0.5.0 candidate)
 
 Use HiFiSync for Home Assistant 0.2.0 or later, a compatible Frame app and

@@ -7,7 +7,7 @@ arrange screens in Frame Studio and approve Android tablets using a six-digit co
 Works with DomoSenso installations and vanilla Home Assistant. The Android/AI app
 is maintained separately; this repository contains no app binaries or AI models.
 
-**Version 0.5.0 is a pending alpha/pilot release. Requires Home Assistant 2026.9.2 or newer.**
+**Version 0.6.0 is a pending alpha/pilot release. Requires Home Assistant 2026.9.2 or newer.**
 
 This development branch adds component-backed assistant answers and an explicit source-selection
 panel. The published HACS release remains unchanged until this branch is reviewed and released.
@@ -158,3 +158,72 @@ Now Playing view. Keep the app paired and select its regular HA dashboard.
 Use the same player mapping and panel switch described above, then opt in
 through the Ramka component inputs. The app keeps the existing dashboard
 and the HiFiSync token stays in the separately installed integration.
+
+## Photo albums on the frame
+
+A paired frame can show the photo albums of the separately installed `domosenso_photos`
+component and let the person at the tablet add, remove and re-sync Synology Photos share
+links and choose which albums Ramka displays. The feature is off for every panel until an
+administrator opts that panel in.
+
+Prerequisites:
+
+- `domosenso_photos` 0.2.0 or newer, loaded in the same Home Assistant.
+- Ramka's photo album choice: `sensor.<prefix>_photo_albums` (attributes `available`,
+  `chosen`, `all`) and `script.<prefix>_photo_albums_set` (fields `chosen`, `all_albums`).
+- A Frame Android app build that supports photo albums (the profile advertises
+  `photoAlbumsVersion: 1`).
+
+Opt in a YAML endpoint with a `photo_albums` key:
+
+```yaml
+domosenso_frame:
+  endpoints:
+    - id: living_room
+      name: Living room frame
+      dashboard: /lovelace
+      display: {}
+      photo_albums:
+        entity: sensor.ramka_photo_albums
+        script: script.ramka_photo_albums_set
+```
+
+A panel created in the UI opts in through **Settings → Devices & services → DomoSenso Frame →
+Configure**: switch on **Album management on this frame** and select the Ramka album choice
+sensor and script (prefilled when exactly one matching pair exists). Reload the entry or restart
+Home Assistant after changing YAML or options.
+
+Commands (WebSocket type `domosenso_frame/<name>`, each with `version: 1`, `endpoint` and
+`deviceId`):
+
+| Command | Fields | Result |
+| --- | --- | --- |
+| `photo_albums` | none | `albums` and `ramka` (`available`, `chosen`, `all`; `null` when the sensor is missing; without an `all` attribute, `all` is true when nothing is chosen) |
+| `photo_album_add` | `url`, optional `password` | `id`, `name`; checks the link first, the first sync runs in the background |
+| `photo_album_remove` | `albumId` | `status` |
+| `photo_album_sync` | `albumId` | `status: started` |
+| `photo_albums_choose` | `chosen` (names), `all` | `status: saved`; accepts only names that are available or already chosen |
+
+Failures arrive as the WebSocket error code, with a fixed message:
+
+| Code | Meaning |
+| --- | --- |
+| `frame_denied` | no valid pairing for this endpoint, or the panel has not opted in |
+| `photos_unavailable` | `domosenso_photos` missing, too old, unloading or failed |
+| `invalid_link` | not a share link |
+| `already_added` | the album is already on the frame |
+| `wrong_password` | the album needs a password or the password is wrong |
+| `unreachable` | the album cannot be reached |
+| `unknown_album` | no such album id |
+| `invalid_choice` | malformed choice or a name that is not available |
+| `ramka_unavailable` | the Ramka sensor or script is missing |
+
+Security model: only a paired, administrator-approved device holding a valid grant for the
+opted-in endpoint can call the commands. Each panel opts in separately, and the frame's Home
+Assistant user receives no administrator rights. An album password is passed only to
+`domosenso_photos`; it is never returned, stored by the bridge or placed in a result, error
+message or this integration's log lines.
+
+Known limit: Home Assistant's own `homeassistant.components.websocket_api` DEBUG logging writes
+every received WebSocket command unredacted, so with that logger at DEBUG an album password typed
+on the frame appears in the HA log. Leave that logger at its default level.

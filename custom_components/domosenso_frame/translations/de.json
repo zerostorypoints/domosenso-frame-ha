@@ -33,5 +33,25 @@
       "already_configured": "DomoSenso Frame ist bereits eingerichtet. Öffnen Sie DomoSenso Frame in der Seitenleiste, um Quellen zu ändern oder ein Tablet zu koppeln.",
       "yaml_configured": "DomoSenso Frame ist über YAML eingerichtet. Vorhandene Endpunkte und Freigaben bleiben erhalten. Öffnen Sie DomoSenso Frame in der Seitenleiste und verwenden Sie Map sources oder Devices and pairing. Die Einrichtung ersetzt kein YAML."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Albenverwaltung auf diesem Rahmen",
+        "description": "Die Albenverwaltung erlaubt diesem Rahmen, Alben hinzuzufügen und zu entfernen. Wählen Sie Sensor und Skript der Ramka-Albumauswahl.",
+        "data": {
+          "photo_albums_enabled": "Albenverwaltung auf diesem Rahmen",
+          "photo_albums_entity": "Ramka-Albumauswahl-Sensor",
+          "photo_albums_script": "Ramka-Albumauswahl-Skript"
+        }
+      }
+    },
+    "error": {
+      "albums_required": "Aktivieren Sie die Albenverwaltung und wählen Sie Albumauswahl-Sensor und -Skript.",
+      "invalid_albums": "Wählen Sie einen Sensor (sensor.…) und ein Skript (script.…) mit gültigen Entitäts-IDs."
+    },
+    "abort": {
+      "yaml_configured": "Die Albenverwaltung kann hier nicht geändert werden, solange DomoSenso Frame über YAML eingerichtet ist. Setzen Sie `photo_albums` am Endpunkt in YAML."
+    }
   }
 }

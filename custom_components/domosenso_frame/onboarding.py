@@ -29,3 +29,26 @@ def build_endpoint(settings,states):
     if settings.get('radar_presence') or settings.get('radar_distance'):
         patch['radar']={key:settings['radar_'+key] for key in ('presence','distance','near_m','off_delay_s') if settings.get('radar_'+key) is not None}
     return merge_patch(endpoint,patch,states)
+
+def endpoint_with_options(endpoint,options):
+    result={key:value for key,value in endpoint.items() if key!='photo_albums'}
+    if options.get('photo_albums_enabled'):
+        entity,script=options.get('photo_albums_entity'),options.get('photo_albums_script')
+        if not entity or not script:raise ValueError('Album sensor and script are required')
+        result['photo_albums']={'entity':entity,'script':script}
+    return result
+
+def options_error(endpoint,options,validate):
+    """None when the options give a valid endpoint under validate (the YAML endpoint schema), else the form error."""
+    try:candidate=endpoint_with_options(endpoint,options)
+    except ValueError:return 'albums_required'
+    try:validate(candidate)
+    except Exception:return 'invalid_albums'  # vol.Invalid and validators' ValueError/TypeError
+    return None
+
+def suggest_photo_albums(states):
+    ids=set(states.async_entity_ids())
+    pairs=[(eid,'script.'+eid[7:-13]+'_photo_albums_set') for eid in sorted(ids) if eid.startswith('sensor.') and eid.endswith('_photo_albums')]
+    pairs=[pair for pair in pairs if pair[1] in ids]
+    scripts=[eid for eid in ids if eid.startswith('script.') and eid.endswith('_photo_albums_set')]
+    return pairs[0] if len(pairs)==1 and len(scripts)==1 else (None,None)

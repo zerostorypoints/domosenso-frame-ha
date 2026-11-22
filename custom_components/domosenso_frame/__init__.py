@@ -28,16 +28,19 @@ from .studio_api import setup as setup_studio
 from .assistant_api import setup as setup_assistant
 from .timer_api import setup as setup_timers
 from .control_api import setup as setup_controls
+from . import photo_albums_api
+from .onboarding import endpoint_with_options
 from .timers import validate_mapping as validate_timers
 
 DOMAIN='domosenso_frame'
 LABEL=vol.All(str,vol.Length(min=1,max=80))
 SOURCE=vol.Schema({vol.Required('entity'):cv.entity_id,vol.Required('label'):LABEL,
     vol.Optional('metric'):vol.In((*METRICS,'temperature')),vol.Optional('indoor'):cv.boolean,vol.Optional('policy'):validate_policy})
+PHOTO_ALBUMS=vol.Schema({vol.Required('entity'):vol.All(cv.entity_id,vol.Match(r'^sensor\.')),vol.Required('script'):vol.All(cv.entity_id,vol.Match(r'^script\.'))})
 DISPLAY=vol.Schema({vol.Optional('locale',default='en'):vol.In(['en','de','pl']),vol.Optional('config'):validate_config,vol.Optional('weather'):cv.entity_id,vol.Optional('status',default=[]):vol.All([vol.Schema({vol.Required('entity'):cv.entity_id,vol.Required('label'):LABEL})],vol.Length(max=64)),vol.Optional('mode_entity'):cv.entity_id,vol.Optional('page_entity'):cv.entity_id})
 ENDPOINT=vol.Schema({vol.Required('id'):vol.Match(r'^[a-z][a-z0-9_-]{0,39}$'),vol.Required('name'):LABEL,
     vol.Optional('semantic_version'):vol.In([1]),vol.Optional('metadata_source'):vol.Schema({'component':LABEL,'revision':vol.All(str,vol.Length(max=160))}),
-    vol.Optional('hifisync',default=False):cv.boolean,vol.Optional('timers'):validate_timers,vol.Optional('radar'):validate_radar,vol.Optional('display'):DISPLAY,vol.Optional('studio'):validate_sources,
+    vol.Optional('hifisync',default=False):cv.boolean,vol.Optional('timers'):validate_timers,vol.Optional('radar'):validate_radar,vol.Optional('display'):DISPLAY,vol.Optional('studio'):validate_sources,vol.Optional('photo_albums'):PHOTO_ALBUMS,
     vol.Required('dashboard'):vol.All(str,vol.Match(r'^/(?!/|auth/|api/)[A-Za-z0-9_/-]+$')),
     vol.Optional('temperature',default=[]):vol.All([SOURCE],vol.Length(max=64)),
     vol.Optional('air',default=[]):vol.All([SOURCE],vol.Length(max=64)),
@@ -55,8 +58,11 @@ async def async_setup_entry(hass,entry):
     if DOMAIN in hass.data:
         return hass.data[DOMAIN].get('entry_id')==entry.entry_id
     # Validate persisted shape, but do not rediscover: sources may be offline at startup.
-    settings=CONFIG_SCHEMA({DOMAIN:{'endpoints':[dict(entry.data['endpoint'])]}})[DOMAIN]
-    try:return await _async_setup_bridge(hass,settings,'ui',entry.entry_id)
+    try:
+        settings=CONFIG_SCHEMA({DOMAIN:{'endpoints':[endpoint_with_options(dict(entry.data['endpoint']),entry.options)]}})[DOMAIN]
+        ok=await _async_setup_bridge(hass,settings,'ui',entry.entry_id)
+        if ok:entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
+        return ok
     except Exception:
         failed=hass.data.get(DOMAIN,{})
         if radar:=failed.get('radar'):radar.close()
@@ -66,6 +72,9 @@ async def async_setup_entry(hass,entry):
         hass.data.pop(DOMAIN,None)
         frontend.async_remove_panel(hass,DOMAIN,warn_if_unknown=False)
         raise
+
+async def _async_reload_entry(hass,entry):
+    await hass.config_entries.async_reload(entry.entry_id)
 
 async def async_unload_entry(hass,entry):
     state=hass.data.get(DOMAIN)
@@ -137,6 +146,10 @@ async def _async_setup_bridge(hass,settings,source,entry_id=None):
         await setup_controls(hass,grant,register_command)
     except Exception:
         logging.getLogger(__name__).exception('Assistant controls unavailable; existing bridge remains active')
+    try:
+        await photo_albums_api.setup(hass,grant,register_command)
+    except Exception:
+        logging.getLogger(__name__).exception('Photo album commands unavailable; existing bridge remains active')
     state=hass.data[DOMAIN]
     def later(delay,fn):
         handle=hass.loop.call_later(delay,fn)
@@ -175,7 +188,7 @@ def profile(hass,connection,msg):
       'endpoints':[{'id':e['id'],'name':e['name'],'dashboard':e['dashboard'],'rooms':[s['label'] for s in e['temperature']],
        **({'assistantMetadataVersions':[2]} if state.get('assistant_metadata_read_enabled') and state.get('assistant_metadata_legacy_enabled') and e['id'] in state.get('assistant_metadata_verified_endpoints', ()) else {}),
        **({'assistantActionMetadataVersions':[2]} if projection_enabled(state, e['id']) else {}),
-       **({'capabilitiesVersion':1} if state.get('studio_ready') else {}),
+       **({'capabilitiesVersion':1} if state.get('studio_ready') else {}),**photo_albums_api.profile_fields(hass,e),
        **({'hifisyncStudioVersion':1} if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else {}),
        **({'hifisyncVersion':1,'hifisyncDrawingsVersion':1} if state.get('studio_ready') and e.get('hifisync') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else {}),'semanticVersion':e.get('semantic_version',0),'displayVersion':1 if 'display' in e else 0,'studioVersion':2 if state.get('studio_ready') and 'display' in e and e['id'] not in state['studio_library'].saved.get('migrationErrors',{}) else 0,
        'topics':[t for t,key in [('temperature','temperature'),('air','air'),('calendar','calendars')] if e[key]]} for e in state['endpoints'].values()]})

@@ -33,5 +33,25 @@
       "already_configured": "DomoSenso Frame jest już skonfigurowany. Otwórz DomoSenso Frame w menu bocznym, aby zmienić źródła lub sparować tablet.",
       "yaml_configured": "DomoSenso Frame jest skonfigurowany w YAML. Istniejące panele i uprawnienia pozostają zachowane. Otwórz DomoSenso Frame w menu bocznym i wybierz Map sources lub Devices and pairing. Kreator nie zastępuje konfiguracji YAML."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Zarządzanie albumami na tej ramce",
+        "description": "Zarządzanie albumami pozwala tej ramce dodawać i usuwać albumy. Wybierz czujnik i skrypt wyboru albumu Ramka.",
+        "data": {
+          "photo_albums_enabled": "Zarządzanie albumami na tej ramce",
+          "photo_albums_entity": "Czujnik wyboru albumu Ramka",
+          "photo_albums_script": "Skrypt wyboru albumu Ramka"
+        }
+      }
+    },
+    "error": {
+      "albums_required": "Włącz zarządzanie albumami i wybierz czujnik oraz skrypt wyboru albumu.",
+      "invalid_albums": "Wybierz czujnik (sensor.…) i skrypt (script.…) o prawidłowych identyfikatorach encji."
+    },
+    "abort": {
+      "yaml_configured": "Zarządzania albumami nie można zmienić tutaj, gdy DomoSenso Frame jest skonfigurowany w YAML. Ustaw `photo_albums` dla panelu w konfiguracji YAML."
+    }
   }
 }
