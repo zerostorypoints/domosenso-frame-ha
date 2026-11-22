@@ -58,8 +58,8 @@ async def async_setup_entry(hass,entry):
     if DOMAIN in hass.data:
         return hass.data[DOMAIN].get('entry_id')==entry.entry_id
     # Validate persisted shape, but do not rediscover: sources may be offline at startup.
-    settings=CONFIG_SCHEMA({DOMAIN:{'endpoints':[endpoint_with_options(dict(entry.data['endpoint']),entry.options)]}})[DOMAIN]
     try:
+        settings=CONFIG_SCHEMA({DOMAIN:{'endpoints':[endpoint_with_options(dict(entry.data['endpoint']),entry.options)]}})[DOMAIN]
         ok=await _async_setup_bridge(hass,settings,'ui',entry.entry_id)
         if ok:entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
         return ok

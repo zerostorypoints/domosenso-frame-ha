@@ -38,7 +38,9 @@ def ramka(hass,config):
     state=hass.states.get(config['entity'])
     if state is None:return None
     names=lambda key:[n for n in state.attributes.get(key) or [] if isinstance(n,str)]
-    return {'available':names('available'),'chosen':names('chosen'),'all':bool(state.attributes.get('all'))}
+    chosen=names('chosen');everything=state.attributes.get('all')
+    # An older Ramka sensor has no 'all': like the Ramka card, nothing chosen means all albums.
+    return {'available':names('available'),'chosen':chosen,'all':not chosen if everything is None else bool(everything)}
 
 
 async def albums(hass,connection,msg,api,config):
@@ -90,19 +92,24 @@ COMMANDS={'photo_albums':command(albums),'photo_album_add':command(add),'photo_a
     'photo_album_sync':command(sync),'photo_albums_choose':command(choose)}
 
 
-async def setup(hass,grant,register_command):
-    import voluptuous as vol
-    from homeassistant.components import websocket_api
+def schema_fields(vol):
     def version(value):
         if type(value) is not int or value!=1:raise vol.Invalid('Unsupported photo albums version')
         return value
-    # Lengths of url, password and names are checked in the handlers: a schema error would echo the value.
+    # Types and lengths of url and password, and lengths of names, are checked in the handlers:
+    # a schema error would echo the value.
     base={vol.Required('version'):version,vol.Required('endpoint'):vol.All(str,vol.Length(min=1,max=40)),vol.Required('deviceId'):vol.All(str,vol.Length(min=1,max=256))}
-    fields={'photo_albums':{},'photo_album_add':{vol.Required('url'):str,vol.Optional('password'):str},
+    return {name:{**base,**extra} for name,extra in {'photo_albums':{},'photo_album_add':{vol.Required('url'):object,vol.Optional('password'):object},
         'photo_album_remove':{vol.Required('albumId'):str},'photo_album_sync':{vol.Required('albumId'):str},
-        'photo_albums_choose':{vol.Required('chosen'):list,vol.Required('all'):bool}}
+        'photo_albums_choose':{vol.Required('chosen'):list,vol.Required('all'):bool}}.items()}
+
+
+async def setup(hass,grant,register_command):
+    import voluptuous as vol
+    from homeassistant.components import websocket_api
+    fields=schema_fields(vol)
     def handler(name):
-        @websocket_api.websocket_command({vol.Required('type'):DOMAIN+'/'+name,**base,**fields[name]})
+        @websocket_api.websocket_command({vol.Required('type'):DOMAIN+'/'+name,**fields[name]})
         @websocket_api.async_response
         async def run(h,c,msg):await COMMANDS[name](h,c,msg,grant)
         return run

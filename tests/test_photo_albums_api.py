@@ -137,3 +137,29 @@ def test_profile_flag():
     r = Rig(opt_in=False); assert api.profile_fields(r.hass, r.endpoint) == {}
     r = Rig(); r.facade.version = 2; assert api.profile_fields(r.hass, r.endpoint) == {}
     r = Rig(); r.hass.data.clear(); assert api.profile_fields(r.hass, r.endpoint) == {}
+
+
+def test_ramka_all_missing_follows_chosen():
+    r = Rig(); r.states['sensor.ramka_photo_albums'].attributes.pop('all')
+    assert r.call('photo_albums')['ramka']['all'] is True
+    r = Rig(); r.states['sensor.ramka_photo_albums'].attributes = {'available': ['2007', '2026'], 'chosen': ['2007']}
+    assert r.call('photo_albums')['ramka'] == {'available': ['2007', '2026'], 'chosen': ['2007'], 'all': False}
+    r = Rig(); r.states['sensor.ramka_photo_albums'].attributes['all'] = False
+    assert r.call('photo_albums')['ramka']['all'] is False
+
+
+def test_add_error_after_successful_check():
+    r = Rig()
+    async def taken(url, password):
+        r.facade.calls.append('add'); raise AlbumError('already_added')
+    r.facade.add = taken; r.call('photo_album_add', url=URL, password=PASSWORD)
+    assert r.code() == 'already_added' and r.facade.calls == ['check', 'add'] and not r.c.results
+
+
+def test_non_string_url_and_password_pass_schema_and_are_refused_without_echo():
+    vol = pytest.importorskip('voluptuous')
+    fields = module('photo_albums_api').schema_fields(vol)['photo_album_add']
+    for url, password, code in ((['x', PASSWORD], 'p', 'invalid_link'), (URL, {'p': PASSWORD}, 'wrong_password'), (7, None, 'invalid_link')):
+        msg = vol.Schema(fields)({'version': 1, 'endpoint': 'frame', 'deviceId': 'tablet', 'url': url, 'password': password})
+        r = Rig(); r.call('photo_album_add', **{k: msg[k] for k in ('url', 'password')})
+        assert r.code() == code and not r.facade.calls and PASSWORD not in repr(r.c.errors)

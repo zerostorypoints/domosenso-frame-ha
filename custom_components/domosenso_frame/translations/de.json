@@ -38,7 +38,7 @@
     "step": {
       "init": {
         "title": "Albenverwaltung auf diesem Rahmen",
-        "description": "Die Albenverwaltung erlaubt diesem Rahmen, Alben hinzuzufügen und zu entfernen. Wähle Sensor und Skript der Ramka-Albumauswahl.",
+        "description": "Die Albenverwaltung erlaubt diesem Rahmen, Alben hinzuzufügen und zu entfernen. Wählen Sie Sensor und Skript der Ramka-Albumauswahl.",
         "data": {
           "photo_albums_enabled": "Albenverwaltung auf diesem Rahmen",
           "photo_albums_entity": "Ramka-Albumauswahl-Sensor",
@@ -47,10 +47,11 @@
       }
     },
     "error": {
-      "albums_required": "Aktiviere die Albenverwaltung und wähle Albumauswahl-Sensor und -Skript."
+      "albums_required": "Aktivieren Sie die Albenverwaltung und wählen Sie Albumauswahl-Sensor und -Skript.",
+      "invalid_albums": "Wählen Sie einen Sensor (sensor.…) und ein Skript (script.…) mit gültigen Entitäts-IDs."
     },
     "abort": {
-      "yaml_configured": "DomoSenso Frame ist über YAML eingerichtet. Vorhandene Endpunkte und Freigaben bleiben erhalten. Öffnen Sie DomoSenso Frame in der Seitenleiste und verwenden Sie Map sources oder Devices and pairing. Die Einrichtung ersetzt kein YAML."
+      "yaml_configured": "Die Albenverwaltung kann hier nicht geändert werden, solange DomoSenso Frame über YAML eingerichtet ist. Setzen Sie `photo_albums` am Endpunkt in YAML."
     }
   }
 }

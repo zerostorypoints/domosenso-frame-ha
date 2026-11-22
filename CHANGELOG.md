@@ -4,7 +4,8 @@
 
 - Add opt-in photo album management for paired frames through `domosenso_photos` 0.2.0 or newer:
   list, add (with optional password), remove and re-sync albums, and save Ramka's album choice.
-  Opt in per panel with the `photo_albums` endpoint key or the options flow of UI-configured panels;
+  Opt in per panel with the `photo_albums` endpoint key or the options flow of UI-configured panels
+  (validated like the YAML key);
   failures return fixed WebSocket error codes. The album password goes only to `domosenso_photos`.
 - Known limit: Home Assistant's `homeassistant.components.websocket_api` DEBUG logging writes every
   received WebSocket command unredacted, so keep that logger at its default level.

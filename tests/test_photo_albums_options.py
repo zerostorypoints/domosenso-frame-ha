@@ -33,3 +33,14 @@ def test_suggests_single_pair():
     assert suggest(States('sensor.demo_photo_albums', 'script.demo_photo_albums_set', 'sensor.other')) == ('sensor.demo_photo_albums', 'script.demo_photo_albums_set')
     assert suggest(States('sensor.demo_photo_albums')) == (None, None)
     assert suggest(States('sensor.a_photo_albums', 'script.a_photo_albums_set', 'sensor.b_photo_albums', 'script.b_photo_albums_set')) == (None, None)
+
+
+def test_options_error_uses_endpoint_validation():
+    vol = pytest.importorskip('voluptuous')
+    validate = vol.Schema({vol.Optional('photo_albums'): vol.Schema({'entity': vol.Match(r'^sensor\.'), 'script': vol.Match(r'^script\.')})}, extra=vol.ALLOW_EXTRA)
+    error = module('onboarding').options_error
+    assert error(ENDPOINT, ON, validate) is None
+    assert error(ENDPOINT, {}, validate) is None
+    assert error(ENDPOINT, {**ON, 'photo_albums_script': ''}, validate) == 'albums_required'
+    assert error(ENDPOINT, {**ON, 'photo_albums_entity': 'light.demo_photo_albums'}, validate) == 'invalid_albums'
+    assert error(ENDPOINT, {**ON, 'photo_albums_script': 'sensor.demo_photo_albums_set'}, validate) == 'invalid_albums'

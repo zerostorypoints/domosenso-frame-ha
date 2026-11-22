@@ -4,7 +4,7 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 from . import DOMAIN, ENDPOINT
-from .onboarding import AIR_METRICS, CLASSES, build_endpoint, endpoint_with_options, suggest_photo_albums
+from .onboarding import AIR_METRICS, CLASSES, build_endpoint, options_error, suggest_photo_albums
 from .studio_mappings import discover
 
 class FrameOptionsFlow(config_entries.OptionsFlow):
@@ -12,8 +12,7 @@ class FrameOptionsFlow(config_entries.OptionsFlow):
         if self.hass.data.get(DOMAIN,{}).get('source')=='yaml':return self.async_abort(reason='yaml_configured')
         errors={}
         if user_input is not None:
-            try:endpoint_with_options(self.config_entry.data['endpoint'],user_input)
-            except ValueError:errors['base']='albums_required'
+            if error:=options_error(self.config_entry.data['endpoint'],user_input,ENDPOINT):errors['base']=error
             else:return self.async_create_entry(data=user_input)
         current=self.config_entry.options
         suggested=suggest_photo_albums(self.hass.states)

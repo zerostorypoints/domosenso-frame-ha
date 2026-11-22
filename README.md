@@ -198,7 +198,7 @@ Commands (WebSocket type `domosenso_frame/<name>`, each with `version: 1`, `endp
 
 | Command | Fields | Result |
 | --- | --- | --- |
-| `photo_albums` | none | `albums` and `ramka` (`available`, `chosen`, `all`; `null` when the sensor is missing) |
+| `photo_albums` | none | `albums` and `ramka` (`available`, `chosen`, `all`; `null` when the sensor is missing; without an `all` attribute, `all` is true when nothing is chosen) |
 | `photo_album_add` | `url`, optional `password` | `id`, `name`; checks the link first, the first sync runs in the background |
 | `photo_album_remove` | `albumId` | `status` |
 | `photo_album_sync` | `albumId` | `status: started` |
@@ -209,7 +209,7 @@ Failures arrive as the WebSocket error code, with a fixed message:
 | Code | Meaning |
 | --- | --- |
 | `frame_denied` | no valid pairing for this endpoint, or the panel has not opted in |
-| `photos_unavailable` | `domosenso_photos` missing, too old or failed |
+| `photos_unavailable` | `domosenso_photos` missing, too old, unloading or failed |
 | `invalid_link` | not a share link |
 | `already_added` | the album is already on the frame |
 | `wrong_password` | the album needs a password or the password is wrong |

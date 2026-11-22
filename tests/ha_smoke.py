@@ -27,7 +27,7 @@ async def main():
     loader.async_setup(hass)
     hass.config.time_zone='Europe/Zurich'
     try:
-        config={'http':{'server_host':'127.0.0.1','server_port':8123},'domosenso_frame':{'endpoints':[{'id':'frame','name':'Demo frame','dashboard':'/dashboard-ramka/ramka','display':{},'temperature':[{'entity':'sensor.demo_temperature','label':'Office'}]}]}}
+        config={'http':{'server_host':'127.0.0.1','server_port':8123},'domosenso_frame':{'endpoints':[{'id':'frame','name':'Demo frame','dashboard':'/dashboard-ramka/ramka','display':{},'temperature':[{'entity':'sensor.demo_temperature','label':'Office'}],'photo_albums':{'entity':'sensor.demo_photo_albums','script':'script.demo_photo_albums_set'}}]}}
         assert await bootstrap.async_from_config_dict(config,hass), 'component setup failed'
         state=hass.data['domosenso_frame']
         assert state.get('assistant_ready'), 'assistant setup failed'
@@ -52,6 +52,16 @@ async def main():
             return connection.results.get(n)
         profile=await request(1,'profile')
         assert profile['assistantVersion']==1
+        assert state['endpoints']['frame']['photo_albums']['entity']=='sensor.demo_photo_albums', 'photo_albums key not validated'
+        assert 'photoAlbumsVersion' not in profile['endpoints'][0], 'albums advertised without domosenso_photos'
+        import importlib
+        frame=importlib.import_module('custom_components.domosenso_frame')
+        options_error=importlib.import_module('custom_components.domosenso_frame.onboarding').options_error
+        album_options={'photo_albums_enabled':True,'photo_albums_entity':'sensor.demo_photo_albums','photo_albums_script':'script.demo_photo_albums_set'}
+        panel={'id':'panel','name':'Demo panel','dashboard':'/lovelace'}
+        assert options_error(panel,album_options,frame.ENDPOINT) is None, 'valid album options refused'
+        assert options_error(panel,{**album_options,'photo_albums_entity':'light.demo_photo_albums'},frame.ENDPOINT)=='invalid_albums', 'album options not validated'
+        assert options_error(panel,{**album_options,'photo_albums_script':'not an entity'},frame.ENDPOINT)=='invalid_albums', 'album options not validated'
         key=ec.generate_private_key(ec.SECP256R1())
         public=base64.b64encode(key.public_key().public_bytes(serialization.Encoding.DER,serialization.PublicFormat.SubjectPublicKeyInfo)).decode()
         begin=await request(2,'begin',publicKey=public,endpoint='frame',name='Demo tablet')
@@ -158,10 +168,21 @@ async def main():
             manual_answer=await request(39,'assistant_query',endpoint='frame',version=1,capability='plants.watering_need',revision=1,answerType='plant-watering.v1',arguments={})
             manual_display=await request(40,'studio_display',capabilitiesVersion=1)
             assert manual_answer and len(manual_answer['facts'])==1 and manual_display and len(manual_display['data']['plants'])==1, 'vanilla parity failed'
+        album_args={'endpoint':'frame','deviceId':pending['deviceId'],'version':1}
+        await request(50,'photo_albums',**album_args)
+        assert connection.errors.get(50,('',))[0]=='photos_unavailable' and 50 not in connection.results, 'albums without domosenso_photos'
+        class Albums:
+            version=1
+            def albums(self):return [{'id':'a1','name':'Lake trip','path':'2007/12/lake-trip','status':'ok'}]
+        hass.data['domosenso_photos_albums']=SimpleNamespace(frame_api=Albums())
+        listed=await request(51,'photo_albums',**album_args)
+        assert listed=={'albums':Albums().albums(),'ramka':None}, 'album list failed'
+        profile=await request(52,'profile')
+        assert profile['endpoints'][0].get('photoAlbumsVersion')==1, 'photoAlbumsVersion missing'
         state['grants'].revoke(pending['deviceId'])
         await request(6,'assistant_query',endpoint='frame',version=1,capability='climate-air.temperature',revision=1,answerType='temperature.v1',arguments={})
         assert 6 in connection.errors and 6 not in connection.results
-        summary={'setup':'ok','studio':'ok','profile':'v1','pairing':'signed-and-approved','capabilities':'ok','query':'qualified unknown source','directTemperature':'ok','ruuviIndex':'ok','revocation':'denied'}
+        summary={'setup':'ok','studio':'ok','profile':'v1','pairing':'signed-and-approved','capabilities':'ok','query':'qualified unknown source','directTemperature':'ok','ruuviIndex':'ok','photoAlbums':'unavailable-then-listed','photoAlbumsProfile':'v1','albumOptions':'validated','revocation':'denied'}
         if compiler_fixtures:summary.update({'compilerArtifacts':'loaded','floorplan':'explanation-only','plants':'compiled-selected-and-queried','metadataRemoval':'disabled','futurePlants':'2-to-3-auto-refreshed-and-displayed','vanilla':'manual-source-shared-with-display'})
         print(json.dumps(summary))
     finally:

@@ -38,6 +38,14 @@ def endpoint_with_options(endpoint,options):
         result['photo_albums']={'entity':entity,'script':script}
     return result
 
+def options_error(endpoint,options,validate):
+    """None when the options give a valid endpoint under validate (the YAML endpoint schema), else the form error."""
+    try:candidate=endpoint_with_options(endpoint,options)
+    except ValueError:return 'albums_required'
+    try:validate(candidate)
+    except Exception:return 'invalid_albums'  # vol.Invalid and validators' ValueError/TypeError
+    return None
+
 def suggest_photo_albums(states):
     ids=set(states.async_entity_ids())
     pairs=[(eid,'script.'+eid[7:-13]+'_photo_albums_set') for eid in sorted(ids) if eid.startswith('sensor.') and eid.endswith('_photo_albums')]

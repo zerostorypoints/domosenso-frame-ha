@@ -24,7 +24,7 @@ docker run --rm --pull never --network none \
 rm -rf "$HA_SMOKE_CONFIG"
 ```
 
-`HA_CONFIG_DIR` selects the config directory inside the environment and defaults to `/config`. The script bootstraps HA and invokes registered handler functions directly: it checks Studio and profile setup, signed P-256 pairing and approval, capability discovery, a qualified unknown-freshness query, and denial after revocation. It does not exercise a full WebSocket transport, HTTP, browser, Android client, or physical device. Its success output contains status labels only.
+`HA_CONFIG_DIR` selects the config directory inside the environment and defaults to `/config`. The script bootstraps HA and invokes registered handler functions directly: it checks Studio and profile setup, signed P-256 pairing and approval, capability discovery, a qualified unknown-freshness query, the `photo_albums` endpoint key, album options validation, the photo album list without and with a fictional `domosenso_photos` facade, and denial after revocation. It does not exercise a full WebSocket transport, HTTP, browser, Android client, or physical device. Its success output contains status labels only.
 
 To additionally check framework compiler artifacts, use a checkout of the DomoSenso framework that contains `tests/generate_assistant_profiles.py` and has its Python environment set up (including `uv`). Set `FRAMEWORK_DIR` to that checkout and generate the fictional bundles into a fresh caller-owned HA config before running the smoke. For example, from this repository's root:
 

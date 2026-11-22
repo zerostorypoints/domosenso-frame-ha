@@ -47,10 +47,11 @@
       }
     },
     "error": {
-      "albums_required": "Włącz zarządzanie albumami i wybierz czujnik oraz skrypt wyboru albumu."
+      "albums_required": "Włącz zarządzanie albumami i wybierz czujnik oraz skrypt wyboru albumu.",
+      "invalid_albums": "Wybierz czujnik (sensor.…) i skrypt (script.…) o prawidłowych identyfikatorach encji."
     },
     "abort": {
-      "yaml_configured": "DomoSenso Frame jest skonfigurowany w YAML. Istniejące panele i uprawnienia pozostają zachowane. Otwórz DomoSenso Frame w menu bocznym i wybierz Map sources lub Devices and pairing. Kreator nie zastępuje konfiguracji YAML."
+      "yaml_configured": "Zarządzania albumami nie można zmienić tutaj, gdy DomoSenso Frame jest skonfigurowany w YAML. Ustaw `photo_albums` dla panelu w konfiguracji YAML."
     }
   }
 }

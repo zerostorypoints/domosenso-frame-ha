@@ -47,10 +47,11 @@
       }
     },
     "error": {
-      "albums_required": "Enable album management and choose both the album choice sensor and script."
+      "albums_required": "Enable album management and choose both the album choice sensor and script.",
+      "invalid_albums": "Choose a sensor (sensor.…) and a script (script.…) that are valid entity IDs."
     },
     "abort": {
-      "yaml_configured": "DomoSenso Frame is configured in YAML. Existing endpoints and grants are preserved. Open DomoSenso Frame in the sidebar and use Map sources or Devices and pairing. UI setup does not replace YAML."
+      "yaml_configured": "Album management can't be changed here while DomoSenso Frame is configured in YAML; set `photo_albums` on the endpoint in YAML."
     }
   }
 }
