@@ -33,5 +33,24 @@
       "already_configured": "DomoSenso Frame is already configured. Open DomoSenso Frame in the sidebar to edit source mappings or pair a tablet.",
       "yaml_configured": "DomoSenso Frame is configured in YAML. Existing endpoints and grants are preserved. Open DomoSenso Frame in the sidebar and use Map sources or Devices and pairing. UI setup does not replace YAML."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Album management on this frame",
+        "description": "Album management lets this frame add and remove albums. Select the sensor and script of the Ramka album choice.",
+        "data": {
+          "photo_albums_enabled": "Album management on this frame",
+          "photo_albums_entity": "Ramka album choice sensor",
+          "photo_albums_script": "Ramka album choice script"
+        }
+      }
+    },
+    "error": {
+      "albums_required": "Enable album management and choose both the album choice sensor and script."
+    },
+    "abort": {
+      "yaml_configured": "DomoSenso Frame is configured in YAML. Existing endpoints and grants are preserved. Open DomoSenso Frame in the sidebar and use Map sources or Devices and pairing. UI setup does not replace YAML."
+    }
   }
 }

@@ -29,6 +29,7 @@ from .assistant_api import setup as setup_assistant
 from .timer_api import setup as setup_timers
 from .control_api import setup as setup_controls
 from . import photo_albums_api
+from .onboarding import endpoint_with_options
 from .timers import validate_mapping as validate_timers
 
 DOMAIN='domosenso_frame'
@@ -57,8 +58,11 @@ async def async_setup_entry(hass,entry):
     if DOMAIN in hass.data:
         return hass.data[DOMAIN].get('entry_id')==entry.entry_id
     # Validate persisted shape, but do not rediscover: sources may be offline at startup.
-    settings=CONFIG_SCHEMA({DOMAIN:{'endpoints':[dict(entry.data['endpoint'])]}})[DOMAIN]
-    try:return await _async_setup_bridge(hass,settings,'ui',entry.entry_id)
+    settings=CONFIG_SCHEMA({DOMAIN:{'endpoints':[endpoint_with_options(dict(entry.data['endpoint']),entry.options)]}})[DOMAIN]
+    try:
+        ok=await _async_setup_bridge(hass,settings,'ui',entry.entry_id)
+        if ok:entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
+        return ok
     except Exception:
         failed=hass.data.get(DOMAIN,{})
         if radar:=failed.get('radar'):radar.close()
@@ -68,6 +72,9 @@ async def async_setup_entry(hass,entry):
         hass.data.pop(DOMAIN,None)
         frontend.async_remove_panel(hass,DOMAIN,warn_if_unknown=False)
         raise
+
+async def _async_reload_entry(hass,entry):
+    await hass.config_entries.async_reload(entry.entry_id)
 
 async def async_unload_entry(hass,entry):
     state=hass.data.get(DOMAIN)

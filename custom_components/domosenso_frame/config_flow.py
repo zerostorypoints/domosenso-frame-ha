@@ -1,13 +1,35 @@
 """Administrator onboarding for a vanilla or DomoSenso Home Assistant."""
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.core import callback
 from homeassistant.helpers import selector
 from . import DOMAIN, ENDPOINT
-from .onboarding import AIR_METRICS, CLASSES, build_endpoint
+from .onboarding import AIR_METRICS, CLASSES, build_endpoint, endpoint_with_options, suggest_photo_albums
 from .studio_mappings import discover
+
+class FrameOptionsFlow(config_entries.OptionsFlow):
+    async def async_step_init(self,user_input=None):
+        if self.hass.data.get(DOMAIN,{}).get('source')=='yaml':return self.async_abort(reason='yaml_configured')
+        errors={}
+        if user_input is not None:
+            try:endpoint_with_options(self.config_entry.data['endpoint'],user_input)
+            except ValueError:errors['base']='albums_required'
+            else:return self.async_create_entry(data=user_input)
+        current=self.config_entry.options
+        suggested=suggest_photo_albums(self.hass.states)
+        def entity(domain):return selector.EntitySelector(selector.EntitySelectorConfig(filter={'domain':domain}))
+        schema=vol.Schema({vol.Optional('photo_albums_enabled',default=False):selector.BooleanSelector(),
+            vol.Optional('photo_albums_entity'):entity('sensor'),vol.Optional('photo_albums_script'):entity('script')})
+        values=user_input or {'photo_albums_enabled':current.get('photo_albums_enabled',False),
+            'photo_albums_entity':current.get('photo_albums_entity') or suggested[0],'photo_albums_script':current.get('photo_albums_script') or suggested[1]}
+        return self.async_show_form(step_id='init',data_schema=self.add_suggested_values_to_schema(schema,values),errors=errors)
 
 class FrameConfigFlow(config_entries.ConfigFlow,domain=DOMAIN):
     VERSION=1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):return FrameOptionsFlow()
 
     def _existing(self):
         if self.hass.data.get(DOMAIN,{}).get('source')=='yaml':
