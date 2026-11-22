@@ -1,5 +1,14 @@
 # Changes
 
+## 0.6.0 — pending release
+
+- Add opt-in photo album management for paired frames through `domosenso_photos` 0.2.0 or newer:
+  list, add (with optional password), remove and re-sync albums, and save Ramka's album choice.
+  Opt in per panel with the `photo_albums` endpoint key or the options flow of UI-configured panels;
+  failures return fixed WebSocket error codes. The album password goes only to `domosenso_photos`.
+- Known limit: Home Assistant's `homeassistant.components.websocket_api` DEBUG logging writes every
+  received WebSocket command unredacted, so keep that logger at its default level.
+
 ## 0.5.0 — pending release
 
 - Offer optional HiFiSync pages in the existing Studio layout, with the Studio 0.2.7 renderer.
